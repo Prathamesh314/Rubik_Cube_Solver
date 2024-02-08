@@ -128,10 +128,57 @@ class Cube:
                         new_top[i][j] = top[j][n-i-1]
                 self.scrambled_cube[self.dirs["Top"]] = new_top 
                
+            else:
+                # If it is bottom row then top face wont be affected
+                face = self.scrambled_cube[self.dirs["Face"]]
+                right = self.scrambled_cube[self.dirs["Right"]]
+                left = self.scrambled_cube[self.dirs["Left"]]
+                back = self.scrambled_cube[self.dirs["Back"]]
+                bottom = self.scrambled_cube[self.dirs["Bottom"]]
+                n = len(face)
+                temp = face[n-1]
+                face[n-1] = right[n-1]
+                right[n-1] = back[n-1]
+                back[n-1] = left[n-1]
+                left[n-1] = temp
+
+                # rotate bottom face to left
+                
+                new_bottom = [[0]*3 for _ in range(3)]
+                m = len(face[0])
+                for i in range(n):
+                    for j in range(m):
+                        new_bottom[i][j] = bottom[j][n-i-1]
+                self.scrambled_cube[self.dirs["Bottom"]] = new_bottom
+        else:
+            # Moving to right side
+            # Again check top row or bottom row
+            if row == 0:
+                # bottom face wont get affected every other face will turn
+                face = self.scrambled_cube[self.dirs["Face"]]
+                right = self.scrambled_cube[self.dirs["Right"]]
+                left = self.scrambled_cube[self.dirs["Left"]]
+                back = self.scrambled_cube[self.dirs["Back"]]
+                top = self.scrambled_cube[self.dirs["Top"]]
+                temp = face[0]
+                face[0] = left[0]
+                left[0] = back[0]
+                back[0] = right[0]
+                right[0] = temp
+            
+                # rotate top face to right side
+                new_top = [[0]*3 for _ in range(3)]
+                n = len(face)
+                m = len(face[0])
+                for i in range(n):
+                    for j in range(m):
+                        new_top[i][j] = top[n-j-1][i]
+                self.scrambled_cube[self.dirs["Top"]] = new_top 
+
 cube = Cube(2)
 print("Original Scrambled Cube")
 cube.show_scramble_cube()
-cube.rotate_top(-1, 0)
-print("After rotating top Face")
+cube.rotate_top(1, 0)
+print("After rotating Top Face to Right side")
 cube.show_scramble_cube()
 
