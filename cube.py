@@ -228,44 +228,17 @@ class Cube:
             else:
                 # Back Plane
                 if dim == 0:
-                    if r == 0:
-                        lrow, lcol = r+1, c-1
-                        rrow, rcol = r+1, c+1
-                        if self.is_occupied(index_of_opp_color, color, lrow, lcol) and self.is_occupied(index_of_opp_color, color, rrow, rcol): 
-                            if self.is_occupied(index_of_opp_color, color, r,c):
-                                self.cube_helper.rotate_Z(self.scrambled_cube, -1, r)
-                                self.cube_helper.rotate_Y(self.scrambled_cube, 1, r)
-                                self.cube_helper.rotate_X(self.scrambled_cube, 1, c)
-                            else:
-                                self.cube_helper.rotate_Z(self.scrambled_cube, 1)
-                                self.cube_helper.rotate_Y(self.scrambled_cube, -1, r)
-                                self.cube_helper.rotate_X(self.scrambled_cube, 1, c)
-                        elif self.is_occupied(self.scrambled_cube, lrow, lcol):
-                            if self.is_occupied(index_of_opp_color, color, r,c):
-                               self.cube_helper.rotate_Z(self.scrambled_cube, -1, r)
-                               #self.cube_helper.rotate_Y(self.scrambled_cube, -1, r)
-                               self.cube_helper.rotate_X(self.scrambled_cube, 1, c)
-                            else:
-                                self.cube_helper.rotate_Z(self.scrambled_cube, -1, r)
-                                self.cube_helper.rotate_X(self.scrambled_cube, -1, c)
-                        elif self.is_occupied(index_of_opp_color, color, rrow, rcol):
-                            if self.is_occupied(self.scrambled_cube, r,c):
-                                self.cube_helper.rotate_Z(self.scrambled_cube, 1, r)
-                                self.cube_helper.rotate_X(self.scrambled_cube, -1, c)
-                            else:
-                                self.cube_helper.rotate_Z(self.scrambled_cube, -1, r)
-                                self.cube_helper.rotate_X(self.scrambled_cube, -1, c)
-                        else:
-                            self.cube_helper.rotate_Z(self.scrambled_cube, -1, r)
-                            self.cube_helper.rotate_X(self.scrambled_cube, -1, c)
+                   pass
 
-                    elif r == self.n-1:
-                        lrow, lcol = r-1, c-1
-                        rrow, rcol = r-1, c+1
-                    elif c == 0:
-                        pass
-                    else:
-                        pass
+                # Front
+                elif dim == 2:
+                    pass
+                # Left
+                elif dim == 4:
+                    pass
+                # Right
+                elif dim == 5:
+                    pass
                     
                         
 cube = Cube(2)
