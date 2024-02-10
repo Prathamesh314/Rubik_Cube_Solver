@@ -31,7 +31,7 @@ class Cube:
             "Green": "Blue",
             "Blue": "Green",
         }
-
+        self.orders = ["Back", "Top", "Front", "Bottom", "Left", "Right"]
         self.scrambled_cube = []
         self.build_cube(number)
         self.build_scramble_cube()
@@ -45,7 +45,7 @@ class Cube:
             [[1, 1, 1],
              [1, 1, 1],
              [1, 1, 1]
-            ],
+            ],
             [[2, 2, 2],
              [2, 2, 2],
              [2, 2, 2]
@@ -114,6 +114,7 @@ class Cube:
         for i,j in self.colors.items():
             color_indices[j] = i;
         for i in range(len(self.scrambled_cube)):
+            print(f"Face: {self.orders[i]}")
             for j in range(len(self.scrambled_cube[0])):
                 for k in range(len(self.scrambled_cube[0][0])):
                   print(color_indices[self.scrambled_cube[i][j][k]], end=" ")
@@ -197,7 +198,7 @@ class Cube:
         elif self.is_occupied(self.scrambled_cube, lrow, lcol):
             self.cube_helper.rotate_Y(self.scrambled_cube, 1, n-1-row)
         else:
-            self.cube_helper.rotate_Y(self.scrambled_cube, -1, n-1-row)
+            self.cube_helper.rotate_Y(self.scrambled_cube, 1, n-1-row)
 
 
     def move_center_pieces(self, color, level):
@@ -209,7 +210,7 @@ class Cube:
         #print(self.find_index_of_opposite_color(opp_color)) 
         for _ in pieces:
             dim, r, c = _;
-            if dim == color:
+            if dim == self.dirs["Bottom"]:
                nrow = self.n-1-r
                if not self.is_occupied(index_of_opp_color, color, nrow, c): 
                     if r == 0 or r == self.n-1:
@@ -222,15 +223,42 @@ class Cube:
                         self.cube_helper.rotate_X(self.scrambled_cube, -1, c)
                else:
                    print("Occupied")
-                   self.make_this_place_empty(index_of_opp_color, color, nrow, c)
+                   self.make_this_place_empty(opp_color, color, nrow, c)
+                   if r == 0 or r == self.n-1:
+                       print(f"Move {dim}, {r}, {c} around Z direction 2 times")
+                       self.cube_helper.rotate_Z(self.scrambled_cube, -1, r)
+                       self.cube_helper.rotate_Z(self.scrambled_cube, -1, r)
+                   else:
+                       print(f"Move {dim}, {r}, {c} around X direction 2 times")
+                       self.cube_helper.rotate_X(self.scrambled_cube, -1, c)
+                       self.cube_helper.rotate_X(self.scrambled_cube, -1, c)
+
             elif dim == index_of_opp_color:
                 continue
             else:
                 # Back Plane
                 if dim == 0:
-                   pass
-
-                # Front
+                    if c == 0 or c ==  self.n-1:
+                        if not self.is_occupied(index_of_opp_color, color, r, c):
+                            self.cube_helper.rotate_X(self.scrambled_cube, -1, c)
+                        else:
+                            self.make_this_place_empty(opp_color, color, r, c)
+                            self.cube_helper.rotate_X(self.scrambled_cube, -1, c)
+                    else:
+                        if row == self.n-1:
+                            lrow, lcol = row+1, col-1
+                            rrow, rcol = row+1, col+1
+                            self.cube_helper.rotate_Z(self.scrambled_cube, 1, 0)
+                            self.make_this_place_empty(opp_color, color, 1, 0)
+                            self.cube_helper.rotate_X(self.scrambled_cube, -1, 0)
+                        else:
+                            if self.is_occupied(index_of_opp_color, color, 0, 1):
+                                self.make_this_place_empty(opp_color, color, 0, 1)
+                            self.cube_helper.rotate_Z(self.scrambled_cube, 1, 0)
+                            self.make_this_place_empty(opp_color, color, 1, 0)
+                            self.cube_helper.rotate_X(self.scrambled_cube, -1, 0)
+                                
+                # Front         
                 elif dim == 2:
                     pass
                 # Left

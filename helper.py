@@ -108,7 +108,7 @@ class CubeHelper:
                 new_left = [[0]*3 for _ in range(3)]
                 for i in range(n):
                     for j in range(n):
-                        new_left[i][j] = left[j][n-i-1]
+                        new_left[i][j] = left[n-1-j][i]
                 scrambled_cube[self.dirs["Left"]] = new_left
             else:
                 top = scrambled_cube[self.dirs["Top"]]
@@ -133,7 +133,7 @@ class CubeHelper:
                 new_right = [[0]*3 for _ in range(3)]
                 for i in range(n):
                     for j in range(n):
-                        new_right[i][j] = right[n-1-j][i]
+                        new_right[i][j] = right[j][n-1-i]
                 scrambled_cube[self.dirs["Right"]] = new_right
         else:
             if col == 0:
