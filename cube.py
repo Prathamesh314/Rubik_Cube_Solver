@@ -153,8 +153,10 @@ class Cube:
         m = len(self.scrambled_cube[0][0])
         desired_piece_locs = set()
         color = self.colors[color]
-        print(color)
+        #print(color)
         for i in range(size):
+            if i == 1:
+                continue
             for j in range(n):
                 for k in range(m):
                     if self.scrambled_cube[i][j][k] == color and j != k:
@@ -162,8 +164,9 @@ class Cube:
                             continue
                         if k == 0 and j == 0 or k == 0 and j == n - 1 or k == m - 1 and j == 0 or k == m - 1 and j == n - 1:
                             continue
-                        desired_piece_locs.add((i, j, k))
-        return list(desired_piece_locs)
+                        #desired_piece_locs.add((i, j, k))
+                        return [(i,j,k)]
+        return []
 
     def get_opposite_color(self, color):
         return self.opposite_color[color]
@@ -182,10 +185,10 @@ class Cube:
         if col == 0:
             lrow, lcol = row - 1, col + 1
             rrow, rcol = row + 1, col + 1;
-        elif r == 0:
+        elif row == 0:
             lrow, lcol = row + 1, col - 1
             rrow, rcol = row + 1, col + 1;
-        elif r == self.n - 1:
+        elif row == self.n - 1:
             lrow, lcol = row - 1, col - 1
             rrow, rcol = row - 1, col + 1;
         else:
@@ -194,13 +197,13 @@ class Cube:
         if self.is_occupied(index_of_opp_color, color, lrow, lcol) and self.is_occupied(index_of_opp_color, color,
                                                                                         rrow, rcol):
             self.cube_helper.rotate_Y(self.scrambled_cube, 1, self.n - 1 - row)
-        elif self.is_occupied(self.scrambled_cube, lrow, lcol):
+        elif self.is_occupied(index_of_opp_color, color, lrow, lcol):
             self.cube_helper.rotate_Y(self.scrambled_cube, 1, self.n - 1 - row)
         else:
             self.cube_helper.rotate_Y(self.scrambled_cube, 1, self.n - 1 - row)
 
-    def move_center_pieces(self, color, level):
-        pieces = self.collect_pieces(color, level)
+    def move_center_pieces(self, pos_of_edge_piece,color, level):
+        pieces = pos_of_edge_piece
         opp_color = self.get_opposite_color(color)
         index_of_opp_color = self.find_color(opp_color)
         color = self.colors[color]
@@ -221,7 +224,7 @@ class Cube:
                         self.cube_helper.rotate_X(self.scrambled_cube, -1, c)
                 else:
                     print("Occupied")
-                    self.make_this_place_empty(opp_color, color, nrow, c)
+                    self.make_this_place_empty(index_of_opp_color, color, nrow, c)
                     if r == 0 or r == self.n - 1:
                         print(f"Move {dim}, {r}, {c} around Z direction 2 times")
                         self.cube_helper.rotate_Z(self.scrambled_cube, -1, r)
@@ -236,55 +239,83 @@ class Cube:
             else:
                 # Back Plane
                 if dim == 0:
+                    print("Resolving Back Piece...")
                     if c == 0 or c == self.n - 1:
                         if not self.is_occupied(index_of_opp_color, color, r, c):
                             self.cube_helper.rotate_X(self.scrambled_cube, -1, c)
                         else:
-                            self.make_this_place_empty(opp_color, color, r, c)
+                            self.make_this_place_empty(index_of_opp_color, color, r, c)
                             self.cube_helper.rotate_X(self.scrambled_cube, -1, c)
                     else:
                         if row == self.n - 1:
                             lrow, lcol = row + 1, col - 1
                             rrow, rcol = row + 1, col + 1
                             self.cube_helper.rotate_Z(self.scrambled_cube, 1, 0)
-                            self.make_this_place_empty(opp_color, color, 1, 0)
+                            self.make_this_place_empty(index_of_opp_color, color, 1, 0)
                             self.cube_helper.rotate_X(self.scrambled_cube, -1, 0)
                         else:
                             if self.is_occupied(index_of_opp_color, color, 0, 1):
-                                self.make_this_place_empty(opp_color, color, 0, 1)
+                                self.make_this_place_empty(index_of_opp_color, color, 0, 1)
                             self.cube_helper.rotate_Z(self.scrambled_cube, 1, 0)
-                            self.make_this_place_empty(opp_color, color, 1, 0)
+                            self.make_this_place_empty(index_of_opp_color, color, 1, 0)
                             self.cube_helper.rotate_X(self.scrambled_cube, -1, 0)
 
                 # Front
                 elif dim == 2:
+                    print("Resolving Front piece...")
                     if c == 0 or c == self.n - 1:
                         if not self.is_occupied(index_of_opp_color, color, r, c):
                             self.cube_helper.rotate_X(self.scrambled_cube, 1, c);
                         else:
-                            self.make_this_place_empty(opp_color, color, r, c);
+                            self.make_this_place_empty(index_of_opp_color, color, r, c);
                             self.cube_helper.rotate_X(self.scrambled_cube, 1, c);
                     else:
                         self.cube_helper.rotate_Z(self.scrambled_cube, 1, self.n - 1)
-                        self.make_this_place_empty(opp_color, color, 1, 2)
+                        self.make_this_place_empty(index_of_opp_color, color, 1, 2)
                         self.cube_helper.rotate_X(self.scrambled_cube, 1, self.n - 1)
                 # Left
                 elif dim == 4:
+                    print("Resolving Left piece...")
                     if c == 0 or c == self.n-1:
+                        if not self.is_occupied(index_of_opp_color, color, c, r):
+                            self.cube_helper.rotate_Z(self.scrambled_cube, -1, c)
+                        else:
+                            if self.is_occupied(index_of_opp_color, color, 1, 0) and self.is_occupied(index_of_opp_color, color, 1, 2):
+                                pass
+                            elif self.is_occupied(index_of_opp_color, color, 1, 0):
+                                print("My turn")
+                                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                                self.cube_helper.rotate_Z(self.scrambled_cube, 1, c)
+                            elif self.is_occupied(index_of_opp_color, color, 1, 2):
+                                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                            else:
+                                self.cube_helper.rotate_Z(self.scrambled_cube, -1, c)
+                    else:
                         pass
                 # Right
                 elif dim == 5:
+                    print("Resolving Right Piece...")
                     pass
-
-
+    def solve_level_one(self, color):
+        pieces = self.collect_pieces(color, 1)
+        if len(pieces) == 0:
+            print("Level 1 is completed")
+            return 1
+        else:
+            self.move_center_pieces(pieces, color, 1)
+            return 0
 cube = Cube(2)
 # cube.show_initial_pos()
 # cube.show_scramble_cube()
 print("Original\n\n")
 cube.show_cube()
 # print(cube.collect_pieces("White", 1))
-cube.move_center_pieces("Yellow", 1)
-cube.move_center_pieces("Yellow", 1)
+#cube.move_center_pieces("Yellow", 1)
+#cube.move_center_pieces("Yellow", 1)
 print("After two move\n\n")
+#cube.show_cube()
+cube.solve_level_one("Yellow")
+cube.show_cube()
+cube.solve_level_one("Yellow")
 cube.show_cube()
 

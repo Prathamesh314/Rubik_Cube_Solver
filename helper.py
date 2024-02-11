@@ -189,7 +189,7 @@ class CubeHelper:
 
     def rotate_Z(self, scramble_cube, dir, row):
         if dir == 1:
-            if row == 0:
+            if row == 2:
                 face = scramble_cube[self.dirs["Face"]]
                 top = scramble_cube[self.dirs["Top"]]
                 right = scramble_cube[self.dirs["Right"]]
@@ -220,15 +220,19 @@ class CubeHelper:
                 bottom = scramble_cube[self.dirs["Bottom"]]
                 n = len(top)
                 temp = top[row]
+                temp = temp.copy()
+                print(f"Top: {temp}")
+                print(f"Right Before: {right}")
                 for i in range(n):
-                    top[row][i] = left[i][row]
+                    top[row][i] = left[n-1-i][row]
                 for i in range(n):
                     left[i][row] = bottom[n-1-row][i]
                 for i in range(n):
                     bottom[n-1-row][i] = right[i][n-1-row]
                 for i in range(n):
+                    print(f"Right: {right[i][n-1-row]} and Top: {temp[i]}")
                     right[i][n-1-row] = temp[i]
-
+                #print(f"Right after: {right}")
                 new_back = [[0]*3 for _ in range(n)]
                 for i in range(n):
                     for j in range(n):
