@@ -283,11 +283,12 @@ class Cube:
                             if self.is_occupied(index_of_opp_color, color, 1, 0) and self.is_occupied(index_of_opp_color, color, 1, 2):
                                 pass
                             elif self.is_occupied(index_of_opp_color, color, 1, 0):
-                                print("My turn")
                                 self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
                                 self.cube_helper.rotate_Z(self.scrambled_cube, 1, c)
                             elif self.is_occupied(index_of_opp_color, color, 1, 2):
-                                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                                print("My Turn")
+                                #self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                                #self.cube_helper.rotate_Z(self.scrambled_cube, 1, c)
                             else:
                                 self.cube_helper.rotate_Z(self.scrambled_cube, -1, c)
                     else:
@@ -316,6 +317,7 @@ print("After two move\n\n")
 #cube.show_cube()
 cube.solve_level_one("Yellow")
 cube.show_cube()
-cube.solve_level_one("Yellow")
-cube.show_cube()
-
+#cube.solve_level_one("Yellow")
+#cube.show_cube()
+#cube.solve_level_one("Yellow")
+#cube.show_cube()
