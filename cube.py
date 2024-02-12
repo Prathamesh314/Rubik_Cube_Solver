@@ -638,6 +638,25 @@ class Cube:
             # Red -> Green
             dimc1, dimc2 = self.find_dimensions(color1), self.find_dimensions(color2)
             print(f"Current dimensions: {dim}, Color1 dimension: {dimc1}, Color2 dimension: {dimc2}")
+            if dimc2 == 0:
+                # take it to the back
+                print("Taking it back")
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+                self.scrambled_cube[1][0][2], self.scrambled_cube[1][2][2] = self.scrambled_cube[1][2][2], self.scrambled_cube[1][0][2]
+                self.scrambled_cube[0][0][2], self.scrambled_cube[0][2][2] = self.scrambled_cube[0][2][2], self.scrambled_cube[0][0][2]
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+            elif dimc2 == 4:
+                # take it to the left
+                pass
+            elif dimc2 == 5:
+                # take it to right
+                pass
+            else:
+                print("Invalid")
         elif color1 == 5 and color2 == 2:
             pass
         elif color1 == 2 and color2 == 6:
@@ -656,34 +675,48 @@ class Cube:
             print("Inavlid")
 
     def handle_top_facers(self, piece, color):
-        pass
+        dim, r, c = piece
+        if dim == 1:
+            # Top facing
+            if c == 2:
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                self.cube_helper.rotate_X(self.scrambled_cube, -1,2)
+            elif c == 0:
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+
+        elif dim == 3:
+            # Down facing
+            pass
 
     def handle_front_facers(self, piece, color):
         dim, r, c = piece
         print(piece)
-        if c == 0:
-            # Left Cornered
-            if r == 0:
-                # top
-                print("Handling left-top cornered...")
+        if dim == 0:
+            if c == 0:
+                # Left Cornered
+                if r == 0:
+                    # top
+                    print("Handling left-top cornered...")
+                else:
+                    # Bottom
+                    print("Handling left-bottom cornered...")
+                    self.cube_helper.rotate_X(self.scrambled_cube, 1, 0)
+                    self.scrambled_cube[0][0][0], self.scrambled_cube[0][2][0] = self.scrambled_cube[0][2][0], self.scrambled_cube[0][0][0]
+                    self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                    self.cube_helper.rotate_X(self.scrambled_cube, -1, 0)
+                    self.scrambled_cube[1][0][0], self.scrambled_cube[1][2][0] = self.scrambled_cube[1][2][0], self.scrambled_cube[1][0][0]
+                    self.scrambled_cube[0][0][0], self.scrambled_cube[0][2][0] = self.scrambled_cube[0][2][0], self.scrambled_cube[0][0][0]
+                    self.find_centres_of_two_colors(dim, self.scrambled_cube[4][0][2], self.scrambled_cube[1][2][0])
             else:
-                # Bottom
-                print("Handling left-bottom cornered...")
-                self.cube_helper.rotate_X(self.scrambled_cube, 1, 0)
-                self.scrambled_cube[0][0][0], self.scrambled_cube[0][2][0] = self.scrambled_cube[0][2][0], self.scrambled_cube[0][0][0]
-                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
-                self.cube_helper.rotate_X(self.scrambled_cube, -1, 0)
-                self.scrambled_cube[1][0][0], self.scrambled_cube[1][2][0] = self.scrambled_cube[1][2][0], self.scrambled_cube[1][0][0]
-                self.scrambled_cube[0][0][0], self.scrambled_cube[0][2][0] = self.scrambled_cube[0][2][0], self.scrambled_cube[0][0][0]
-                self.find_centres_of_two_colors(dim, self.scrambled_cube[4][0][2], self.scrambled_cube[1][2][0])
-        else:
-            # Right Cornered
-            if r == 0:
-                # Top
-                print("Handling Right-top cornered...")
-            else:
-                # Bottom
-                print("Handling Right-bottom cornered...")
+                # Right Cornered
+                if r == 0:
+                    # Top
+                    print("Handling Right-top cornered...")
+                else:
+                    # Bottom
+                    print("Handling Right-bottom cornered...")
 
 
     def handle_corner_pieces(self, color):
@@ -703,6 +736,7 @@ class Cube:
             self.bring_edge_pieces_to_bottom(color)
 
         self.handle_corner_pieces(color)
+        #self.handle_corner_pieces(color)
 
 cube = Cube(2)
 print("Original\n\n")
