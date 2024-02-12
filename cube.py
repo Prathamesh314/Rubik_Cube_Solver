@@ -443,7 +443,7 @@ class Cube:
         elif c == 0:
             # It is connected to left piece
             left_color = self.scrambled_cube[4][c][r]
-            print("Left color "+str(left_color))
+            #print("Left color "+str(left_color))
             index_of_left_color = self.find_matching_color(left_color)
             if index_of_left_color == 4: # index of left is 4
                 print("Already matched...")
@@ -455,7 +455,7 @@ class Cube:
         else:
             # It is connected to right piece
             right_color = self.scrambled_cube[5][1][0]
-            print("Right color "+str(right_color))
+            #print("Right color "+str(right_color))
             index_of_right_color = self.find_matching_color(right_color)
             if index_of_right_color == 5: # index of right color is 5
                 print("Already matched...")
@@ -481,7 +481,7 @@ class Cube:
 
     def solve_level_one(self, color):
         pieces = self.collect_pieces(color, 1)
-        print(pieces)
+        #print(pieces)
         if len(pieces) == 0:
             print("Level 1 is completed")
             return 1
@@ -512,3 +512,4 @@ cube.bring_edge_pieces_to_bottom("Yellow")
 cube.show_cube()
 cube.bring_edge_pieces_to_bottom("Yellow")
 cube.show_cube()
+cube.bring_edge_pieces_to_bottom("Yellow")
