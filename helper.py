@@ -112,7 +112,7 @@ class CubeHelper:
                 for i in range(n):
                     bottom[i][col] = back[i][col]
                 for i in range(n):
-                    back[2-i][col] = temp[i]
+                    back[i][col] = temp[i]
 
                 for i in range(3):
                     scrambled_cube[self.dirs["Top"]][i][col] = top[i][col]
@@ -167,9 +167,9 @@ class CubeHelper:
                     temp.append(top[i][col])
                 temp = temp.copy()
                 for i in range(n):
-                    top[i][col] = back[2-i][col]
+                    top[i][col] = back[i][col]
                 for i in range(n):
-                    back[2-i][col] = bottom[i][col]
+                    back[i][col] = bottom[i][col]
                 for i in range(n):
                     bottom[i][col] = face[i][col]
                 for i in range(n):
@@ -279,11 +279,11 @@ class CubeHelper:
                 for i in range(n):
                     top[row][i] = right[i][n-1-row]
                 for i in range(n):
-                    right[i][n-1-row] = bottom[n-1-row][i]
+                    right[2-i][n-1-row] = bottom[n-1-row][i]
                 for i in range(n):
                     bottom[n-1-row][i] = left[i][row]
                 for i in range(n):
-                    left[i][row] = temp[i]
+                    left[2-i][row] = temp[i]
                 new_face = [[0]*3 for _ in range(n)]
                 for i in range(n):
                     for j in range(n):
