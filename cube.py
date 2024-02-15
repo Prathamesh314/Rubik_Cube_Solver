@@ -1,6 +1,6 @@
 #print("Hello WHere's the code with corrected indentation:
 
-from helper import CubeHelper
+from helper import CubeHelper 
 
 class Cube:
     def __init__(self, number):
@@ -72,39 +72,39 @@ class Cube:
         self.scrambled_cube = [
             # Back
             [
-                [5, 5, 2],
-                [1, 5, 4],
-                [1, 1, 4]
+                [5, 5, 5],
+                [1, 5, 6],
+                [6, 4, 6]
             ],
             # Top
             [
-                [2, 5, 6],
-                [4, 1, 6],
-                [2, 2, 1]
+                [1, 6, 1],
+                [2, 1, 2],
+                [5, 4, 5]
             ],
             # Front
             [
-                [1, 5, 5],
-                [4, 6, 6],
+                [1, 5, 1],
+                [1, 6, 6],
                 [6, 6, 6]
             ],
             # Bottom
             [
                 [3, 3, 3],
                 [3, 3, 3],
-                [3, 3, 5]
+                [3, 3, 3]
             ],
             # Left
             [
-                [6, 5, 5],
-                [2, 4, 1],
+                [2, 1, 4],
+                [4, 4, 5],
                 [4, 4, 4]
             ],
             # Right
             [
-                [4, 2, 1],
-                [1, 2, 6],
-                [2, 2, 3]
+                [2, 5, 4],
+                [2, 2, 1],
+                [2, 2, 2]
             ],
 
         ]
@@ -963,6 +963,14 @@ class Cube:
                 self.cube_helper.rotate_Z(self.scrambled_cube, -1, 0)
             else:
                 print("Move fron back to left...")
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                self.cube_helper.rotate_Z(self.scrambled_cube, -1, 0)
+                self.cube_helper.rotate_Y(self.scrambled_cube , 1, 0)
+                self.cube_helper.rotate_Z(self.scrambled_cube, 1, 0)
         elif dim == 2:
             print("I am at front bro...")
         elif dim == 4:
@@ -971,14 +979,14 @@ class Cube:
                 print("Move to front....")
             else:
                 print("Move to back....")
-                #self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
-                #self.cube_helper.rotate_Z(self.scrambled_cube, 1, 2)
-                #self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
-                #self.cube_helper.rotate_Z(self.scrambled_cube, -1, 2)
-                #self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
-                #self.cube_helper.rotate_X(self.scrambled_cube, -1, 0)
-                #self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
-                #self.cube_helper.rotate_X(self.scrambled_cube, 1, 0)
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                self.cube_helper.rotate_Z(self.scrambled_cube, 1, 2)
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                self.cube_helper.rotate_Z(self.scrambled_cube, -1, 2)
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                self.cube_helper.rotate_X(self.scrambled_cube, 1, 0)
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                self.cube_helper.rotate_X(self.scrambled_cube, -1, 0)
             
         elif dim == 5:
             print("I am at right bro...")
@@ -1006,13 +1014,39 @@ class Cube:
             self.handle_layer2_middle_pieces(front_color, top_color, piece)
             return
         if self.scrambled_cube[4][1][1] == front_color:
-            print("I am here...")
-            self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+            print("I am at left: center...")
+            #self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+            if dim == 0:
+                print("I am at back...")
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                self.handle_layer2_middle_pieces(front_color, top_color, [4, 0, 1])
+                return
+            elif dim == 2:
+                print("I am at front...")
+            elif dim == 5:
+                print("I am at right")
             
         elif self.scrambled_cube[5][1][1] == front_color:
-            pass
+            print("I am at right: center....")
+            if dim == 5:
+                pass
+            elif dim == 4:
+                pass
+            elif dim == 2:
+                pass
         elif self.scrambled_cube[0][1][1] == front_color:
-            pass
+            print("I am at back: center....")
+            if dim == 2:
+                print(" moving from front to back...")
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                self.handle_layer2_middle_pieces(front_color, top_color, [0, 2, 1])
+                return
+            elif dim == 4:
+                print("moving from left to back...")
+            elif dim == 5:
+                print("moving from right to back...")
+            
         else:
             print("Invalid...")
 
@@ -1069,8 +1103,9 @@ print("Original\n\n")
 #cube.handle_corner_pieces("Yellow")
 #cube.handle_corner_pieces("Yellow")
 #cube.handle_corner_pieces("Yellow")
-cube.handle_corner_pieces("Yellow")
-cube.handle_corner_pieces("Yellow")
+#cube.handle_corner_pieces("Yellow")
+#cube.handle_corner_pieces("Yellow")
+cube.hande_layer2("Yellow")
 cube.hande_layer2("Yellow")
 cube.hande_layer2("Yellow")
 cube.show_cube() 
