@@ -72,39 +72,39 @@ class Cube:
         self.scrambled_cube = [
             # Back
             [
-                [5, 1, 2],
-                [6, 5, 4],
-                [4, 2, 4]
+                [5, 5, 2],
+                [1, 5, 4],
+                [1, 1, 4]
             ],
             # Top
             [
-                [3, 3, 3],
-                [5, 1, 6],
-                [2, 1, 4]
+                [2, 5, 6],
+                [4, 1, 6],
+                [2, 2, 1]
             ],
             # Front
             [
-                [3, 5, 6],
-                [4, 6, 5],
-                [6, 4, 5]
+                [1, 5, 5],
+                [4, 6, 6],
+                [6, 6, 6]
             ],
             # Bottom
             [
-                [1, 5, 4],
-                [3, 3, 2],
-                [2, 2, 1]
+                [3, 3, 3],
+                [3, 3, 3],
+                [3, 3, 5]
             ],
             # Left
             [
-                [5, 3, 6],
-                [4, 4, 1],
-                [3, 6, 2]
+                [6, 5, 5],
+                [2, 4, 1],
+                [4, 4, 4]
             ],
             # Right
             [
-                [1, 1, 6],
-                [2, 2, 3],
-                [1, 6, 5]
+                [4, 2, 1],
+                [1, 2, 6],
+                [2, 2, 3]
             ],
 
         ]
@@ -729,8 +729,10 @@ class Cube:
             self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
         elif dim == 5:
             # Right side
-            print("Handling right cornered piece")
-            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            if r == 0:
+            
+                print("Handling right cornered piece")
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
 
 
         piece = self.collect_pieces3(color)
@@ -777,6 +779,10 @@ class Cube:
                 print("I am at right....")
                 self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
                 self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
             return
 
         if c == 0:
@@ -883,6 +889,18 @@ class Cube:
             else:
                 # Bottom
                 print("Handling Right-bottom cornered...")
+                if c == 2:
+                    print("Rotating back side in Z direction...")
+                    self.cube_helper.rotate_Z(self.scrambled_cube, -1, 0)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                    self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                    self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+                    self.cube_helper.rotate_Z(self.scrambled_cube, 1, 0)
+                    self.handle_front_facers([2,0,0], color)
+                else:
+                    pass
 
 
 
@@ -938,22 +956,22 @@ print("Original\n\n")
 #cube.show_cube()
 #cube.running_template("Yellow")
 #cube.show_cube()
-cube.solve_level_one("Yellow")
-cube.solve_level_one("Yellow")
-cube.solve_level_one("Yellow")
+#cube.solve_level_one("Yellow")
+#cube.solve_level_one("Yellow")
+#cube.solve_level_one("Yellow")
 #cube.solve_level_one("Yellow")
 
-cube.bring_edge_pieces_to_bottom("Yellow")
-cube.bring_edge_pieces_to_bottom("Yellow")
-cube.bring_edge_pieces_to_bottom("Yellow")
-cube.bring_edge_pieces_to_bottom("Yellow")
+#cube.bring_edge_pieces_to_bottom("Yellow")
+#cube.bring_edge_pieces_to_bottom("Yellow")
+#cube.bring_edge_pieces_to_bottom("Yellow")
+#cube.bring_edge_pieces_to_bottom("Yellow")
 #cube.cube_helper.rotate_Z(cube.scrambled_cube, 1, 0)
 #cube.cube_helper.rotate_Z(cube.scrambled_cube, -1, 0)
 #cube.cube_helper.rotate_Z(cube.scrambled_cube, 1, 2)
 #cube.cube_helper.rotate_Z(cube.scrambled_cube, -1, 2)
-cube.handle_corner_pieces("Yellow")
-cube.handle_corner_pieces("Yellow")
-cube.handle_corner_pieces("Yellow")
+#cube.handle_corner_pieces("Yellow")
+#cube.handle_corner_pieces("Yellow")
+#cube.handle_corner_pieces("Yellow")
 cube.handle_corner_pieces("Yellow")
 cube.handle_corner_pieces("Yellow")
 cube.show_cube() 
