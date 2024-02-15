@@ -80,19 +80,19 @@ class Cube:
             # Back
             [
                 [5, 5, 5],
-                [1, 5, 6],
-                [6, 4, 6]
+                [5, 5, 5],
+                [2, 5, 4]
             ],
             # Top
             [
-                [1, 6, 1],
-                [2, 1, 2],
-                [5, 4, 5]
+                [6, 1, 6],
+                [1, 1, 1],
+                [2, 1, 4]
             ],
             # Front
             [
-                [1, 5, 1],
-                [1, 6, 6],
+                [1, 6, 1],
+                [6, 6, 6],
                 [6, 6, 6]
             ],
             # Bottom
@@ -103,14 +103,14 @@ class Cube:
             ],
             # Left
             [
-                [2, 1, 4],
-                [4, 4, 5],
+                [1, 4, 5],
+                [4, 4, 4],
                 [4, 4, 4]
             ],
             # Right
             [
-                [2, 5, 4],
-                [2, 2, 1],
+                [5, 2, 1],
+                [2, 2, 2],
                 [2, 2, 2]
             ],
 
@@ -1063,10 +1063,188 @@ class Cube:
         print(f"Layer 2: {piece}")
         self.layer2_helper(piece)
 
+    def is_two_colors_matching(self):
+        dims = []
+        is_matching = False
+        if self.scrambled_cube[2][0][1] == self.scrambled_cube[2][1][1] and self.scrambled_cube[4][0][1] == self.scrambled_cube[4][1][1]:
+            is_matching = True
+            dims.extend([2, 4])
+        elif self.scrambled_cube[2][0][1] == self.scrambled_cube[2][1][1] and self.scrambled_cube[5][0][1] == self.scrambled_cube[5][1][1]:
+            is_matching = True
+            dims.extend([2, 5])
+        elif self.scrambled_cube[2][0][1] == self.scrambled_cube[2][1][1] and self.scrambled_cube[0][2][1] == self.scrambled_cube[0][1][1]:
+            is_matching = True
+            dims.extend([2, 0])
+        elif self.scrambled_cube[4][0][1] == self.scrambled_cube[4][1][1] and self.scrambled_cube[0][2][1] == self.scrambled_cube[0][1][1]:
+            is_matching = True
+            dims.extend([4, 0])
+        elif self.scrambled_cube[4][0][1] == self.scrambled_cube[4][1][1] and self.scrambled_cube[5][0][1] == self.scrambled_cube[5][1][1]:
+            is_matching = True
+            dims.extend([4, 5])
+        elif self.scrambled_cube[0][2][1] == self.scrambled_cube[0][1][1] and self.scrambled_cube[5][0][1] == self.scrambled_cube[5][1][1]:
+            is_matching = True
+            dims.extend([0, 5])
+        return [is_matching, dims]
+
+
+    def handle_twisted_pieces(self):
+        tpiece1 =  [self.scrambled_cube[1][0][0], self.scrambled_cube[4][0][0], self.scrambled_cube[0][2][0]]
+        c_colors1 =   [self.scrambled_cube[1][1][1], self.scrambled_cube[4][1][1], self.scrambled_cube[0][1][1]]
+        tpiece2 =  [self.scrambled_cube[1][0][2], self.scrambled_cube[5][0][2], self.scrambled_cube[0][2][2]]
+        c_colors2 = [self.scrambled_cube[1][1][1], self.scrambled_cube[5][1][1], self.scrambled_cube[0][1][1]]
+        tpiece3 = [self.scrambled_cube[1][2][0], self.scrambled_cube[4][0][2], self.scrambled_cube[2][0][0]]
+        c_colors3 =[self.scrambled_cube[1][1][1], self.scrambled_cube[4][1][1], self.scrambled_cube[2][1][1]]
+        tpiece4 = [self.scrambled_cube[1][2][2], self.scrambled_cube[2][0][2], self.scrambled_cube[5][0][0]]
+        c_colors4 = [self.scrambled_cube[1][1][1], self.scrambled_cube[2][1][1], self.scrambled_cube[5][1][1]]
+
+        tpiece1.sort()
+        tpiece2.sort()
+        tpiece3.sort()
+        tpiece4.sort()
+        c_colors1.sort()
+        c_colors2.sort()
+        c_colors3.sort()
+        c_colors4.sort()
+        
+        if tpiece1 == c_colors1 and tpiece2 == c_colors2 and tpiece3 == c_colors3 and tpiece4 == c_colors4:
+            print("All are perfece....")
+            return
+
+        if self.scrambled_cube[1][0][0] != self.scrambled_cube[1][1][1]:
+            print("Handling left top cornered....")
+            t_piece = [self.scrambled_cube[1][0][0], self.scrambled_cube[4][0][0], self.scrambled_cube[0][2][0]]
+            c_colors = [self.scrambled_cube[1][1][1], self.scrambled_cube[4][1][1], self.scrambled_cube[0][1][1]]
+            t_piece.sort()
+            c_colors.sort()
+            if t_piece == c_colors:
+                print("Perfect....")
+                #self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                #self.cube_helper.rotate_X(self.scrambled_cube, -1, 0)
+                #self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                #self.cube_helper.rotate_X(self.scrambled_cube, 1, 0)
+                #self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+            else:
+                print("Imperfect....")
+                
+        elif self.scrambled_cube[1][0][2] != self.scrambled_cube[1][1][1]:
+            print("Handling right top cornered....")
+            t_piece = [self.scrambled_cube[1][0][2], self.scrambled_cube[5][0][2], self.scrambled_cube[0][2][2]]
+            c_colors = [self.scrambled_cube[1][1][1], self.scrambled_cube[5][1][1], self.scrambled_cube[0][1][1]]
+            t_piece.sort()
+            c_colors.sort()
+            if t_piece == c_colors:
+                print("Perfect....")
+            else:
+                print("Imperfect....")
+        elif self.scrambled_cube[1][2][0] != self.scrambled_cube[1][1][1]:
+            print("Handling left bottom cornered.....")
+            t_piece = [self.scrambled_cube[1][2][0], self.scrambled_cube[4][0][2], self.scrambled_cube[2][0][0]]
+            c_colors = [self.scrambled_cube[1][1][1], self.scrambled_cube[4][1][1], self.scrambled_cube[2][1][1]]
+            t_piece.sort()
+            c_colors.sort()
+
+            if t_piece == c_colors:
+                print("Perfect....")
+            else:
+                print("Imperfect....")
+        elif self.scrambled_cube[1][2][2] != self.scrambled_cube[1][1][1]:
+            print("eat 5-star do nothing....")
+            t_piece = [self.scrambled_cube[1][2][2], self.scrambled_cube[2][0][2], self.scrambled_cube[5][0][0]]
+            c_colors = [self.scrambled_cube[1][1][1], self.scrambled_cube[2][1][1], self.scrambled_cube[5][1][1]]
+            t_piece.sort()
+            c_colors.sort()
+            if t_piece == c_colors:
+                print("Perfect.....")
+            else:
+                print("Imperfect....")
+            
 
 
     def handle_plus_on_top(self, color):    
         print("Let's handle plus on top...")
+        is_matching = False
+        dims = []
+        if self.scrambled_cube[2][0][1] == self.scrambled_cube[2][1][1] and self.scrambled_cube[4][0][1] == self.scrambled_cube[4][1][1] and self.scrambled_cube[0][2][1] == self.scrambled_cube[0][1][1] and self.scrambled_cube[5][0][1] == self.scrambled_cube[5][1][1]:
+            print("Hurray!!, we did it...")
+            self.handle_twisted_pieces()
+            return
+        if self.scrambled_cube[2][0][1] == self.scrambled_cube[2][1][1] and self.scrambled_cube[4][0][1] == self.scrambled_cube[4][1][1]:
+            is_matching = True
+            dims.extend([2, 4])
+            print("Front and Left")
+            return
+        elif self.scrambled_cube[2][0][1] == self.scrambled_cube[2][1][1] and self.scrambled_cube[5][0][1] == self.scrambled_cube[5][1][1]:
+            is_matching = True
+            dims.extend([2, 5])
+            print("Front and right")
+            return
+        elif self.scrambled_cube[2][0][1] == self.scrambled_cube[2][1][1] and self.scrambled_cube[0][2][1] == self.scrambled_cube[0][1][1]:
+            is_matching = True
+            dims.extend([2, 0])
+            print("Front and back")
+            return
+        elif self.scrambled_cube[4][0][1] == self.scrambled_cube[4][1][1] and self.scrambled_cube[0][2][1] == self.scrambled_cube[0][1][1]:
+            is_matching = True
+            dims.extend([4, 0])
+            print("Left and back")
+            self.cube_helper.rotate_Z(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Z(self.scrambled_cube, 1, 0)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Z(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Z(self.scrambled_cube, 1, 0)
+            while not self.is_two_colors_matching()[0]:
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.handle_plus_on_top(color)
+            return
+        elif self.scrambled_cube[4][0][1] == self.scrambled_cube[4][1][1] and self.scrambled_cube[5][0][1] == self.scrambled_cube[5][1][1]:
+            is_matching = True
+            dims.extend([4, 5])
+            print("Left and right")
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Z(self.scrambled_cube, 1, 2)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Z(self.scrambled_cube, -1, 2)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Z(self.scrambled_cube, 1, 2)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Z(self.scrambled_cube, -1, 2)
+            while not self.is_two_colors_matching()[0]:
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.handle_plus_on_top(color)
+
+            return
+        elif self.scrambled_cube[0][2][1] == self.scrambled_cube[0][1][1] and self.scrambled_cube[5][0][1] == self.scrambled_cube[5][1][1]:
+            is_matching = True
+            dims.extend([0, 5])
+            print("back and right")
+            return
+        if is_matching:
+            print("I am matching in two sides")
+            print(f"Dimensions: {dims}")
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Z(self.scrambled_cube, 1, 2)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Z(self.scrambled_cube, -1, 2)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Z(self.scrambled_cube, 1, 2)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Z(self.scrambled_cube, -1, 2)
+            while not self.is_two_colors_matching()[0]:
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            
+            materials = self.is_two_colors_matching()[1]
+            print(f"Here are matching colors...{materials}")
+            self.handle_plus_on_top(color) 
+
+        else:
+            print("I am not matching, unfortunately....")
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.handle_plus_on_top(color)
 
 
     def handle_top_layer_figures(self, color):
@@ -1157,9 +1335,9 @@ print("Original\n\n")
 #cube.handle_corner_pieces("Yellow")
 #cube.handle_corner_pieces("Yellow")
 #cube.handle_corner_pieces("Yellow")
-cube.hande_layer2("Yellow")
-cube.hande_layer2("Yellow")
-cube.hande_layer2("Yellow")
+#cube.hande_layer2("Yellow")
+#cube.hande_layer2("Yellow")
+#cube.hande_layer2("Yellow")
 cube.handle_top_layer_figures("Yellow")
 cube.show_cube() 
 
