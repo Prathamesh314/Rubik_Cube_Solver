@@ -54,17 +54,17 @@ class Cube:
     def build_scramble_cube(self):
         self.scrambled_cube = [
             # Back
-            [[3, 1, 6], [4, 5, 4], [1, 1, 5]],
+            [[5, 2, 6], [4, 5, 2], [3, 6, 6]],
             # Top
-            [[2, 5, 1], [6, 1, 2], [5, 4, 1]],
+            [[4, 1, 1], [3, 1, 2], [5, 3, 5]],
             # Front
-            [[3, 6, 4], [1, 6, 4], [5, 3, 1]],
+            [[1, 4, 1], [5, 6, 3], [3, 2, 5]],
             # Bottom
-            [[4, 2, 5], [6, 3, 5], [2, 2, 3]],
+            [[6, 5, 2], [5, 3, 6], [3, 6, 1]],
             # Left
-            [[6, 3, 2], [3, 4, 6], [6, 2, 3]],
+            [[6, 6, 4], [1, 4, 4], [4, 1, 2]],
             # Right
-            [[6, 5, 2], [5, 2, 1], [4, 3, 4]],
+            [[2, 1, 4], [5, 2, 3], [3, 4, 2]],
         ]
 
     def show_cube(self):
@@ -695,6 +695,12 @@ class Cube:
                     self.handle_front_facers([2, 0, 2], color)
                 else:
                     print("I am at last row")
+                    self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                    self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                    self.handle_front_facers([2, 0, 0], color)
+                    return
                 # self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
                 # self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
                 # self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
@@ -728,7 +734,9 @@ class Cube:
             # Left sides
             if r == 0:
                 print("Bringing top cornered from left to front")
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
 
+                # self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
             else:
                 print("Bringing bottom cornered from left to front")
         elif dim == 5:
@@ -942,6 +950,7 @@ class Cube:
                 print("Handling Right-top cornered...")
                 up_color = self.scrambled_cube[1][2][2]
                 right_color = self.scrambled_cube[5][0][0]
+                print(f"Top color: {up_color} and Right color: {right_color}")
                 if (
                     self.scrambled_cube[4][1][1] == up_color
                     and self.scrambled_cube[2][1][1] == right_color
@@ -995,13 +1004,14 @@ class Cube:
         piece = self.collect_pieces3(color)
         if len(piece) == 0:
             print("No corner pieces...")
-            return
+            return 1
         print(f"Corner piece: {piece}")
         dim, r, c = piece
         if dim == 1 or dim == 3:
             self.handle_top_facers(piece, color)
         else:
             self.handle_front_facers(piece, color)
+        return 0
 
     def running_template(self, color):
         while self.solve_level_one(color) == 0:
@@ -1114,6 +1124,14 @@ class Cube:
                 self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
             elif self.scrambled_cube[0][1][1] == top_color:
                 print("Move right to front")
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                self.cube_helper.rotate_Z(self.scrambled_cube, -1, 0)
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                self.cube_helper.rotate_Z(self.scrambled_cube, 1, 0)
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
             return
         else:
             print("Invalid...")
@@ -1210,9 +1228,11 @@ class Cube:
                 self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
                 self.handle_layer2_middle_pieces(front_color, top_color, [5, 0, 1])
             elif dim == 4:
-                pass
+                print("Moving from left to right")
             elif dim == 2:
-                pass
+                print("Moving from front to right")
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                self.handle_layer2_middle_pieces(front_color, top_color, [5, 0, 1])
         elif self.scrambled_cube[0][1][1] == front_color:
             print("I am at back: center....")
             if dim == 2:
@@ -1223,16 +1243,30 @@ class Cube:
                 return
             elif dim == 4:
                 print("moving from left to back...")
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
             elif dim == 5:
                 print("moving from right to back...")
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                self.handle_layer2_middle_pieces(front_color, top_color, [0, 2, 1])
 
         else:
             print("Invalid...")
+
+    def check_is_middle_layer_completed(self):
+        dims = [0, 4, 2, 5]
+        for d in dims:
+            if (
+                self.scrambled_cube[d][1][0] != self.scrambled_cube[d][1][1]
+                or self.scrambled_cube[d][1][2] != self.scrambled_cube[d][1][1]
+            ):
+                return False
+        return True
 
     def hande_layer2(self, color):
         piece = self.collect_pieces4()
         print(f"Layer 2: {piece}")
         self.layer2_helper(piece)
+        return self.check_is_middle_layer_completed()
 
     def is_two_colors_matching(self):
         dims = []
@@ -1411,6 +1445,15 @@ class Cube:
             return
         if tpiece3 == c_colors3:
             print("Applying algorithm on bottom left cornered")
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Z(self.scrambled_cube, 1, 2)
+            self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+            self.cube_helper.rotate_Z(self.scrambled_cube, 1, 0)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Z(self.scrambled_cube, -1, 2)
+            self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+            self.cube_helper.rotate_Z(self.scrambled_cube, -1, 0)
+            self.handle_twisted_pieces()
             return
         if tpiece4 == c_colors4:
             print("Applying algorithm on bottom right cornered")
@@ -1616,8 +1659,12 @@ class Cube:
                 self.handle_top_layer_figures(color)
 
 
-cube = Cube(2)
-print("Original\n\n")
+# cube = Cube(2)
+# print("Original\n\n")
+# cube.show_cube()
+
+# print("Solving......")
+# print("Please hold up a sec.....")
 # cube.show_cube()
 # print("After one move\n\n")
 # cube.solve_level_one("Yellow")
@@ -1645,28 +1692,30 @@ print("Original\n\n")
 # cube.show_cube()
 # cube.running_template("Yellow")
 # cube.show_cube()
-cube.solve_level_one("Yellow")
-cube.solve_level_one("Yellow")
-cube.solve_level_one("Yellow")
-cube.solve_level_one("Yellow")
+# cube.solve_level_one("Yellow")
+# cube.solve_level_one("Yellow")
+# cube.solve_level_one("Yellow")
+# cube.solve_level_one("Yellow")
 
-cube.bring_edge_pieces_to_bottom("Yellow")
-cube.bring_edge_pieces_to_bottom("Yellow")
-cube.bring_edge_pieces_to_bottom("Yellow")
-cube.bring_edge_pieces_to_bottom("Yellow")
+# cube.bring_edge_pieces_to_bottom("Yellow")
+# cube.bring_edge_pieces_to_bottom("Yellow")
+# cube.bring_edge_pieces_to_bottom("Yellow")
+# cube.bring_edge_pieces_to_bottom("Yellow")
 # cube.cube_helper.rotate_Z(cube.scrambled_cube, 1, 0)
 # cube.cube_helper.rotate_Z(cube.scrambled_cube, -1, 0)
 # cube.cube_helper.rotate_Z(cube.scrambled_cube, 1, 2)
 # cube.cube_helper.rotate_Z(cube.scrambled_cube, -1, 2)
-cube.handle_corner_pieces("Yellow")
-cube.handle_corner_pieces("Yellow")
-cube.handle_corner_pieces("Yellow")
-cube.handle_corner_pieces("Yellow")
 # cube.handle_corner_pieces("Yellow")
-cube.hande_layer2("Yellow")
-cube.hande_layer2("Yellow")
-cube.hande_layer2("Yellow")
-cube.hande_layer2("Yellow")
-cube.handle_top_layer_figures("Yellow")
+# cube.handle_corner_pieces("Yellow")
+# cube.handle_corner_pieces("Yellow")
+# cube.handle_corner_pieces("Yellow")
+# cube.handle_corner_pieces("Yellow")
+# cube.handle_corner_pieces("Yellow")
+# cube.hande_layer2("Yellow")
+# cube.hande_layer2("Yellow")
+# cube.hande_layer2("Yellow")
+# cube.hande_layer2("Yellow")
+# cube.hande_layer2("Yellow")
 # cube.handle_top_layer_figures("Yellow")
-cube.show_cube()
+# cube.handle_top_layer_figures("Yellow")
+# cube.show_cube()
