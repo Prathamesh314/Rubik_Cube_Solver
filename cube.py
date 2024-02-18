@@ -1445,11 +1445,17 @@ class Cube:
             is_matching = True
             dims.extend([2, 4])
             print("Front and Left")
-            # self.cube_helper.rotate_X(self.scrambled_cube, -1, 0)
-            # self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
-            # self.cube_helper.rotate_X(self.scrambled_cube, 1, 0)
-            # self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
-            # self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_X(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_X(self.scrambled_cube, 1, 0)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_X(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_X(self.scrambled_cube, 1, 0)
+            while self.scrambled_cube[2][0][1] != self.scrambled_cube[2][1][1]:
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.handle_plus_on_top(color)
             return
         elif (
             self.scrambled_cube[2][0][1] == self.scrambled_cube[2][1][1]
@@ -1589,6 +1595,14 @@ class Cube:
                 self.handle_top_layer_figures(color)
             elif top_mat[2][1] == top_color and top_mat[1][0] == top_color:
                 print("I am L in downside left...")
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                self.cube_helper.rotate_Z(self.scrambled_cube, 1, 2)
+                self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                self.cube_helper.rotate_Z(self.scrambled_cube, -1, 2)
+                self.handle_top_layer_figures(color)
             elif top_mat[2][1] == top_color and top_mat[1][2] == top_color:
                 print("I am L in downside right...")
                 self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
@@ -1653,6 +1667,6 @@ cube.hande_layer2("Yellow")
 cube.hande_layer2("Yellow")
 cube.hande_layer2("Yellow")
 cube.hande_layer2("Yellow")
-# cube.handle_top_layer_figures("Yellow")
+cube.handle_top_layer_figures("Yellow")
 # cube.handle_top_layer_figures("Yellow")
 cube.show_cube()
