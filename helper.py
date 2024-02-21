@@ -2,10 +2,12 @@
 class CubeHelper:
     def __init__(self, dirs):
         self.dirs = dirs
+        self.moves = []
 
     def rotate_Y(self, scramble_cube, dir, row):
         if dir == -1:
-            if row == 0:     
+            if row == 0: 
+                self.moves.append("U")
                 face = scramble_cube[self.dirs["Face"]]
                 right = scramble_cube[self.dirs["Right"]]
                 left = scramble_cube[self.dirs["Left"]]
@@ -26,6 +28,7 @@ class CubeHelper:
                         new_top[i][j] = top[n-1-j][i]
                 scramble_cube[self.dirs["Top"]] = new_top
             else:
+                self.moves.append("D'")
                 face = scramble_cube[self.dirs["Face"]]
                 right = scramble_cube[self.dirs["Right"]]
                 left = scramble_cube[self.dirs["Left"]]
@@ -47,6 +50,7 @@ class CubeHelper:
                 scramble_cube[self.dirs["Bottom"]] = new_bottom
         else:
             if row == 0:
+                self.moves.append("U'")
                 face = scramble_cube[self.dirs["Face"]]
                 right = scramble_cube[self.dirs["Right"]]
                 left = scramble_cube[self.dirs["Left"]]
@@ -67,6 +71,7 @@ class CubeHelper:
                         new_top[i][j] = top[j][n-1-i]
                 scramble_cube[self.dirs["Top"]] = new_top
             else:
+                self.moves.append("D")
                 face = scramble_cube[self.dirs["Face"]]
                 right = scramble_cube[self.dirs["Right"]]
                 left = scramble_cube[self.dirs["Left"]]
@@ -90,6 +95,7 @@ class CubeHelper:
     def rotate_X(self, scrambled_cube, dir, col):
         if dir == 1:
             if col == 0:
+                self.moves.append("F'")
                 top = scrambled_cube[self.dirs["Top"]]
                 face = scrambled_cube[self.dirs["Face"]]
                 bottom = scrambled_cube[self.dirs["Bottom"]]
@@ -127,6 +133,7 @@ class CubeHelper:
                         new_left[i][j] = left[j][n-1-i]
                 scrambled_cube[self.dirs["Left"]] = new_left
             else:
+                self.moves.append("B")
                 top = scrambled_cube[self.dirs["Top"]]
                 face = scrambled_cube[self.dirs["Face"]]
                 bottom = scrambled_cube[self.dirs["Bottom"]]
@@ -145,9 +152,6 @@ class CubeHelper:
                     bottom[i][col] = back[i][col]
                 for i in range(n):
                     back[i][col] = temp[i]
-                
-
-                
 
                 new_right = [[0]*3 for _ in range(3)]
                 for i in range(n):
@@ -156,6 +160,7 @@ class CubeHelper:
                 scrambled_cube[self.dirs["Right"]] = new_right
         else:
             if col == 0:
+                self.moves.append("F")
                 top = scrambled_cube[self.dirs["Top"]]
                 face = scrambled_cube[self.dirs["Face"]]
                 bottom = scrambled_cube[self.dirs["Bottom"]]
@@ -181,6 +186,8 @@ class CubeHelper:
                         new_left[i][j] = left[n-1-j][i]
                 scrambled_cube[self.dirs["Left"]] = new_left
             else:
+
+                self.moves.append("B'")
                 top = scrambled_cube[self.dirs["Top"]]
                 face = scrambled_cube[self.dirs["Face"]]
                 bottom = scrambled_cube[self.dirs["Bottom"]]
@@ -209,6 +216,7 @@ class CubeHelper:
     def rotate_Z(self, scramble_cube, dir, row):
         if dir == 1:
             if row == 2:
+                self.moves.append("R")
                 face = scramble_cube[self.dirs["Face"]]
                 top = scramble_cube[self.dirs["Top"]]
                 right = scramble_cube[self.dirs["Right"]]
@@ -234,6 +242,7 @@ class CubeHelper:
                         new_face[i][j] = face[n-1-j][i]
                 scramble_cube[self.dirs["Face"]] = new_face
             else:
+                self.moves.append("L'")
                 back = scramble_cube[self.dirs["Back"]]
                 top = scramble_cube[self.dirs["Top"]]
                 left = scramble_cube[self.dirs["Left"]]
@@ -268,6 +277,7 @@ class CubeHelper:
                 scramble_cube[self.dirs["Back"]] = new_back
         else:
             if row == 2:
+                self.moves.append("R'")
                 face = scramble_cube[self.dirs["Face"]]
                 top = scramble_cube[self.dirs["Top"]]
                 left = scramble_cube[self.dirs["Left"]]
@@ -290,6 +300,7 @@ class CubeHelper:
                         new_face[i][j] = face[j][n-1-i]
                 scramble_cube[self.dirs["Face"]] = new_face
             else:
+                self.moves.append("R")
                 back = scramble_cube[self.dirs["Back"]]
                 top = scramble_cube[self.dirs["Top"]]
                 left = scramble_cube[self.dirs["Left"]]
@@ -315,14 +326,6 @@ class CubeHelper:
 
                 scramble_cube[self.dirs["Top"]][row] = top[row]
                 scramble_cube[self.dirs["Bottom"]][n-1-row] = bottom[n-1-row]
-                print("LEft")
-                for _ in left:
-                    print(_)
-                print()
-                print("Right")
-                for _ in right:
-                    print(_)
-                print()
                 temp = scramble_cube[self.dirs["Left"]][0][row]
                 scramble_cube[self.dirs["Left"]][0][row] = scramble_cube[self.dirs["Left"]][2][row]
                 scramble_cube[self.dirs["Left"]][2][row] = temp
@@ -336,3 +339,5 @@ class CubeHelper:
                         new_back[i][j] = back[n-1-j][i]
                 scramble_cube[self.dirs["Back"]] = new_back
 
+    def getmoves(self):
+        return self.moves
