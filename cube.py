@@ -54,17 +54,17 @@ class Cube:
     def build_scramble_cube(self):
         self.scrambled_cube = [
             # Back
-            [[3, 1, 4], [4, 5, 2], [4, 2, 1]],
+            [[2, 4, 6], [4, 5, 2], [6, 4, 6]],
             # Top
-            [[5, 5, 6], [1, 1, 1], [2, 6, 5]],
+            [[4, 5, 4], [6, 1, 2], [4, 6, 5]],
             # Front
-            [[3, 1, 1], [6, 6, 5], [5, 4, 5]],
+            [[5, 4, 3], [3, 6, 5], [2, 5, 1]],
             # Bottom
-            [[4, 5, 2], [3, 3, 3], [6, 2, 1]],
+            [[1, 2, 6], [1, 3, 1], [3, 1, 2]],
             # Left
-            [[1, 4, 6], [6, 4, 3], [4, 4, 3]],
+            [[1, 3, 1], [3, 4, 2], [5, 6, 5]],
             # Right
-            [[2, 5, 2], [3, 2, 6], [3, 2, 6]],
+            [[4, 1, 3], [3, 2, 6], [2, 5, 3]],
         ]
 
     def show_cube(self):
@@ -1674,23 +1674,23 @@ print("Solving......")
 # cube.show_cube()
 # print("After one move\n\n")
 cube.solve_level_one("Yellow")
-cube.show_cube()
+# cube.show_cube()
 # print("\n\nAfter two move \n\n")
 cube.solve_level_one("Yellow")
-cube.show_cube()
+# cube.show_cube()
 # print("\n\nAfter 3rd move \n\n")
 cube.solve_level_one("Yellow")
-cube.show_cube()
+# cube.show_cube()
 cube.solve_level_one("Yellow")
-cube.show_cube()
+# cube.show_cube()
 cube.bring_edge_pieces_to_bottom("Yellow")
 # print("One edge piece is now at correct position")
-cube.show_cube()
+# cube.show_cube()
 cube.bring_edge_pieces_to_bottom("Yellow")
 # print("Secoond edge is now at its correct position")
-cube.show_cube()
+# cube.show_cube()
 cube.bring_edge_pieces_to_bottom("Yellow")
-cube.show_cube()
+# cube.show_cube()
 cube.bring_edge_pieces_to_bottom("Yellow")
 cube.show_cube()
 # cube.bring_edge_pieces_to_bottom("Yellow")
@@ -1717,12 +1717,12 @@ cube.handle_corner_pieces("Yellow")
 cube.handle_corner_pieces("Yellow")
 cube.handle_corner_pieces("Yellow")
 cube.handle_corner_pieces("Yellow")
+cube.handle_corner_pieces("Yellow")
 # cube.handle_corner_pieces("Yellow")
-# cube.handle_corner_pieces("Yellow")
 cube.hande_layer2("Yellow")
 cube.hande_layer2("Yellow")
-cube.hande_layer2("Yellow")
-cube.hande_layer2("Yellow")
+# cube.hande_layer2("Yellow")
+# cube.hande_layer2("Yellow")
 # cube.hande_layer2("Yellow")
 # cube.handle_top_layer_figures("Yellow")
 # cube.handle_top_layer_figures("Yellow")
