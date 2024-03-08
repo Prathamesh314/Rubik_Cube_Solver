@@ -45,6 +45,7 @@ if __name__ == "__main__":
     # ctemplate.run()
     cubex = Rubic_Cube()
     cubex.scramble()
+
     moves = cubex.moves
     print(moves)
     for _ in range(6):
@@ -70,10 +71,10 @@ if __name__ == "__main__":
     cubee = Cube(2, sequence_list)
     scramble(moves, cubee)
     cubee.show_cube()
-    ctemplate = CubeTemplate(cubee)
-    ctemplate.run()
-    ans = cubee.get_moves()
-    print(ans)
+    # ctemplate = CubeTemplate(cubee)
+    # ctemplate.run()
+    # ans = cubee.get_moves()
+    # print(ans)
     # for _ in final_cube:
     #     for k in _:
     #         print(k)
@@ -93,3 +94,4 @@ if __name__ == "__main__":
     #     else:
     #         print("Green")
     #     break
+    cubex.start()

@@ -33,10 +33,41 @@ class Cube:
         ]
 
         self.orders = ["Back", "Top", "Front", "Bottom", "Left", "Right"]
-        # self.scrambled_cube = []
+        self.scrambled_cube = [
+            [
+                [4, 5, 1],
+                [4, 5, 5],
+                [3, 5, 5],
+            ],
+            [
+                [6, 2, 3],
+                [2, 1, 3],
+                [4, 3, 2]
+            ],
+            [
+                [5, 2, 3],
+                [1, 6, 3],
+                [4, 2, 1]
+            ],
+            [
+                [6, 1, 2],
+                [6, 3, 6],
+                [6, 4, 2]
+            ],
+            [
+                [2, 6, 1],
+                [1, 4, 6],
+                [1, 3, 3]
+            ],
+            [
+                [5, 5, 4],
+                [4, 2, 1],
+                [5, 4, 6]
+            ]
+        ]
         # self.build_cube(number)
         # self.build_scramble_cube()
-        self.scrambled_cube = initial_cube
+        # self.scrambled_cube = initial_cube
         self.cube_helper = CubeHelper(self.dirs)
         self.n = 3
 
