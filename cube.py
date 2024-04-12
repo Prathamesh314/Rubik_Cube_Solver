@@ -4,7 +4,7 @@ from helper import CubeHelper
 
 
 class Cube:
-    def __init__(self, number, initial_cube):
+    def __init__(self, number):
         self.cube = []
         self.colors = {
             "White": 1,
@@ -35,34 +35,34 @@ class Cube:
         self.orders = ["Back", "Top", "Front", "Bottom", "Left", "Right"]
         self.scrambled_cube = [
             [
-                [4, 5, 1],
-                [4, 5, 5],
-                [3, 5, 5],
+                [3, 4, 3],
+                [5, 5, 2],
+                [5, 5, 1],
             ],
             [
-                [6, 2, 3],
-                [2, 1, 3],
-                [4, 3, 2]
+                [3, 3, 5],
+                [4, 1, 1],
+                [6, 2, 6]
             ],
             [
-                [5, 2, 3],
-                [1, 6, 3],
-                [4, 2, 1]
+                [4, 6, 3],
+                [2, 6, 4],
+                [1, 6, 2]
             ],
             [
-                [6, 1, 2],
-                [6, 3, 6],
-                [6, 4, 2]
+                [2, 4, 5],
+                [3, 3, 1],
+                [4, 1, 4]
             ],
             [
-                [2, 6, 1],
-                [1, 4, 6],
-                [1, 3, 3]
+                [2, 5, 1],
+                [2, 4, 3],
+                [5, 6, 6]
             ],
             [
-                [5, 5, 4],
-                [4, 2, 1],
-                [5, 4, 6]
+                [2, 6, 4],
+                [3, 2, 1],
+                [1, 5, 6]
             ]
         ]
         # self.build_cube(number)
@@ -927,6 +927,28 @@ class Cube:
                         print("I am at right and back....")
                 else:
                     print("I am at top...")
+                    self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                    self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+                    top_color = self.scrambled_cube[1][0][2]
+                    right_color = self.scrambled_cube[5][0][2]
+                    # print(f"{top_color=} | {right_color=}")
+                    if top_color == self.scrambled_cube[0][1][1] and right_color == self.scrambled_cube[5][1][1]:
+                        # I will be at back
+                        print("I will be at back")
+                        self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                        self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+                        self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                        self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+                    elif top_color == self.scrambled_cube[4][1][1] and right_color == self.scrambled_cube[0][1][1]:
+                        # I will be at left and back
+                        print("I will be at left and back")
+                    elif top_color == self.scrambled_cube[2][1][1] and right_color == self.scrambled_cube[4][1][1]:
+                        # I will be at front and left
+                        print("I will be at front and left")
+                    elif top_color == self.scrambled_cube[5][1][1] and right_color == self.scrambled_cube[2][1][1]:
+                        # I will be at front and right
+                        print("I will be at front and right")
                 # self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
                 # self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
                 # self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
@@ -1727,33 +1749,34 @@ class Cube:
                 self.handle_top_layer_figures(color)
 
 
-# cube = Cube(2)
-# print("Original\n\n")
-# cube.show_cube()
+cube = Cube(2)
+print("Original\n\n")
+cube.show_cube()
 #
-# print("Solving......")
+print("\nSolving......")
 # # print("Please hold up a sec.....")
 # # cube.show_cube()
 # # print("After one move\n\n")
+print("\nBringing edge pieces\n")
+cube.solve_level_one("Yellow")
+cube.solve_level_one("Yellow")
+cube.solve_level_one("Yellow")
 # cube.solve_level_one("Yellow")
-# # cube.show_cube()
+# cube.show_cube()
 # # print("\n\nAfter two move \n\n")
-# cube.solve_level_one("Yellow")
-# # cube.show_cube()
+# cube.show_cube()
 # # print("\n\nAfter 3rd move \n\n")
-# cube.solve_level_one("Yellow")
+# cube.show_cube()
 # # cube.show_cube()
-# cube.solve_level_one("Yellow")
-# # cube.show_cube()
-# cube.bring_edge_pieces_to_bottom("Yellow")
+print("\nHandling edge pieces to bottom\n")
+cube.bring_edge_pieces_to_bottom("Yellow")
+cube.bring_edge_pieces_to_bottom("Yellow")
+cube.bring_edge_pieces_to_bottom("Yellow")
+cube.bring_edge_pieces_to_bottom("Yellow")
 # # print("One edge piece is now at correct position")
-# # cube.show_cube()
-# cube.bring_edge_pieces_to_bottom("Yellow")
 # # print("Secoond edge is now at its correct position")
 # # cube.show_cube()
-# cube.bring_edge_pieces_to_bottom("Yellow")
 # # cube.show_cube()
-# cube.bring_edge_pieces_to_bottom("Yellow")
 # cube.show_cube()
 # # cube.bring_edge_pieces_to_bottom("Yellow")
 # # cube.show_cube()
@@ -1775,11 +1798,13 @@ class Cube:
 # # cube.cube_helper.rotate_Z(cube.scrambled_cube, -1, 0)
 # # cube.cube_helper.rotate_Z(cube.scrambled_cube, 1, 2)
 # # cube.cube_helper.rotate_Z(cube.scrambled_cube, -1, 2)
+print("\nHandling corner pieces\n")
+cube.handle_corner_pieces("Yellow")
+cube.handle_corner_pieces("Yellow")
+cube.handle_corner_pieces("Yellow")
 # cube.handle_corner_pieces("Yellow")
 # cube.handle_corner_pieces("Yellow")
-# cube.handle_corner_pieces("Yellow")
-# cube.handle_corner_pieces("Yellow")
-# cube.handle_corner_pieces("Yellow")
+cube.show_cube()
 # # cube.handle_corner_pieces("Yellow")
 # cube.hande_layer2("Yellow")
 # cube.hande_layer2("Yellow")
