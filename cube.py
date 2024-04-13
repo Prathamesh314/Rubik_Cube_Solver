@@ -38,34 +38,34 @@ class Cube:
         self.orders = ["Back", "Top", "Front", "Bottom", "Left", "Right"]
         self.scrambled_cube = [
             [
-                [6, 3, 1],
+                [5, 1, 5],
                 [2, 5, 4],
+                [4, 6, 1],
+            ],
+            [
                 [1, 2, 6],
+                [3, 1, 3],
+                [3, 1, 1]
             ],
             [
-                [6, 5, 4],
-                [4, 1, 1],
+                [4, 5, 2],
+                [3, 6, 4],
                 [2, 3, 5]
             ],
             [
-                [1, 5, 3],
-                [3, 6, 1],
-                [2, 3, 5]
+                [3, 6, 4],
+                [5, 3, 5],
+                [2, 6, 4]
             ],
             [
-                [5, 2, 4],
-                [4, 3, 1],
-                [3, 4, 2]
+                [6, 5, 6],
+                [1, 4, 2],
+                [3, 2, 6]
             ],
             [
-                [4, 6, 5],
-                [6, 4, 6],
-                [2, 1, 3]
-            ],
-            [
-                [4, 5, 3],
-                [6, 2, 5],
-                [1, 2, 6]
+                [5, 4, 2],
+                [1, 2, 6],
+                [1, 4, 3]
             ]
         ]
         # self.build_cube(number)
@@ -1290,6 +1290,8 @@ class Cube:
                 self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
                 self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
                 self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+            else:
+                print("No match")
             return
         else:
             print("Invalid...")
@@ -1352,7 +1354,7 @@ class Cube:
         elif dim == 4:
             r_, c_ = 1, 0
         elif dim == 5:
-            r_, c_ = 1, 0
+            r_, c_ = 1, 2
         elif dim == 0:
             r_, c_ = 0, 1
 
@@ -2041,9 +2043,9 @@ try:
     # cube.show_cube()
     #
     # cube.scramble_moly_cube()
-    print("\nScrambled cube\n")
+    # print("\nScrambled cube\n")
     print("\nSolving......")
-    # print("Please hold up a sec.....")
+    print("Please hold up a sec.....")
     # # cube.show_cube()
     # # print("After one move\n\n")
     # print("\nBringing edge pieces\n")
@@ -2135,7 +2137,7 @@ try:
     # cube.show_cube()
     cube.show_cube()
 
-    moves = cube.cube_helper.getmoves()
-    print(moves)
+    # moves = cube.cube_helper.getmoves()
+    # print(moves)
 except RecursionError:
     print("Wrong rubik cube go check your brain.")
