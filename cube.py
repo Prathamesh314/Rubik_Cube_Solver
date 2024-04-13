@@ -2135,7 +2135,7 @@ try:
     # cube.show_cube()
     cube.show_cube()
 
-    # moves = cube.cube_helper.getmoves()
-    # print(moves)
+    moves = cube.cube_helper.getmoves()
+    print(moves)
 except RecursionError:
     print("Wrong rubik cube go check your brain.")
