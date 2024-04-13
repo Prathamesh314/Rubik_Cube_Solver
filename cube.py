@@ -1358,6 +1358,10 @@ class Cube:
                 return
             elif dim == 2:
                 print("I am at front...")
+                print("Moving from front -> left...")
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                self.handle_layer2_middle_pieces(front_color, top_color, [4, 0, 1])
+                return
 
             elif dim == 5:
                 print("I am at right")
@@ -1612,6 +1616,15 @@ class Cube:
             self.cube_helper.rotate_X(self.scrambled_cube, -1, 0)
             return
         print("No one matched.. apply on anyone")
+        self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+        self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+        self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+        self.cube_helper.rotate_X(self.scrambled_cube, 1, 0)
+        self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+        self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+        self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+        self.cube_helper.rotate_X(self.scrambled_cube, -1, 0)
+        self.handle_twisted_pieces()
 
     def handle_plus_on_top(self, color):
         print("Let's handle plus on top...")
@@ -1786,6 +1799,13 @@ class Cube:
         else:
             if top_mat[0][1] == top_color and top_mat[1][0] == top_color:
                 print("I am L in upside left...")
+                self.cube_helper.rotate_Z(self.scrambled_cube, 1, 2)
+                self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                self.cube_helper.rotate_Z(self.scrambled_cube, -1, 2)
+                self.handle_top_layer_figures(color)
             elif top_mat[0][1] == top_color and top_mat[1][2] == top_color:
                 print("I am L in upside right...")
                 self.cube_helper.rotate_X(self.scrambled_cube, -1, 0)
@@ -1889,18 +1909,18 @@ cube.handle_corner_pieces("Yellow")
 cube.handle_corner_pieces("Yellow")
 cube.handle_corner_pieces("Yellow")
 cube.handle_corner_pieces("Yellow")
-# print("Layer 1 completed: Yellow")
-# print("\nStarting layer 2\n")
+print("Layer 1 completed: Yellow")
+print("\nStarting layer 2\n")
 # cube.handle_corner_pieces("Yellow")
-# cube.hande_layer2("Yellow")
-# cube.hande_layer2("Yellow")
-# cube.hande_layer2("Yellow")
-# cube.hande_layer2("Yellow")
+cube.hande_layer2("Yellow")
+cube.hande_layer2("Yellow")
+cube.hande_layer2("Yellow")
+cube.hande_layer2("Yellow")
 # cube.hande_layer2("Yellow")
 
-# print("\nLayer 2 completed: Middle layer\n")
-# print("\nStarting top and final layer\n")
-# cube.handle_top_layer_figures("Yellow")
+print("\nLayer 2 completed: Middle layer\n")
+print("\nStarting top and final layer\n")
+cube.handle_top_layer_figures("Yellow")
 # # cube.handle_top_layer_figures("Yellow")
 # cube.show_cube()
 cube.show_cube()
