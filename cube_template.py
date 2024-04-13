@@ -28,7 +28,7 @@ class CubeTemplate:
         print("Let's start solving cube....")
         
         self.handle_layer1()
-        #self.handle_layer2()
-        #self.handle_layer3()
+        self.handle_layer2()
+        self.handle_layer3()
         
-        #print("Rubik cube is solved....")
+        print("Rubik cube is solved....")
