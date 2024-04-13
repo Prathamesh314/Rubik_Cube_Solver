@@ -35,34 +35,34 @@ class Cube:
         self.orders = ["Back", "Top", "Front", "Bottom", "Left", "Right"]
         self.scrambled_cube = [
             [
-                [3, 6, 1],
-                [2, 5, 6],
-                [3, 4, 6],
+                [5, 4, 2],
+                [4, 5, 1],
+                [3, 2, 6],
             ],
             [
-                [4, 1, 2],
-                [5, 1, 6],
-                [3, 4, 6]
+                [5, 3, 4],
+                [6, 1, 3],
+                [3, 2, 6]
             ],
             [
-                [6, 3, 1],
-                [5, 6, 2],
-                [2, 3, 5]
+                [2, 5, 3],
+                [1, 6, 2],
+                [5, 1, 4]
             ],
             [
-                [1, 2, 3],
-                [3, 3, 1],
-                [5, 4, 4]
-            ],
-            [
-                [6, 1, 2],
-                [6, 4, 4],
-                [2, 5, 5]
-            ],
-            [
+                [1, 2, 6],
                 [4, 3, 1],
-                [5, 2, 1],
-                [4, 2, 5]
+                [1, 5, 6]
+            ],
+            [
+                [4, 3, 5],
+                [6, 4, 6],
+                [2, 3, 4]
+            ],
+            [
+                [2, 5, 3],
+                [6, 2, 4],
+                [1, 5, 1]
             ]
         ]
         # self.build_cube(number)
@@ -643,7 +643,7 @@ class Cube:
                 # self.scrambled_cube[3][0][0], self.scrambled_cube[3][2][0] = self.scrambled_cube[3][2][0], self.scrambled_cube[3][0][0]
                 # temp = []
                 # for i in range(3):
-            #                   temp.append(self.scrambled_cube[1][i][0])
+            #                temp.append(self.scrambled_cube[1][i][0])
             #                temp[::-1]
             #               for i in range(3):
             #                   self.scrambled_cube[1][i][0] = temp[i]
@@ -1417,6 +1417,8 @@ class Cube:
                 self.handle_layer2_middle_pieces(front_color, top_color, [2, 0, 1])
             else:
                 print("Bringing piece from left to front")
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                self.handle_layer2_middle_pieces(front_color, top_color, [2, 0, 1])
 
         else:
             print("Invalid...")
@@ -1589,6 +1591,34 @@ class Cube:
                 return
             elif k[0] == 0 and k[1] == 2:
                 print("Bringing top right cornered to bottom right cornered")
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                while self.scrambled_cube[1][2][2] != self.scrambled_cube[1][1][1]:
+                    self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, -1, 2)
+                    self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, 1, 2)
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                while self.scrambled_cube[1][2][2] != self.scrambled_cube[1][1][1]:
+                    self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, -1, 2)
+                    self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, 1, 2)
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                while self.scrambled_cube[1][2][2] != self.scrambled_cube[1][1][1]:
+                    self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, -1, 2)
+                    self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, 1, 2)
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                while self.scrambled_cube[1][2][2] != self.scrambled_cube[1][1][1]:
+                    self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, -1, 2)
+                    self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, 1, 2)
+                while self.scrambled_cube[2][1][1] != self.scrambled_cube[2][0][1]:
+                    self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                print("Go SYD now...")
+
                 return
             elif k[0] == 2 and k[1] == 0:
                 print("Bringing left bottom cornered to bottom right cornered")
@@ -1937,7 +1967,7 @@ while cube.solve_level_one("Yellow") == 0:
 # # print("\n\nAfter 3rd move \n\n")
 # cube.show_cube()
 # # cube.show_cube()
-print("\nHandling edge pieces to bottom\n")
+# print("\nHandling edge pieces to bottom\n")
 # response = cube.bring_edge_pieces_to_bottom("Yellow")
 # print(f"{response=}")
 while cube.bring_edge_pieces_to_bottom("Yellow") == 0:
@@ -1970,7 +2000,7 @@ while cube.bring_edge_pieces_to_bottom("Yellow") == 0:
 # # cube.cube_helper.rotate_Z(cube.scrambled_cube, -1, 0)
 # # cube.cube_helper.rotate_Z(cube.scrambled_cube, 1, 2)
 # # cube.cube_helper.rotate_Z(cube.scrambled_cube, -1, 2)
-print("\nHandling corner pieces\n")
+# print("\nHandling corner pieces\n")
 # response = cube.handle_corner_pieces("Yellow")
 # print(f"{response=}")
 while cube.handle_corner_pieces("Yellow") == 0:
@@ -1987,6 +2017,12 @@ print("\nStarting layer 2\n")
 # cube.handle_corner_pieces("Yellow")
 # response = cube.hande_layer2("Yellow")
 # print(f"{response=}")
+# cube.hande_layer2("Yellow")
+# cube.hande_layer2("Yellow")
+# cube.hande_layer2("Yellow")
+# cube.hande_layer2("Yellow")
+# cube.hande_layer2("Yellow")
+
 while cube.hande_layer2("Yellow") == False:
     cube.hande_layer2("Yellow")
 # cube.hande_layer2("Yellow")
@@ -2001,5 +2037,5 @@ cube.handle_top_layer_figures("Yellow")
 # cube.show_cube()
 cube.show_cube()
 
-moves = cube.cube_helper.getmoves()
-print(moves)
+# moves = cube.cube_helper.getmoves()
+# print(moves)
