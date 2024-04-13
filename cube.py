@@ -1622,6 +1622,33 @@ class Cube:
                 return
             elif k[0] == 2 and k[1] == 0:
                 print("Bringing left bottom cornered to bottom right cornered")
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                while self.scrambled_cube[1][2][2] != self.scrambled_cube[1][1][1]:
+                    self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, -1, 2)
+                    self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, 1, 2)
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                while self.scrambled_cube[1][2][2] != self.scrambled_cube[1][1][1]:
+                    self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, -1, 2)
+                    self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, 1, 2)
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                while self.scrambled_cube[1][2][2] != self.scrambled_cube[1][1][1]:
+                    self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, -1, 2)
+                    self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, 1, 2)
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                while self.scrambled_cube[1][2][2] != self.scrambled_cube[1][1][1]:
+                    self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, -1, 2)
+                    self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, 1, 2)
+                while self.scrambled_cube[2][1][1] != self.scrambled_cube[2][0][1]:
+                    self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                print("Go SYD now...")
                 return
             else:
                 print("Eat 5-star do nothing!!")
