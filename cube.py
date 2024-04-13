@@ -1379,6 +1379,7 @@ class Cube:
             elif dim == 4:
                 print("moving from left to back...")
                 self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                self.handle_layer2_middle_pieces(front_color, top_color, [0, 2, 1])
             elif dim == 5:
                 print("moving from right to back...")
                 self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
@@ -1869,7 +1870,7 @@ print("\nStarting layer 2\n")
 # cube.handle_corner_pieces("Yellow")
 cube.hande_layer2("Yellow")
 cube.hande_layer2("Yellow")
-# cube.hande_layer2("Yellow")
+cube.hande_layer2("Yellow")
 # cube.hande_layer2("Yellow")
 # cube.hande_layer2("Yellow")
 
