@@ -2000,3 +2000,6 @@ cube.handle_top_layer_figures("Yellow")
 # cube.handle_top_layer_figures("Yellow")
 # cube.show_cube()
 cube.show_cube()
+
+moves = cube.cube_helper.getmoves()
+print(moves)
