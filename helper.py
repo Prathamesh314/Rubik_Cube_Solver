@@ -1,4 +1,4 @@
-
+import pandas as pd
 class CubeHelper:
     def __init__(self, dirs):
         self.dirs = dirs
@@ -341,5 +341,9 @@ class CubeHelper:
 
     def getmoves(self):
         m = ["F", "F'", "B", "B'", "L", "L'", "R", "R'", "U", "U'", "D", "D'"]
-        names = [""]
+        names = ["Move front face clockwise", "Move front face anti-clockwise", "Move back face clockwise", "Move back face anti-clockwise", "Move left face clockwise", "Move left face anti-clockwise", "Move right face clockwise", "Move right face anti-clockwise", "Move up face clockwise", "Move up face anti-clockwise", "Move down face clockwise", "Move down face anti-clockwise"]
+        d = {"Moves Names": m, "Moves Def.": names}
+        df = pd.DataFrame(d)
+        print(df)
+        print()
         return self.moves
