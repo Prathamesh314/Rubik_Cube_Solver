@@ -1644,6 +1644,7 @@ class Cube:
             self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
             self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
             self.cube_helper.rotate_X(self.scrambled_cube, -1, 0)
+            self.handle_twisted_pieces()
             return
         print("No one matched.. apply on anyone")
         self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
