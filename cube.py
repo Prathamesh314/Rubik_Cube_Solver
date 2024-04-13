@@ -1611,6 +1611,16 @@ class Cube:
             return
         if tpiece2 == c_colors2:
             print("Applying algorithm on top right cornered")
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Z(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+            self.cube_helper.rotate_Z(self.scrambled_cube, -1, 2)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Z(self.scrambled_cube, 1, 0)
+            self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+            self.cube_helper.rotate_Z(self.scrambled_cube, 1, 2)
+            self.handle_twisted_pieces()
+
             return
         if tpiece3 == c_colors3:
             print("Applying algorithm on bottom left cornered")
@@ -1954,9 +1964,9 @@ cube.hande_layer2("Yellow")
 cube.hande_layer2("Yellow")
 # cube.hande_layer2("Yellow")
 
-# print("\nLayer 2 completed: Middle layer\n")
-# print("\nStarting top and final layer\n")
-# cube.handle_top_layer_figures("Yellow")
+print("\nLayer 2 completed: Middle layer\n")
+print("\nStarting top and final layer\n")
+cube.handle_top_layer_figures("Yellow")
 # cube.handle_top_layer_figures("Yellow")
 # cube.show_cube()
 cube.show_cube()
