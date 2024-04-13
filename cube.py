@@ -35,34 +35,34 @@ class Cube:
         self.orders = ["Back", "Top", "Front", "Bottom", "Left", "Right"]
         self.scrambled_cube = [
             [
-                [6, 4, 2],
-                [1, 5, 6],
-                [4, 4, 3],
+                [6, 2, 1],
+                [3, 5, 5],
+                [1, 4, 3],
             ],
             [
-                [1, 3, 4],
-                [3, 1, 3],
-                [2, 5, 3]
+                [2, 1, 4],
+                [6, 1, 5],
+                [2, 3, 4]
             ],
             [
-                [1, 2, 6],
-                [3, 6, 4],
-                [5, 4, 5]
+                [5, 5, 1],
+                [1, 6, 2],
+                [6, 4, 5]
             ],
             [
-                [3, 6, 4],
-                [1, 3, 2],
-                [2, 5, 3]
+                [2, 3, 1],
+                [5, 3, 3],
+                [4, 6, 6]
             ],
             [
-                [6, 5, 5],
-                [6, 4, 2],
-                [1, 5, 2]
+                [6, 4, 3],
+                [2, 4, 6],
+                [3, 4, 3]
             ],
             [
-                [4, 6, 5],
+                [5, 1, 5],
                 [1, 2, 2],
-                [1, 1, 6]
+                [2, 6, 4]
             ]
         ]
         # self.build_cube(number)
@@ -1778,7 +1778,18 @@ class Cube:
         ):
             is_matching = True
             dims.extend([0, 5])
-            print("back and right")
+            print("back and right....")
+            self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+            while not self.is_two_colors_matching()[0]:
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            self.handle_plus_on_top(color)
             return
         if is_matching:
             print("I am matching in two sides")
@@ -1896,8 +1907,8 @@ class Cube:
 
 
 cube = Cube(2)
-# print("Original\n")
-# cube.show_cube()
+print("Original\n")
+cube.show_cube()
 #
 # cube.scramble_moly_cube()
 # print("\nScrambled cube\n")
@@ -1908,8 +1919,8 @@ print("Please hold up a sec.....")
 # print("\nBringing edge pieces\n")
 cube.solve_level_one("Yellow")
 cube.solve_level_one("Yellow")
-# cube.solve_level_one("Yellow")
-# cube.solve_level_one("Yellow")
+cube.solve_level_one("Yellow")
+cube.solve_level_one("Yellow")
 # cube.show_cube()
 # # print("\n\nAfter two move \n\n")
 # cube.show_cube()
