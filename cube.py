@@ -35,34 +35,34 @@ class Cube:
         self.orders = ["Back", "Top", "Front", "Bottom", "Left", "Right"]
         self.scrambled_cube = [
             [
-                [5, 4, 2],
-                [4, 5, 1],
-                [3, 2, 6],
+                [2, 2, 5],
+                [2, 5, 4],
+                [4, 1, 4],
             ],
             [
-                [5, 3, 4],
-                [6, 1, 3],
-                [3, 2, 6]
+                [5, 4, 5],
+                [4, 1, 6],
+                [1, 5, 3]
             ],
             [
-                [2, 5, 3],
-                [1, 6, 2],
-                [5, 1, 4]
+                [2, 1, 2],
+                [1, 6, 3],
+                [4, 3, 6]
             ],
             [
-                [1, 2, 6],
-                [4, 3, 1],
-                [1, 5, 6]
+                [1, 5, 4],
+                [2, 3, 1],
+                [3, 5, 2]
             ],
             [
-                [4, 3, 5],
-                [6, 4, 6],
-                [2, 3, 4]
+                [1, 3, 6],
+                [6, 4, 2],
+                [5, 3, 6]
             ],
             [
-                [2, 5, 3],
-                [6, 2, 4],
-                [1, 5, 1]
+                [6, 4, 3],
+                [6, 2, 5],
+                [3, 6, 1]
             ]
         ]
         # self.build_cube(number)
@@ -1073,6 +1073,10 @@ class Cube:
             else:
                 # Bottom
                 print("Handling left-bottom cornered...")
+                self.cube_helper.rotate_Z(self.scrambled_cube, 1, 2)
+                self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                self.cube_helper.rotate_Z(self.scrambled_cube, -1, 2)
+                self.handle_front_facers([4, 0, 2], color)
                 # self.cube_helper.rotate_X(self.scrambled_cube, -1, 0)
                 # self.scrambled_cube[0][0][0], self.scrambled_cube[0][2][0] = self.scrambled_cube[0][2][0], self.scrambled_cube[0][0][0]
                 # self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
@@ -1994,7 +1998,7 @@ while cube.solve_level_one("Yellow") == 0:
 # # print("\n\nAfter 3rd move \n\n")
 # cube.show_cube()
 # # cube.show_cube()
-# print("\nHandling edge pieces to bottom\n")
+print("\nHandling edge pieces to bottom\n")
 # response = cube.bring_edge_pieces_to_bottom("Yellow")
 # print(f"{response=}")
 while cube.bring_edge_pieces_to_bottom("Yellow") == 0:
@@ -2027,11 +2031,17 @@ while cube.bring_edge_pieces_to_bottom("Yellow") == 0:
 # # cube.cube_helper.rotate_Z(cube.scrambled_cube, -1, 0)
 # # cube.cube_helper.rotate_Z(cube.scrambled_cube, 1, 2)
 # # cube.cube_helper.rotate_Z(cube.scrambled_cube, -1, 2)
-# print("\nHandling corner pieces\n")
+print("\nHandling corner pieces\n")
+cube.handle_corner_pieces("Yellow")
+cube.handle_corner_pieces("Yellow")
+cube.handle_corner_pieces("Yellow")
+cube.handle_corner_pieces("Yellow")
+cube.handle_corner_pieces("Yellow")
+
 # response = cube.handle_corner_pieces("Yellow")
 # print(f"{response=}")
-while cube.handle_corner_pieces("Yellow") == 0:
-    cube.handle_corner_pieces("Yellow")
+# while cube.handle_corner_pieces("Yellow") == 0:
+#     cube.handle_corner_pieces("Yellow")
 # cube.handle_corner_pieces("Yellow")
 # cube.handle_corner_pieces("Yellow")
 # cube.handle_corner_pieces("Yellow")
@@ -2039,8 +2049,8 @@ while cube.handle_corner_pieces("Yellow") == 0:
 # cube.handle_corner_pieces("Yellow")
 # cube.handle_corner_pieces("Yellow")
 # cube.handle_corner_pieces("Yellow")
-print("Layer 1 completed: Yellow")
-print("\nStarting layer 2\n")
+# print("Layer 1 completed: Yellow")
+# print("\nStarting layer 2\n")
 # cube.handle_corner_pieces("Yellow")
 # response = cube.hande_layer2("Yellow")
 # print(f"{response=}")
@@ -2050,16 +2060,16 @@ print("\nStarting layer 2\n")
 # cube.hande_layer2("Yellow")
 # cube.hande_layer2("Yellow")
 
-while cube.hande_layer2("Yellow") == False:
-    cube.hande_layer2("Yellow")
+# while cube.hande_layer2("Yellow") == False:
+#     cube.hande_layer2("Yellow")
 # cube.hande_layer2("Yellow")
 # cube.hande_layer2("Yellow")
 # cube.hande_layer2("Yellow")
 # cube.hande_layer2("Yellow")
 
-print("\nLayer 2 completed: Middle layer\n")
-print("\nStarting top and final layer\n")
-cube.handle_top_layer_figures("Yellow")
+# print("\nLayer 2 completed: Middle layer\n")
+# print("\nStarting top and final layer\n")
+# cube.handle_top_layer_figures("Yellow")
 # cube.handle_top_layer_figures("Yellow")
 # cube.show_cube()
 cube.show_cube()
