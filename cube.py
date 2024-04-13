@@ -2,6 +2,9 @@
 
 from helper import CubeHelper
 import random as rd
+import sys
+
+sys.setrecursionlimit(100)
 
 class Cube:
     def __init__(self, number):
@@ -35,34 +38,34 @@ class Cube:
         self.orders = ["Back", "Top", "Front", "Bottom", "Left", "Right"]
         self.scrambled_cube = [
             [
-                [2, 2, 5],
+                [6, 3, 1],
                 [2, 5, 4],
-                [4, 1, 4],
+                [1, 2, 6],
             ],
             [
-                [5, 4, 5],
-                [4, 1, 6],
-                [1, 5, 3]
+                [6, 5, 4],
+                [4, 1, 1],
+                [2, 3, 5]
             ],
             [
-                [2, 1, 2],
-                [1, 6, 3],
-                [4, 3, 6]
+                [1, 5, 3],
+                [3, 6, 1],
+                [2, 3, 5]
             ],
             [
-                [1, 5, 4],
-                [2, 3, 1],
-                [3, 5, 2]
+                [5, 2, 4],
+                [4, 3, 1],
+                [3, 4, 2]
             ],
             [
-                [1, 3, 6],
-                [6, 4, 2],
-                [5, 3, 6]
+                [4, 6, 5],
+                [6, 4, 6],
+                [2, 1, 3]
             ],
             [
-                [6, 4, 3],
+                [4, 5, 3],
                 [6, 2, 5],
-                [3, 6, 1]
+                [1, 2, 6]
             ]
         ]
         # self.build_cube(number)
@@ -1437,9 +1440,65 @@ class Cube:
                 return False
         return True
 
+    def find_valid_piece_at_invald_pos(self):
+        for i in range(len(self.scrambled_cube)):
+            if i == 1:
+                continue
+            if self.scrambled_cube[i][1][0] != self.scrambled_cube[i][1][1]:
+                return [i,(1, 0)]
+            if self.scrambled_cube[i][1][2] != self.scrambled_cube[i][1][1]:
+                return [i, (1, 2)]
+        return [-1, (-1, -1)]
+
     def hande_layer2(self, color):
         piece = self.collect_pieces4()
         print(f"Layer 2: {piece}")
+        if len(piece) == 0:
+            if self.check_is_middle_layer_completed():
+                return True
+            else:
+                pos = self.find_valid_piece_at_invald_pos()
+                dim, t = pos
+                r, c = t
+                if dim == 0:
+                    print("Perform operations on back")
+                    if c == 0:
+                        print("Move right")
+                    else:
+                        print("Move left")
+                        # self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                elif dim == 2:
+                    print("Perform operations on front")
+                    if c == 0:
+                        print("Move right")
+                    else:
+                        print("Move left")
+                        self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                        self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+                        self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                        self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+                        self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                        self.cube_helper.rotate_Z(self.scrambled_cube, -1, 2)
+                        self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                        self.cube_helper.rotate_Z(self.scrambled_cube, 1, 2)
+                        # self.layer2_helper([2, 0, 1])
+
+                elif dim == 4:
+                    print("Perform operations on left")
+                    if c == 0:
+                        print("Move right")
+                    else:
+                        print("Move left")
+                elif dim == 4:
+                    print("Perform operations on right")
+                    if c == 0:
+                        print("Move right")
+                    else:
+                        print("Move left")
+                else:
+                    print("You are a dick")
+            # return True
+            
         self.layer2_helper(piece)
         return self.check_is_middle_layer_completed()
 
@@ -1885,7 +1944,7 @@ class Cube:
             top_mat[0][1] == top_color
             and top_mat[1][0] == top_color
             and top_mat[1][2] == top_color
-            and top_mat[2][1]
+            and top_mat[2][1] == top_color
         ):
             print("Hello buddy i am your plus....")
             self.handle_plus_on_top(color)
@@ -1975,104 +2034,108 @@ class Cube:
                 # self.handle_top_layer_figures(color)
 
 
-cube = Cube(2)
-print("Original\n")
-# cube.show_cube()
-#
-# cube.scramble_moly_cube()
-print("\nScrambled cube\n")
-print("\nSolving......")
-# print("Please hold up a sec.....")
-# # cube.show_cube()
-# # print("After one move\n\n")
-# print("\nBringing edge pieces\n")
-# cube.solve_level_one("Yellow")
-# cube.solve_level_one("Yellow")
-# cube.solve_level_one("Yellow")
-# response = cube.solve_level_one("Yellow")
-while cube.solve_level_one("Yellow") == 0:
-    cube.solve_level_one("Yellow")
-# cube.show_cube()
-# # print("\n\nAfter two move \n\n")
-# cube.show_cube()
-# # print("\n\nAfter 3rd move \n\n")
-# cube.show_cube()
-# # cube.show_cube()
-print("\nHandling edge pieces to bottom\n")
-# response = cube.bring_edge_pieces_to_bottom("Yellow")
-# print(f"{response=}")
-while cube.bring_edge_pieces_to_bottom("Yellow") == 0:
-    cube.bring_edge_pieces_to_bottom("Yellow")
-# cube.bring_edge_pieces_to_bottom("Yellow")
-# cube.bring_edge_pieces_to_bottom("Yellow")
-# cube.bring_edge_pieces_to_bottom("Yellow")
-# # print("One edge piece is now at correct position")
-# # print("Secoond edge is now at its correct position")
-# # cube.show_cube()
-# # cube.show_cube()
-# cube.show_cube()
-# # cube.bring_edge_pieces_to_bottom("Yellow")
-# # cube.show_cube()
-# # cube.bring_edge_pieces_to_bottom("Yellow")
-# # cube.running_template("Yellow")
-# # cube.show_cube()
-# # cube.running_template("Yellow")
-# # cube.show_cube()
-# # cube.solve_level_one("Yellow")
-# # cube.solve_level_one("Yellow")
-# # cube.solve_level_one("Yellow")
-# # cube.solve_level_one("Yellow")
-#
-# cube.bring_edge_pieces_to_bottom("Yellow")
-# cube.bring_edge_pieces_to_bottom("Yellow")
-# cube.bring_edge_pieces_to_bottom("Yellow")
-# cube.bring_edge_pieces_to_bottom("Yellow")
-# # cube.cube_helper.rotate_Z(cube.scrambled_cube, 1, 0)
-# # cube.cube_helper.rotate_Z(cube.scrambled_cube, -1, 0)
-# # cube.cube_helper.rotate_Z(cube.scrambled_cube, 1, 2)
-# # cube.cube_helper.rotate_Z(cube.scrambled_cube, -1, 2)
-print("\nHandling corner pieces\n")
-cube.handle_corner_pieces("Yellow")
-cube.handle_corner_pieces("Yellow")
-cube.handle_corner_pieces("Yellow")
-cube.handle_corner_pieces("Yellow")
-cube.handle_corner_pieces("Yellow")
+try:
 
-# response = cube.handle_corner_pieces("Yellow")
-# print(f"{response=}")
-# while cube.handle_corner_pieces("Yellow") == 0:
-#     cube.handle_corner_pieces("Yellow")
-# cube.handle_corner_pieces("Yellow")
-# cube.handle_corner_pieces("Yellow")
-# cube.handle_corner_pieces("Yellow")
-# cube.handle_corner_pieces("Yellow")
-# cube.handle_corner_pieces("Yellow")
-# cube.handle_corner_pieces("Yellow")
-# cube.handle_corner_pieces("Yellow")
-# print("Layer 1 completed: Yellow")
-# print("\nStarting layer 2\n")
-# cube.handle_corner_pieces("Yellow")
-# response = cube.hande_layer2("Yellow")
-# print(f"{response=}")
-# cube.hande_layer2("Yellow")
-# cube.hande_layer2("Yellow")
-# cube.hande_layer2("Yellow")
-# cube.hande_layer2("Yellow")
-# cube.hande_layer2("Yellow")
+    cube = Cube(2)
+    print("Original\n")
+    # cube.show_cube()
+    #
+    # cube.scramble_moly_cube()
+    print("\nScrambled cube\n")
+    print("\nSolving......")
+    # print("Please hold up a sec.....")
+    # # cube.show_cube()
+    # # print("After one move\n\n")
+    # print("\nBringing edge pieces\n")
+    # cube.solve_level_one("Yellow")
+    # cube.solve_level_one("Yellow")
+    # cube.solve_level_one("Yellow")
+    # response = cube.solve_level_one("Yellow")
+    while cube.solve_level_one("Yellow") == 0:
+        cube.solve_level_one("Yellow")
+    # cube.show_cube()
+    # # print("\n\nAfter two move \n\n")
+    # cube.show_cube()
+    # # print("\n\nAfter 3rd move \n\n")
+    # cube.show_cube()
+    # # cube.show_cube()
+    print("\nHandling edge pieces to bottom\n")
+    # response = cube.bring_edge_pieces_to_bottom("Yellow")
+    # print(f"{response=}")
+    while cube.bring_edge_pieces_to_bottom("Yellow") == 0:
+        cube.bring_edge_pieces_to_bottom("Yellow")
+    # cube.bring_edge_pieces_to_bottom("Yellow")
+    # cube.bring_edge_pieces_to_bottom("Yellow")
+    # cube.bring_edge_pieces_to_bottom("Yellow")
+    # # print("One edge piece is now at correct position")
+    # # print("Secoond edge is now at its correct position")
+    # # cube.show_cube()
+    # # cube.show_cube()
+    # cube.show_cube()
+    # # cube.bring_edge_pieces_to_bottom("Yellow")
+    # # cube.show_cube()
+    # # cube.bring_edge_pieces_to_bottom("Yellow")
+    # # cube.running_template("Yellow")
+    # # cube.show_cube()
+    # # cube.running_template("Yellow")
+    # # cube.show_cube()
+    # # cube.solve_level_one("Yellow")
+    # # cube.solve_level_one("Yellow")
+    # # cube.solve_level_one("Yellow")
+    # # cube.solve_level_one("Yellow")
+    #
+    # cube.bring_edge_pieces_to_bottom("Yellow")
+    # cube.bring_edge_pieces_to_bottom("Yellow")
+    # cube.bring_edge_pieces_to_bottom("Yellow")
+    # cube.bring_edge_pieces_to_bottom("Yellow")
+    # # cube.cube_helper.rotate_Z(cube.scrambled_cube, 1, 0)
+    # # cube.cube_helper.rotate_Z(cube.scrambled_cube, -1, 0)
+    # # cube.cube_helper.rotate_Z(cube.scrambled_cube, 1, 2)
+    # # cube.cube_helper.rotate_Z(cube.scrambled_cube, -1, 2)
+    print("\nHandling corner pieces\n")
+    # cube.handle_corner_pieces("Yellow")
+    # cube.handle_corner_pieces("Yellow")
+    # cube.handle_corner_pieces("Yellow")
+    # cube.handle_corner_pieces("Yellow")
+    # cube.handle_corner_pieces("Yellow")
 
-# while cube.hande_layer2("Yellow") == False:
-#     cube.hande_layer2("Yellow")
-# cube.hande_layer2("Yellow")
-# cube.hande_layer2("Yellow")
-# cube.hande_layer2("Yellow")
-# cube.hande_layer2("Yellow")
+    # response = cube.handle_corner_pieces("Yellow")
+    # print(f"{response=}")
+    while cube.handle_corner_pieces("Yellow") == 0:
+        cube.handle_corner_pieces("Yellow")
+    # cube.handle_corner_pieces("Yellow")
+    # cube.handle_corner_pieces("Yellow")
+    # cube.handle_corner_pieces("Yellow")
+    # cube.handle_corner_pieces("Yellow")
+    # cube.handle_corner_pieces("Yellow")
+    # cube.handle_corner_pieces("Yellow")
+    # cube.handle_corner_pieces("Yellow")
+    print("Layer 1 completed: Yellow")
+    print("\nStarting layer 2\n")
+    # cube.handle_corner_pieces("Yellow")
+    # response = cube.hande_layer2("Yellow")
+    # print(f"{response=}")
+    # cube.hande_layer2("Yellow")
+    # cube.hande_layer2("Yellow")
+    # cube.hande_layer2("Yellow")
+    # cube.hande_layer2("Yellow")
+    # cube.hande_layer2("Yellow")
 
-# print("\nLayer 2 completed: Middle layer\n")
-# print("\nStarting top and final layer\n")
-# cube.handle_top_layer_figures("Yellow")
-# cube.handle_top_layer_figures("Yellow")
-# cube.show_cube()
-cube.show_cube()
+    while cube.hande_layer2("Yellow") == False:
+        cube.hande_layer2("Yellow")
+    # cube.hande_layer2("Yellow")
+    # cube.hande_layer2("Yellow")
+    # cube.hande_layer2("Yellow")
+    # cube.hande_layer2("Yellow")
 
-# moves = cube.cube_helper.getmoves()
-# print(moves)
+    print("\nLayer 2 completed: Middle layer\n")
+    print("\nStarting top and final layer\n")
+    cube.handle_top_layer_figures("Yellow")
+    # cube.handle_top_layer_figures("Yellow")
+    # cube.show_cube()
+    cube.show_cube()
+
+    # moves = cube.cube_helper.getmoves()
+    # print(moves)
+except RecursionError:
+    print("Wrong rubik cube go check your brain.")
