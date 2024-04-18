@@ -97,12 +97,48 @@ def rotate_left_face(direction):
     for cube in positions:
         cube_entities[cube].rotation_x += 90*direction
 
+def rotate_up_face(direction):
+    positions = [
+        (-1, 1, 1),
+        (0, 1, 1),
+        (1, 1, 1),
+        (-1, 1, 0),
+        (0, 1, 0),
+        (1, 1, 0),
+        (-1, 1, -1),
+        (0, 1, -1),
+        (1, 1, -1)
+    ]
+
+    for cube in positions:
+        cube_entities[cube].rotation_y += 90*direction
+
+def rotate_bottom_face(direction):
+    positions = [
+        (-1, -1, 1),
+        (0, -1, 1),
+        (1, -1, 1),
+        (-1, -1, 0),
+        (0, -1, 0),
+        (1, -1, 0),
+        (-1, -1, -1),
+        (0, -1, -1),
+        (1, -1, -1)
+    ]
+
+    for cube in positions:
+        cube_entities[cube].rotation_y += 90*direction
+
 
 def input(key):
     global PARENT
     if key == 'd':
-        print("I am input key D")
-        PARENT.rotation_y += 90
+        print("Rotating bottom face clockwise")
+        rotate_bottom_face(1)
+    elif key == 'k':
+        print("Rotating bottom face anticlockwise")
+        rotate_bottom_face(-1)
+        # PARENT.rotation_y += 90
     elif key == 'l':
         print("Rotating left face clockwise")
         rotate_left_face(1)
@@ -117,14 +153,18 @@ def input(key):
         print("Rotate right face anticlockwise")
         rotate_right_face(-1)
     elif key == 'u':
-        print("I am input key U")
-        PARENT.rotation_y += 90
+        print("Rotating upper face in clockwise direction")
+        rotate_up_face(1)
+        # PARENT.rotation_y += 90
+    elif key == 'y':
+        print("Rotating upper face in anticlockwise direction")
+        rotate_up_face(-1)
     elif key == 'f':
         print("I am input key F")
-        PARENT.rotation_z += 90
+        # PARENT.rotation_z += 90
     elif key == 'b':
         print("I am input key B")
-        PARENT.rotation_z += 90
+        # PARENT.rotation_z += 90
 
 
 
