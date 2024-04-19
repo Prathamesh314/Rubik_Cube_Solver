@@ -1419,6 +1419,8 @@ class Cube:
             print("I am at front: center...")
             if dim == 5:
                 print("Bringing piece from right to front")
+                self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                self.handle_layer2_middle_pieces(front_color, top_color, [2, 0, 1])
 
             elif dim == 0:
                 print("Brining peice from back to front")
@@ -2042,9 +2044,21 @@ class Cube:
 
 
 
-#     cube = Cube(2)
-#     print("Original\n")
-#     # cube.show_cube()
+cube = Cube(2)
+# print("Original\n")
+while cube.solve_level_one("Yellow") == 0:
+    cube.solve_level_one("Yellow")
+
+while cube.bring_edge_pieces_to_bottom("Yellow") == 0:
+    cube.bring_edge_pieces_to_bottom("Yellow")
+
+while cube.handle_corner_pieces("Yellow") == 0:
+    cube.handle_corner_pieces("Yellow")
+
+cube.hande_layer2("Yellow")
+cube.hande_layer2("Yellow")
+
+cube.show_cube()
 #     #
 #     # cube.scramble_moly_cube()
 #     # print("\nScrambled cube\n")
