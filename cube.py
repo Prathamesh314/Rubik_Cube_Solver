@@ -2055,8 +2055,10 @@ while cube.bring_edge_pieces_to_bottom("Yellow") == 0:
 while cube.handle_corner_pieces("Yellow") == 0:
     cube.handle_corner_pieces("Yellow")
 
-cube.hande_layer2("Yellow")
-cube.hande_layer2("Yellow")
+while cube.hande_layer2("Yellow") == False:
+    cube.hande_layer2("Yellow")
+
+cube.handle_top_layer_figures("Yellow")
 
 cube.show_cube()
 #     #

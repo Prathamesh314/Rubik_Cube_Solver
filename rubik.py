@@ -58,9 +58,6 @@ for i in range(-1, 2):
                 continue
             cube_entities[(i, j , k)] = Entity(parent=PARENT, model=cube_model, texture=cube_texture, position=(i, j , k))
 
-for i, j in cube_entities.items():
-    print(f"{i} = {j}")
-
 
 def rotate_right_face(direction):
     # Store the positions of the cubes in the right face
