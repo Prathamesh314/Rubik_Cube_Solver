@@ -1452,6 +1452,16 @@ class Cube:
                     print("Move left to back")
                 else:
                     print("Move to left to front")
+                    self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                    self.cube_helper.rotate_Z(self.scrambled_cube, 1, 0)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                    self.cube_helper.rotate_Z(self.scrambled_cube, -1, 0)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                    self.cube_helper.rotate_X(self.scrambled_cube, -1, 0)
+                    self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                    self.cube_helper.rotate_X(self.scrambled_cube, 1, 0)
+                    piece = self.collect_pieces4()
+                    self.layer2_helper(piece)
             elif (
                 self.scrambled_cube[2][1][2] != self.scrambled_cube[2][1][1]
                 or self.scrambled_cube[2][1][0] != self.scrambled_cube[2][1][1]
@@ -1593,7 +1603,14 @@ class Cube:
                     print("Perform operations on back")
                     if c == 0:
                         print("Move right")
-
+                        self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                        self.cube_helper.rotate_X(self.scrambled_cube, -1, 0)
+                        self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                        self.cube_helper.rotate_X(self.scrambled_cube, 1, 0)
+                        self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+                        self.cube_helper.rotate_Z(self.scrambled_cube, 1, 0)
+                        self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+                        self.cube_helper.rotate_Z(self.scrambled_cube, -1, 0)
                     else:
                         print("Move left")
                         # self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
@@ -2184,9 +2201,6 @@ while cube.handle_corner_pieces("Green") == 0:
 # while cube.hande_layer2("Green") == False:
 #     cube.hande_layer2("Green")
 
-cube.hande_layer2("Green")
-cube.hande_layer2("Green")
-cube.hande_layer2("Green")
 # cube.handle_top_layer_figures("Green")
 
 cube.show_cube()
