@@ -2,7 +2,7 @@ from ursina import *
 import random as rd
 import time
 app = Ursina(fullscreen=True)
-cube_model, cube_texture = 'models/custom_cube.obj', 'textures/rubik_texture.png'
+cube_model, cube_texture = 'models/custom_cube.obj', 'textures/rrr.jpeg'
 
 
 

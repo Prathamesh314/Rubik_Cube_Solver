@@ -95,7 +95,7 @@ class CubeHelper:
     def rotate_X(self, scrambled_cube, dir, col):
         if dir == 1:
             if col == 0:
-                self.moves.append("L'")
+                self.moves.append("L")
                 top = scrambled_cube[self.dirs["Top"]]
                 face = scrambled_cube[self.dirs["Face"]]
                 bottom = scrambled_cube[self.dirs["Bottom"]]
@@ -133,7 +133,7 @@ class CubeHelper:
                         new_left[i][j] = left[j][n-1-i]
                 scrambled_cube[self.dirs["Left"]] = new_left
             else:
-                self.moves.append("R'")
+                self.moves.append("R")
                 top = scrambled_cube[self.dirs["Top"]]
                 face = scrambled_cube[self.dirs["Face"]]
                 bottom = scrambled_cube[self.dirs["Bottom"]]
@@ -160,7 +160,7 @@ class CubeHelper:
                 scrambled_cube[self.dirs["Right"]] = new_right
         else:
             if col == 0:
-                self.moves.append("L")
+                self.moves.append("L'")
                 top = scrambled_cube[self.dirs["Top"]]
                 face = scrambled_cube[self.dirs["Face"]]
                 bottom = scrambled_cube[self.dirs["Bottom"]]
@@ -187,7 +187,7 @@ class CubeHelper:
                 scrambled_cube[self.dirs["Left"]] = new_left
             else:
 
-                self.moves.append("R")
+                self.moves.append("R'")
                 top = scrambled_cube[self.dirs["Top"]]
                 face = scrambled_cube[self.dirs["Face"]]
                 bottom = scrambled_cube[self.dirs["Bottom"]]
