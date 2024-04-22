@@ -2198,18 +2198,18 @@ while cube.bring_edge_pieces_to_bottom("Green") == 0:
 while cube.handle_corner_pieces("Green") == 0:
     cube.handle_corner_pieces("Green")
 
-# while cube.hande_layer2("Green") == False:
-#     cube.hande_layer2("Green")
+while cube.hande_layer2("Green") == False:
+    cube.hande_layer2("Green")
 
-# cube.handle_top_layer_figures("Green")
+cube.handle_top_layer_figures("Green")
 
 cube.show_cube()
 
-# response = cube.cube_helper.getmoves()
-# # print(response)
-# ursina_response = []
-# ursina_commands = cube.ursina_commands
-# for move in response:
-#     ursina_response.append(ursina_commands[move])
-# print(ursina_response)
+response = cube.cube_helper.getmoves()
+# print(response)
+ursina_response = []
+ursina_commands = cube.ursina_commands
+for move in response:
+    ursina_response.append(ursina_commands[move])
+print(ursina_response[102:])
 
