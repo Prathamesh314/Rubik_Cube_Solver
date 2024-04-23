@@ -39,41 +39,73 @@ class Cube:
         self.scrambled_cube = [
             # Back
             [
-                [3, 5, 5],
+                [6, 2, 3],
                 [2, 5, 6],
-                [6, 1, 3],
+                [4, 3, 6],
             ],
             # Top
             [
-                [4, 6, 5],
-                [1, 1, 3],
-                [6, 5, 4]
+                [5, 2, 4],
+                [2, 1, 3],
+                [4, 5, 2]
             ],
             # Front
             [
-                [3, 2, 1],
-                [2, 6, 5],
-                [1, 6, 6]
+                [1, 4, 5],
+                [1, 6, 3],
+                [2, 6, 3]
             ],
             # Bottom
             [
-                [2, 3, 1],
-                [3, 3, 4],
-                [2, 3, 4]
+                [5, 1, 6],
+                [1, 3, 5],
+                [1, 1, 6]
             ],
             # Left
             [
-                [3, 5, 2],
-                [6, 2, 1],
-                [5, 2, 5]
+                [3, 5, 5],
+                [6, 2, 5],
+                [2, 4, 1]
             ],
             # Right
             [
+                [3, 4, 1],
                 [6, 4, 4],
-                [4, 4, 4],
-                [2, 1, 1]
+                [2, 3, 4]
             ]
         ]
+
+        # self.scrambled_cube = [
+        #     [[5, 5, 5],
+        #      [5, 5, 5],
+        #      [5, 5, 5]
+        #     ],
+        #     [
+        #         [1, 1, 1],
+        #         [1, 1, 1],
+        #         [1, 1, 1],
+        #     ],
+        #     [
+        #         [6, 6, 6],
+        #         [6, 6, 6],
+        #         [6, 6, 6],
+        #     ],
+        #     [
+        #         [3, 3, 3],
+        #         [3, 3, 3],
+        #         [3, 3, 3]
+        #     ],
+        #     [
+        #         [2, 2, 2],
+        #         [2, 2, 2],
+        #         [2, 2, 2],
+        #     ],
+        #     [
+        #         [4, 4, 4],
+        #         [4, 4, 4],
+        #         [4, 4, 4]
+        #     ]
+        # ]
         # self.build_cube(number)
         # self.build_scramble_cube()
         # self.scrambled_cube = initial_cube
@@ -2184,7 +2216,7 @@ class Cube:
                 # self.handle_top_layer_figures(color)
 
 
-
+moves = ["F", "F'", "B", "B'", "L", "L'", "R", "R'", "U", "U'", "D", "D'"]
 
 cube = Cube(2)
 # print("Original\n")
@@ -2203,13 +2235,53 @@ while cube.hande_layer2("Green") == False:
 
 cube.handle_top_layer_figures("Green")
 
-cube.show_cube()
+# cube.show_cube()
 
 response = cube.cube_helper.getmoves()
-# print(response)
+print(response)
+
+
 ursina_response = []
 ursina_commands = cube.ursina_commands
 for move in response:
     ursina_response.append(ursina_commands[move])
-print(ursina_response[102:])
+# print(ursina_response)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+scrambled_moves = ['s', 'j', 'a', 'd', 'p', 'o', 'w', 'p', 'w', 'k', 'o', 'a', 'l', 's', 'q', 'w', 'p', 'i', 'o', 'd', 'a', 'k', 'l', 'k', 'p', 'i', 'p', 'q', 'a', 'w', 'd', 'q', 'l', 'i', 'p', 'e', 'q', 'w', 'e', 'l', 'o', 'l', 'e', 'a', 'e', 'i', 'l', 'i', 'w', 'k']

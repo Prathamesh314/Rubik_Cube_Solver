@@ -1,6 +1,7 @@
 from ursina import *
 import random as rd
 import time
+
 app = Ursina(fullscreen=True)
 cube_model, cube_texture = 'models/custom_cube.obj', 'textures/rrr.jpeg'
 
@@ -85,38 +86,40 @@ def input(key):
     if key in keys1:
         rotate_side_anti(keys1[key])
 
-# faces = {1: 'TOP', 2: 'TOPR', 3: 'BOTTOM', 4: 'BOTTOMR', 5: 'LEFT', 6: 'LEFTR', 7:'RIGHT', 8: 'RIGHTR', 9: 'FACE', 10: 'FACER', 11: 'BACK', 12: 'BACKR'}
+moves = ['e', 'p', 'w', 'i', 'w', 'd', 'd', 'w', 'w', 'k', 'l', 'a', 'a', 'w', 'd', 'd', 'l', 'q', 'q', 'l', 'e', 'e', 'i', 'w', 'd', 'l', 'w', 'w', 'q', 'l', 'k', 'i', 'w', 'd', 'l', 'l', 'w', 'j', 'l', 'e', 'q', 'l', 'k', 'l', 'l', 'l', 'w', 'l', 'e', 'w', 'j', 'd', 'l', 'i', 'l', 'l', 'a', 'w', 'p', 'w', 'l', 'l', 'k', 'w', 'q', 'w', 'w', 'p', 'l', 'a', 'l', 'e', 'w', 'j', 'w', 'l', 'i', 'w', 'd', 'w', 'j', 'l', 'e', 'l', 'l', 'k', 'w', 'q', 'w', 'd', 'l', 'i', 'l', 'l', 'a', 'w', 'p', 'w', 'q', 'l', 'k', 'p', 'q', 'w', 'k', 'l', 'a', 'p', 'q', 'w', 'k', 'l', 'a', 'w', 'w', 'j', 'l', 'k', 'w', 'e', 'l', 'q', 'l', 'l', 'i', 's', 'd', 'o', 'i', 's', 'd', 'o', 'l', 'l', 'l', 'i', 's', 'd', 'o', 'i', 's', 'd', 'o', 'i', 's', 'd', 'o', 'i', 's', 'd', 'o', 'l', 'l', 'l']
+current_move = 0
 
-# def update():
-#     global faces
-#     for i in range(100):
-#         num = rd.randint(1, 12)
-#         face = faces[num]
-#         match face:
-#             case "TOP":
-#                 rotate_side("TOP")
-#             case "TOPR":
-#                 rotate_side_anti("TOP")
-#             case "BOTTOM":
-#                 rotate_side("BOTTOM")
-#             case "BOTTOMR":
-#                 rotate_side_anti("BOTTOM")
-#             case "LEFT":
-#                 rotate_side("LEFT")
-#             case "LEFTR":
-#                 rotate_side_anti("LEFT")
-#             case "RIGHT":
-#                 rotate_side("RIGHT")
-#             case "RIGHTR":
-#                 rotate_side_anti("RIGHT")
-#             case "FACE":
-#                 rotate_side("FACE")
-#             case "FACER":
-#                 rotate_side_anti("FACE")
-#             case "BACK":
-#                 rotate_side("BACK")
-#             case "BACKR":
-#                 rotate_side_anti("BACK")
-#         time.sleep(1)
+def execute_move(move):
+    keys = {'a': 'LEFT', 's': 'BOTTOM', 'd': 'RIGHT', 'w': 'TOP', 'q': 'FACE', 'e': 'BACK'}
+    keys1 = {'p': 'LEFT', 'o': 'BOTTOM', 'i': 'RIGHT', 'l': 'TOP', 'k': 'FACE', 'j': 'BACK'}
+    if move in keys:
+        rotate_side(keys[move])
+    if move in keys1:
+        rotate_side_anti(keys1[move])
+
+def play_next_move():
+    global current_move
+    if current_move < len(moves):
+        move = moves[current_move]
+        execute_move(move)
+        current_move += 1
+    else:
+        print("All moves have been executed.")
+
+# Create a button to play the next move
+next_move_button = Button(
+    text="Next Move",
+    color=color.azure,
+    highlight_color=color.cyan,
+    pressed_color=color.blue,
+    scale=(0.2, 0.05),
+    position=(-0.5, 0.4)
+)
+
+# Bind the button to the play_next_move function
+next_move_button.on_click = play_next_move
+
+# cube = Cube(2)
+m = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
 app.run()

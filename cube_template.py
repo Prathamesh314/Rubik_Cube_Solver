@@ -3,26 +3,20 @@ class CubeTemplate:
         self.Cube = cube
     
     def handle_layer1(self):
-        while self.Cube.solve_level_one("Yellow") == 0:
-            self.Cube.solve_level_one("Yellow")
-        while self.Cube.bring_edge_pieces_to_bottom("Yellow") == 0:
-            self.Cube.bring_edge_pieces_to_bottom("Yellow")
-        while self.Cube.handle_corner_pieces("Yellow") == 0:
-            self.Cube.handle_corner_pieces("Yellow")
-        print("Cube after level 1")
-        self.Cube.show_cube()
+        while self.Cube.solve_level_one("Green") == 0:
+            self.Cube.solve_level_one("Green")
+        while self.Cube.bring_edge_pieces_to_bottom("Green") == 0:
+            self.Cube.bring_edge_pieces_to_bottom("Green")
+        while self.Cube.handle_corner_pieces("Green") == 0:
+            self.Cube.handle_corner_pieces("Green")
 
     def handle_layer2(self):
-        while self.Cube.hande_layer2("Yellow") == 0:
-            self.Cube.hande_layer2("Yellow")
+        while self.Cube.hande_layer2("Green") == 0:
+            self.Cube.hande_layer2("Green")
 
-        print("Cube after layer 2")
-        self.Cube.show_cube()
 
     def handle_layer3(self):
-        self.Cube.handle_top_layer_figures("Yellow")
-        self.Cube.show_cube()
-        print("Cube is solved....")
+        self.Cube.handle_top_layer_figures("Green")
 
     def run(self):
         print("Let's start solving cube....")
