@@ -1,74 +1,77 @@
 # Rubik_Cube_Solver
 
-Just a fun project in python
+Just a fun project in Python.
 
-# About
+## About
 
-Rubik Solver is a Python Project aims to teach and help people to solve Rubik Cube.
-You can give any Valid Configuration to the code and it will give you a TEXT solution as well as you can visualize the solution
+Rubik Solver is a Python Project aimed at teaching and helping people to solve the Rubik's Cube. You can provide any valid configuration to the code, and it will give you a text solution as well as allow you to visualize the solution.
 
-This is the 1st version of the Project and it requires more improvement. I want to make as easy as possible way to learn a Rubik Cube through my code.
-Currently you can manually input your cube from all six sides, I plan to do this thing just by scanning your cube via Camera instead of doing manually.
+This is the 1st version of the project and it requires further improvement. I aim to make learning the Rubik's Cube as easy as possible through my code. Currently, you can manually input your cube from all six sides, but I plan to implement cube scanning via camera instead of manual input.
 
-Let's talk about code now.
+## How to Setup
 
-# How to Setup
+1. Clone the Repository to your local system.
+2. `cd Rubik_Cube_Solver`
+3. Create a virtual environment by running the command:
+   `python -m venv rubik`
 
-1. Clone the Repository in your local system.
-2. cd Rubik_Cube_Solver
-3. Create a virtual environment by running command
-   > python -m venv rubik
-4. Activate virtaul environment
-   source rubik/env/activate
-5. Install Dependencies
-   run pip install -r requirements.txt
+4. Activate the virtual environment:
+   `source rubik/env/activate`
 
-6. Enter Configuration of your Rubik Manually.
-   Rules to enter rubik cube Configuration :-
-   6a. Color's Definition
-   a. 1 -> Blue
-   b. 2 -> Yellow
-   c. 3 -> Green
-   d. 4 -> White
-   e. 5 -> Orange
-   f. 6 -> Red
+5. Install Dependencies:
+   `pip install -r requirements.txt`
 
-   6b. Face's Definition
-   You will find a 3d array names scrambled_cube in cube.py, It contains 6 2d array which represents 6 faces of rubik cube. Here is how they are defined :-
-   a. 1st array -> Back Face
-   b. 2nd array -> Top Face
-   c. 3rd array -> Front Face
-   d. 4th array -> Bottom Face
-   e. 5th array -> Left Face
-   f. 6th array -> Right Face
+6. Enter the Configuration of your Rubik's Cube Manually.
 
-   6c. Entering colors :-
-   a. After You Scrambled Real Cube, Choose which color you want to Complete First.
-   b. Suppose you want to complete Green color first then keep Green color at Bottom and Fix positions of every Face.
-   c. For ex, one of the configuration can be :- Bottom(Green), Front(Red), Top(Blue), Back(Orange), Left(Yellow), Right(White). So keep same configuration till last.
-   d. If Red is at front, keep it at front and same for all faces.
-   e. Now when you enter the colors for Rubik Cube in my program, so enter colors in right sequence as you see on your cube. Fill every face except Back Face.
-   f. To Fill color of Back Face, hold rubik cube in your fixed configuration and rotate whole cube front two times, that means bring whole back face to front face and now you can enter back face's colors in my program.
-   g. Save cube.py and run main.py.
+- Rules to enter Rubik's Cube Configuration:
+  - **Color's Definition:**
+    - 1 -> Blue
+    - 2 -> Yellow
+    - 3 -> Green
+    - 4 -> White
+    - 5 -> Orange
+    - 6 -> Red
+  - **Face's Definition:**
+    - You will find a 3D array named `scrambled_cube` in `cube.py`, it contains 6 2D arrays which represent the 6 faces of the Rubik's Cube. Here is how they are defined:
+      - 1st array -> Back Face
+      - 2nd array -> Top Face
+      - 3rd array -> Front Face
+      - 4th array -> Bottom Face
+      - 5th array -> Left Face
+      - 6th array -> Right Face
+  - **Entering colors:**
+    - After scrambling the real cube, choose which color you want to complete first.
+    - For example, if you want to complete the Green color first, keep Green color at the bottom and fix positions of every face.
+    - For example, one configuration could be: Bottom(Green), Front(Red), Top(Blue), Back(Orange), Left(Yellow), Right(White). Keep the same configuration till the last.
+    - If Red is at the front, keep it at the front and same for all faces.
+    - When you enter the colors for the Rubik's Cube in my program, enter colors in the right sequence as you see on your cube. Fill every face except the Back Face.
+    - To fill the color of the Back Face, hold the Rubik's Cube in your fixed configuration and rotate the whole cube front two times, that means bring the whole back face to the front face, and now you can enter the back face's colors in my program.
+- Save `cube.py` and run `main.py`.
 
-7. After Running main.py, you will see two solutions, one solution will contains standard notations like :- ["F", "F'", "B", "B'","...."] and other solution will contains set of keybindings to move 3d Cube made in ursina engine.
-8. To Visualize Solution with 3d Cube, just copy 2nd type of solution and go in rubik.py. Find variable named :- "moves" and paste that 2nd solution in this variable.
-9. Run rubik.py , now you can see a 3d rubik cube, you can press the keybindings mentioned in second solution of you can click on button "Next Move".
+7. After running `main.py`, you will see two solutions:
 
-# Here are screenshots
+- One solution will contain standard notations like: `["F", "F'", "B", "B'", ...]`
+- The other solution will contain a set of key bindings to move the 3D Cube made in Ursina engine.
 
-1. Where to input rubik cube configuration
+8. To visualize the solution with the 3D Cube, just copy the 2nd type of solution and go to `rubik.py`. Find the variable named: `moves` and paste the 2nd solution in this variable.
+9. Run `rubik.py`, now you can see a 3D Rubik's Cube. You can press the key bindings mentioned in the second solution or click on the "Next Move" button.
 
-Inside cube.py
-<img src="/screenshots/rubikcube_input.jpeg" alt="Input format in rubik cube"/>
+## Screenshots
+
+1. Where to input Rubik's Cube configuration
+
+![Input format in Rubik's Cube](/screenshots/rubikcube_input.jpeg)
 
 2. How Solution looks like
-   <img src="/screenshots/Solution_format.jpeg" alt="Solution_format"/>
+
+![Solution Format](/screenshots/Solution_format.jpeg)
 
 3. Where to input solution
-   Inside rubik.py
-   <img src="/screenshots/input_solution_moves.jpeg" alt="Input_solution_moves" />
 
-# 3D Cube
+Inside `rubik.py`
 
-  <img src="/screenshots/rubikcube.png" alt="rubikcube"/>
+![Input solution moves](/screenshots/input_solution_moves.jpeg)
+
+## 3D Cube
+
+![Rubik's Cube](/screenshots/rubikcube.png)
