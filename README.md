@@ -68,3 +68,7 @@ Inside cube.py
 3. Where to input solution
    Inside rubik.py
    <img src="/screenshots/input_solution_moves.jpeg" alt="Input_solution_moves" />
+
+# 3D Cube
+
+<img src"/screenshots/rubikcube.png" alt="rubikcube"/>
