@@ -71,4 +71,4 @@ Inside cube.py
 
 # 3D Cube
 
-<img src"/screenshots/rubikcube.png" alt="rubikcube"/>
+  <img src="/screenshots/rubikcube.png" alt="rubikcube"/>
