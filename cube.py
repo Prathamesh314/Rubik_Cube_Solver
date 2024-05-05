@@ -6,6 +6,7 @@ import sys
 
 sys.setrecursionlimit(100)
 
+
 class Cube:
     def __init__(self, number):
         self.cube = []
@@ -44,35 +45,15 @@ class Cube:
                 [4, 3, 6],
             ],
             # Top
-            [
-                [5, 2, 4],
-                [2, 1, 3],
-                [4, 5, 2]
-            ],
+            [[5, 2, 4], [2, 1, 3], [4, 5, 2]],
             # Front
-            [
-                [1, 4, 5],
-                [1, 6, 3],
-                [2, 6, 3]
-            ],
+            [[1, 4, 5], [1, 6, 3], [2, 6, 3]],
             # Bottom
-            [
-                [5, 1, 6],
-                [1, 3, 5],
-                [1, 1, 6]
-            ],
+            [[5, 1, 6], [1, 3, 5], [1, 1, 6]],
             # Left
-            [
-                [3, 5, 5],
-                [6, 2, 5],
-                [2, 4, 1]
-            ],
+            [[3, 5, 5], [6, 2, 5], [2, 4, 1]],
             # Right
-            [
-                [3, 4, 1],
-                [6, 4, 4],
-                [2, 3, 4]
-            ]
+            [[3, 4, 1], [6, 4, 4], [2, 3, 4]],
         ]
 
         # self.scrambled_cube = [
@@ -113,7 +94,20 @@ class Cube:
         self.n = 3
         # self.scramble_moly_cube()
         self.moves = []
-        self.ursina_commands = {"L": "a", "D": "s", "R": "d", "U": "w", "F": "q", "B": "e", "L'": "p", "D'": "o", "R'": "i", "U'": "l", "F'": "k", "B'": "j"}
+        self.ursina_commands = {
+            "L": "a",
+            "D": "s",
+            "R": "d",
+            "U": "w",
+            "F": "q",
+            "B": "e",
+            "L'": "p",
+            "D'": "o",
+            "R'": "i",
+            "U'": "l",
+            "F'": "k",
+            "B'": "j",
+        }
 
     def build_cube(self, number):
         # order will be Face, Top, Back, Bottom, Right, Left
@@ -129,7 +123,7 @@ class Cube:
 
     def get_moves(self):
         return self.cube_helper.getmoves()
-    
+
     def scramble_moly_cube(self):
         moves = ["F", "F1", "B", "B1", "U", "U1", "BT", "BT1", "L", "L1", "R", "R1"]
         for i in range(100):
@@ -159,7 +153,6 @@ class Cube:
                     self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
                 case "R1":
                     self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
-
 
     def build_scramble_cube(self, moves):
         # self.scrambled_cube = [
@@ -202,7 +195,6 @@ class Cube:
                 self.cube_helper.rotate_Y(self.scrambled_cube, 1, 2)
             elif move == "D'":
                 self.cube_helper.rotate_Y(self.scrambled_cube, -1, 2)
-
 
     def show_cube(self):
         color_indices = {}
@@ -342,7 +334,7 @@ class Cube:
                             self.scrambled_cube, 1, self.n - 1 - r
                         )
                         if self.n - 1 - r == 0:
-                            self.moves.extend(["B","B"])
+                            self.moves.extend(["B", "B"])
                         else:
                             self.moves.extend(["F", "F"])
                     else:
@@ -356,7 +348,7 @@ class Cube:
                             self.scrambled_cube, 1, self.n - 1 - r
                         )
                         if self.n - 1 - r == 0:
-                            self.moves.extend(["B","B"])
+                            self.moves.extend(["B", "B"])
                         else:
                             self.moves.extend(["F", "F"])
 
@@ -1083,20 +1075,32 @@ class Cube:
                     top_color = self.scrambled_cube[1][0][2]
                     right_color = self.scrambled_cube[5][0][2]
                     # print(f"{top_color=} | {right_color=}")
-                    if top_color == self.scrambled_cube[0][1][1] and right_color == self.scrambled_cube[5][1][1]:
+                    if (
+                        top_color == self.scrambled_cube[0][1][1]
+                        and right_color == self.scrambled_cube[5][1][1]
+                    ):
                         # I will be at back
                         print("I will be at back")
                         self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
                         self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
                         self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
                         self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
-                    elif top_color == self.scrambled_cube[4][1][1] and right_color == self.scrambled_cube[0][1][1]:
+                    elif (
+                        top_color == self.scrambled_cube[4][1][1]
+                        and right_color == self.scrambled_cube[0][1][1]
+                    ):
                         # I will be at left and back
                         print("I will be at left and back")
-                    elif top_color == self.scrambled_cube[2][1][1] and right_color == self.scrambled_cube[4][1][1]:
+                    elif (
+                        top_color == self.scrambled_cube[2][1][1]
+                        and right_color == self.scrambled_cube[4][1][1]
+                    ):
                         # I will be at front and left
                         print("I will be at front and left")
-                    elif top_color == self.scrambled_cube[5][1][1] and right_color == self.scrambled_cube[2][1][1]:
+                    elif (
+                        top_color == self.scrambled_cube[5][1][1]
+                        and right_color == self.scrambled_cube[2][1][1]
+                    ):
                         # I will be at front and right
                         print("I will be at front and right")
                 # self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
@@ -1251,15 +1255,15 @@ class Cube:
     def is_layer_2_complete(self, color):
         for i in range(len(self.scrambled_cube)):
             if i == 1 or i == 3:
-                continue # skipping top and bottom layer
+                continue  # skipping top and bottom layer
             if i == 0:
                 # Back face
                 if self.scrambled_cube[i][0][0] != self.scrambled_cube[i][1][1]:
-                    return [0,0,0]
+                    return [0, 0, 0]
                 elif self.scrambled_cube[i][0][1] != self.scrambled_cube[i][1][1]:
-                    return [0,0,1]
+                    return [0, 0, 1]
                 elif self.scrambled_cube[i][0][2] != self.scrambled_cube[i][1][1]:
-                    return [0,0,2]
+                    return [0, 0, 2]
             else:
                 if self.scrambled_cube[i][2][0] != self.scrambled_cube[i][1][1]:
                     return [i, 2, 0]
@@ -1268,7 +1272,7 @@ class Cube:
                 elif self.scrambled_cube[i][2][2] != self.scrambled_cube[i][1][1]:
                     return [i, 2, 2]
         return []
-    
+
     def handle_corner_pieces(self, color):
         piece = self.collect_pieces3(color)
         if len(piece) == 0:
@@ -1278,7 +1282,7 @@ class Cube:
             if len(response) != 0:
                 d, r, c = response
                 if d == 0:
-                    if r == 0 and c== 0:
+                    if r == 0 and c == 0:
                         print("I am at back first peice")
                         self.cube_helper.rotate_X(self.scrambled_cube, -1, 0)
                         self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
@@ -1452,7 +1456,6 @@ class Cube:
         else:
             print("Invalid...")
 
-
     def layer2_helper(self, piece):
         if len(piece) == 0:
             print("Handling invalid piece")
@@ -1616,7 +1619,7 @@ class Cube:
             if i == 1:
                 continue
             if self.scrambled_cube[i][1][0] != self.scrambled_cube[i][1][1]:
-                return [i,(1, 0)]
+                return [i, (1, 0)]
             if self.scrambled_cube[i][1][2] != self.scrambled_cube[i][1][1]:
                 return [i, (1, 2)]
         return [-1, (-1, -1)]
@@ -1677,7 +1680,7 @@ class Cube:
                 else:
                     print("You are a dick")
             # return True
-            
+
         self.layer2_helper(piece)
         return self.check_is_middle_layer_completed()
 
@@ -1971,7 +1974,6 @@ class Cube:
             return True
         return False
 
-    
     def handle_plus_on_top(self, color):
         print("Let's handle plus on top...")
         is_matching = False
@@ -2205,15 +2207,15 @@ class Cube:
             self.handle_top_layer_figures(color)
             # else:
             #     print("I am dot...")
-                # while self.scrambled_cube[1][0][1] == self.scrambled_cube[1][1][1]:
-                #     self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
-                # self.cube_helper.rotate_Z(self.scrambled_cube, 1, 2)
-                # self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
-                # self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
-                # self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
-                # self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
-                # self.cube_helper.rotate_Z(self.scrambled_cube, -1, 2)
-                # self.handle_top_layer_figures(color)
+            # while self.scrambled_cube[1][0][1] == self.scrambled_cube[1][1][1]:
+            #     self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+            # self.cube_helper.rotate_Z(self.scrambled_cube, 1, 2)
+            # self.cube_helper.rotate_X(self.scrambled_cube, 1, 2)
+            # self.cube_helper.rotate_Y(self.scrambled_cube, -1, 0)
+            # self.cube_helper.rotate_X(self.scrambled_cube, -1, 2)
+            # self.cube_helper.rotate_Y(self.scrambled_cube, 1, 0)
+            # self.cube_helper.rotate_Z(self.scrambled_cube, -1, 2)
+            # self.handle_top_layer_figures(color)
 
 
 moves = ["F", "F'", "B", "B'", "L", "L'", "R", "R'", "U", "U'", "D", "D'"]
@@ -2238,7 +2240,12 @@ cube.handle_top_layer_figures("Green")
 # cube.show_cube()
 
 response = cube.cube_helper.getmoves()
-print(response)
+# print(response)
+
+l = len(response)
+print("\nStandard Solution...")
+for _ in range(int(l // 15)):
+    print(response[15 * (_ - 1) : _ * 15])
 
 
 ursina_response = []
@@ -2247,41 +2254,61 @@ for move in response:
     ursina_response.append(ursina_commands[move])
 # print(ursina_response)
 
+print("\nUrsina commands...")
+
+for _ in range(int(l // 15)):
+    print(ursina_response[15 * (_ - 1) : _ * 15])
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-scrambled_moves = ['s', 'j', 'a', 'd', 'p', 'o', 'w', 'p', 'w', 'k', 'o', 'a', 'l', 's', 'q', 'w', 'p', 'i', 'o', 'd', 'a', 'k', 'l', 'k', 'p', 'i', 'p', 'q', 'a', 'w', 'd', 'q', 'l', 'i', 'p', 'e', 'q', 'w', 'e', 'l', 'o', 'l', 'e', 'a', 'e', 'i', 'l', 'i', 'w', 'k']
+scrambled_moves = [
+    "s",
+    "j",
+    "a",
+    "d",
+    "p",
+    "o",
+    "w",
+    "p",
+    "w",
+    "k",
+    "o",
+    "a",
+    "l",
+    "s",
+    "q",
+    "w",
+    "p",
+    "i",
+    "o",
+    "d",
+    "a",
+    "k",
+    "l",
+    "k",
+    "p",
+    "i",
+    "p",
+    "q",
+    "a",
+    "w",
+    "d",
+    "q",
+    "l",
+    "i",
+    "p",
+    "e",
+    "q",
+    "w",
+    "e",
+    "l",
+    "o",
+    "l",
+    "e",
+    "a",
+    "e",
+    "i",
+    "l",
+    "i",
+    "w",
+    "k",
+]
