@@ -60,7 +60,7 @@ class Helper4x4:
 
             end_row -= 1
 
-            for i in range(start_row, end_row+1):
+            for i in range(start_row+1, end_row+1):
                 # rotating left layer to bottom
                 face[self.n-1][i] = face[i][0]
 
@@ -85,7 +85,6 @@ class Helper4x4:
                     bottom_index = self.faces_indices["Bottom"]
 
                     for _ in range(self.n):
-                        # collecting top face's last col
                         top.append(self.cube[top_index][_][self.n-1])
 
                     for _ in range(self.n):
