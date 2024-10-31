@@ -40,8 +40,7 @@ class Helper4x4:
             for i in range(self.n):
                 # rotating top layer to right layer
                 face[i][self.n-1] = temp[i]
-            
-            return face
+
         else:
             # rotating given face in anti clockwise direction
             temp = face[0]
@@ -69,8 +68,6 @@ class Helper4x4:
             for i in range(self.n):
                 # rotating top layer to left layer
                 face[i][0] = temp[self.n-1-i]
-
-            return face
 
      
     def rotate_single_sides(self, side, direction):
@@ -143,7 +140,7 @@ class Helper4x4:
                 """
                 right_face_index = self.faces_indices["Right"]
                 right_face = self.cube[right_face_index]
-                self.cube[right_face_index] = self.rotate_face(face=right_face, direction=direction)
+                self.rotate_face(face=right_face, direction=direction)
                 self.rotate_single_sides("R", direction)
                 
             else:
