@@ -91,7 +91,8 @@ class Helper4x4:
         if direction == 1:
             # rotating side clockwise
             match side:
-                case "R":
+                case "R" | "L":
+                    col_idx = self.n-1 if side == "R" else 0
                     top = []
                     top_index = self.faces_indices["Top"]
                     front_index = self.faces_indices["Front"]
@@ -99,30 +100,23 @@ class Helper4x4:
                     bottom_index = self.faces_indices["Bottom"]
 
                     for _ in range(self.n):
-                        top.append(self.cube[top_index][_][self.n-1])
+                        top.append(self.cube[top_index][_][col_idx])
 
                     for _ in range(self.n):
-                        self.cube[top_index][_][self.n-1] = self.cube[front_index][_][self.n-1]
+                        self.cube[top_index][_][col_idx] = self.cube[front_index][_][col_idx]
 
                     for _ in range(self.n):
-                        self.cube[front_index][_][self.n-1] = self.cube[bottom_index][_][self.n-1]
+                        self.cube[front_index][_][col_idx] = self.cube[bottom_index][_][col_idx]
 
                     for _ in range(self.n):
-                        self.cube[bottom_index][_][self.n-1] = self.cube[back_index][_][self.n-1]
+                        self.cube[bottom_index][_][col_idx] = self.cube[back_index][_][col_idx]
 
                     for _ in range(self.n):
-                        self.cube[back_index][_][self.n-1] = top[_]
+                        self.cube[back_index][_][col_idx] = top[_]
 
-
-                case "L":
+                case "T" | "Bo":
                     pass
-                case "T":
-                    pass
-                case "F":
-                    pass
-                case "Ba":
-                    pass
-                case "Bo":
+                case "F" | "Ba":
                     pass
         else:
             # rotating side anti clockwise
@@ -159,12 +153,19 @@ class Helper4x4:
             self.rotate_single_sides("R", direction)
         else:
             # rotating left face
-            if direction == 1:
-                # rotating clock wise
-                pass
-            else:
-                # rotating anti clockwise
-                pass
+            """
+            faces used in this rotation are:
+                1. left
+                2. front face first col
+                3. top face first col
+                4. back face first col
+                5. bottom face first col
+            """
+
+            left_face_index = self.faces_indices["Left"]
+            left_face = self.cube[left_face_index]
+            self.rotate_face(face=left_face, direction=direction)
+            self.rotate_single_sides("L", direction)
 
     
     def show_cube(self):
