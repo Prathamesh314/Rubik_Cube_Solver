@@ -41,33 +41,50 @@ class Helper4x4:
                 # rotating top layer to right layer
                 face[i][self.n-1] = temp[i]
 
+            # rotating middle square
+            temp = face[1][1]
+            face[1][1] = face[2][1]
+            face[2][1] = face[2][2]
+            face[2][2] = face[1][2]
+            face[1][2] = temp
+
+
         else:
             # rotating given face in anti clockwise direction
-            temp = face[0]
+            temp = face[0].copy()
 
             start_row, start_col = 0, 0
-            end_row, end_col = self.n-1, self.n-1
+            end_row, end_col = self.n, self.n
 
-            for i in range(end_row, start_row-1, -1):
-                # rotating right strip -> top layer
+            # bringing right layer to top
+            for i in range(start_row, end_row):
                 face[0][i] = face[i][self.n-1]
+            
             end_col -= 1
 
-            for i in range(end_col, start_col-1, -1):
-                # rotating bottom layer to right layer
-                face[i][self.n-1] = face[self.n-1][self.n-1-i]
+            # bringing bottom layer to right
+            for i in range(start_col, end_col):
+                face[self.n-1-i][self.n-1] = face[self.n-1][i]
 
             end_row -= 1
 
-            for i in range(start_row+1, end_row+1):
-                # rotating left layer to bottom
+            # bringing left layer to bottom
+            for i in range(start_row, end_row):
                 face[self.n-1][i] = face[i][0]
-
+            
             start_col += 1
-
+            
+            # rotating top face to left
             for i in range(self.n):
-                # rotating top layer to left layer
-                face[i][0] = temp[self.n-1-i]
+                face[self.n-1-i][0] = temp[i]
+
+            # rotating middle square
+            temp = face[1][1]
+            face[1][1] = face[1][2]
+            face[1][2] = face[2][2]
+            face[2][2] = face[2][1]
+            face[2][1] = temp
+
 
      
     def rotate_single_sides(self, side, direction):
@@ -128,24 +145,18 @@ class Helper4x4:
     def rotate_x(self, side, direction):
         if side == 'R':
             # rotating right face
-            if direction == 1:
-                # rotating clockwise
-                """
-                faces used in this rotation are:
-                    1. right
-                    2. front face last col
-                    3. top face last col
-                    4. back face last col
-                    5. bottom face last col 
-                """
-                right_face_index = self.faces_indices["Right"]
-                right_face = self.cube[right_face_index]
-                self.rotate_face(face=right_face, direction=direction)
-                self.rotate_single_sides("R", direction)
-                
-            else:
-                # rotating anti clockwise
-                pass
+            """
+            faces used in this rotation are:
+                1. right
+                2. front face last col
+                3. top face last col
+                4. back face last col
+                5. bottom face last col 
+            """
+            right_face_index = self.faces_indices["Right"]
+            right_face = self.cube[right_face_index]
+            self.rotate_face(face=right_face, direction=direction)
+            self.rotate_single_sides("R", direction)
         else:
             # rotating left face
             if direction == 1:
