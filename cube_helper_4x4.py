@@ -91,8 +91,8 @@ class Helper4x4:
         if direction == 1:
             # rotating side clockwise
             match side:
-                case "R" | "L":
-                    col_idx = self.n-1 if side == "R" else 0
+                case "R" | "L" | "Right" | "Left":
+                    col_idx = self.n-1 if side == "R" or side == "Right" else 0
                     top = []
                     top_index = self.faces_indices["Top"]
                     front_index = self.faces_indices["Front"]
@@ -115,8 +115,8 @@ class Helper4x4:
                         self.cube[back_index][_][col_idx] = top[_]
                     return
 
-                case "T" | "Bo":
-                    row_index = 0 if side == 'T' else self.n-1
+                case "T" | "Bo" | "Top" | "Bottom":
+                    row_index = 0 if side == 'T' or side == "Top" else self.n-1
                     back_face_index = 0 if row_index == self.n-1 else self.n-1
 
                     front_index = self.faces_indices["Front"]
@@ -127,7 +127,7 @@ class Helper4x4:
                     temp_front_row = self.cube[front_index][row_index]
                     self.cube[front_index][row_index] = self.cube[right_index][row_index]
                     self.cube[right_index][row_index] = self.cube[back_index][back_face_index]
-                    self.cube[back_index][back_face_index] = self.cube[left_index][row_index]
+                    self.cube[back_index][back_face_index] = reversed(self.cube[left_index][row_index])
                     self.cube[left_index][row_index] = temp_front_row
 
                     return
@@ -213,6 +213,10 @@ class Helper4x4:
                 4. right last row
                 5. back first row
             """
+            bottom_face_index = self.faces_indices["Bottom"]
+            bottom_face = self.cube[bottom_face_index]
+            self.rotate_face(face=bottom_face, direction=direction)
+            self.rotate_single_sides(side=side, direction=direction)
         else:
             raise Exception(f"Side: {side} is invalid in rotation y.")
 
