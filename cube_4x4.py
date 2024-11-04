@@ -1,3 +1,5 @@
+from cube_helper_4x4 import Helper4x4
+
 class Solver4x4:
     def __init__(self) -> None:
         self.colors = {
@@ -53,7 +55,20 @@ class Solver4x4:
             ],
         ]
 
+        self.cube_helper = Helper4x4()
     
+
+    def rotate_x(self, side, direction):
+        self.cube_helper.rotate_x(cube=self.cube, side=side, direction=direction)
+
+    def rotate_y(self, side, direction):
+        self.cube_helper.rotate_y(cube=self.cube, side=side, direction=direction)
+
+    def rotate_z(self, side, direction):
+        self.cube_helper.rotate_z(cube=self.cube, side=side, direction=direction)
+    
+
+
     def print_face(self, idx):
         if idx == 0:
             print("Back Face")
@@ -69,7 +84,6 @@ class Solver4x4:
             print("Right Face")
         print()
     
-
     def show_cube(self):
         for idx, faces in enumerate(self.cube):
             self.print_face(idx)
@@ -79,6 +93,9 @@ class Solver4x4:
                     print(self.colors[f], end=" ")
                 print()
             print("==================================")
+
+    
+
 
 
     

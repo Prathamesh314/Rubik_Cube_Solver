@@ -1,12 +1,8 @@
 from cube_4x4 import Solver4x4
-from cube_helper_4x4 import Helper4x4
 
 cube = Solver4x4()
-helper = Helper4x4(cube=cube)
+cube.show_cube()
+print("=="*50)
+cube.rotate_x(side="R", direction=1)
+cube.show_cube()
 
-# helper.rotate_x(side="R", direction=1)
-# helper.rotate_x(side="R", direction=-1)
-helper.show_cube()
-print("="*50)
-helper.rotate_z(side='F', direction=1)
-helper.show_cube()
