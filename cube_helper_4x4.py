@@ -200,7 +200,36 @@ class Helper4x4:
                     return
 
                 case "T" | "Bo" | "Top" | "Bottom":
-                    pass
+                    row_idx = 0 if side == "T" or side.title() == "Top" else self.n-1
+                    back_row_idx = 0 if row_idx == self.n-1 else self.n-1
+
+                    front_face_idx = self.faces_indices["Front"]
+                    left_face_idx = self.faces_indices["Left"]
+                    back_face_idx = self.faces_indices["Back"]
+                    right_face_idx = self.faces_indices["Right"]
+
+                    front_rows = []
+                    for _ in range(self.n):
+                        front_rows.append(cube[front_face_idx][row_idx][_])
+
+                    # bringing left faces to front
+                    for _ in range(self.n):
+                        cube[front_face_idx][row_idx][_] = cube[left_face_idx][row_idx][_]
+                    
+                    # bringing back faces to left
+                    for _ in range(self.n):
+                        cube[left_face_idx][row_idx][_] = cube[back_face_idx][back_row_idx][self.n-1-_]
+
+                    # bringing right faces to back
+                    for _ in range(self.n):
+                        cube[back_face_idx][back_row_idx][_] = cube[right_face_idx][row_idx][self.n-1-_]
+
+                    # bringing front faces to right
+                    for _ in range(self.n):
+                        cube[right_face_idx][row_idx][_] = front_rows[_]
+
+                    return
+
                 case "F" | "Ba" | "Front" | "Back":
                     pass
 
