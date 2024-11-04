@@ -347,18 +347,103 @@ class Helper4x4:
         else:
             # rotating side anti clockwise
             match side:
-                case "R":
-                    pass
-                case "L":
-                    pass
-                case "T":
-                    pass
-                case "F":
-                    pass
-                case "Ba":
-                    pass
-                case "Bo":
-                    pass
+                case "R" | "L" | "Right" | "Left":
+                    col_idx = self.n-1 if side == "R" or side.title() == "Right" else 0
+
+                    top_face_idx = self.faces_indices["Top"]
+                    front_face_idx = self.faces_indices["Front"]
+                    bottom_face_idx = self.faces_indices["Bottom"]
+                    back_face_idx = self.faces_indices["Back"]
+                    
+                    top_col = []
+
+                    # collecting top layer pieces
+                    for _ in range(self.n):
+                        top_col.append(cube[top_face_idx][_][col_idx])
+
+                    # bringing back layer to top
+                    for _ in range(self.n):
+                        cube[top_face_idx][_][col_idx] = cube[back_face_idx][_][col_idx]
+
+                    # bringing bottom layer to back
+                    for _ in range(self.n):
+                        cube[back_face_idx][_][col_idx] = cube[bottom_face_idx][_][col_idx]
+
+                    # bringing front layer to bottom
+                    for _ in range(self.n):
+                        cube[bottom_face_idx][_][col_idx] = cube[front_face_idx][_][col_idx]
+
+                    # bringing top layer to front
+                    for _ in range(self.n):
+                        cube[front_face_idx][_][col_idx] = top_col[_]
+
+                    return
+
+                case "T" | "Bo" | "Top" | "Bottom":
+                    row_idx = 0 if side == "T" or side.title() == "Top" else self.n-1
+                    back_row_idx = 0 if row_idx == self.n-1 else self.n-1
+
+                    front_face_idx = self.faces_indices["Front"]
+                    left_face_idx = self.faces_indices["Left"]
+                    back_face_idx = self.faces_indices["Back"]
+                    right_face_idx = self.faces_indices["Right"]
+
+                    front_rows = []
+                    for _ in range(self.n):
+                        front_rows.append(cube[front_face_idx][row_idx][_])
+
+                    # bringing left faces to front
+                    for _ in range(self.n):
+                        cube[front_face_idx][row_idx][_] = cube[left_face_idx][row_idx][_]
+                    
+                    # bringing back faces to left
+                    for _ in range(self.n):
+                        cube[left_face_idx][row_idx][_] = cube[back_face_idx][back_row_idx][self.n-1-_]
+
+                    # bringing right faces to back
+                    for _ in range(self.n):
+                        cube[back_face_idx][back_row_idx][_] = cube[right_face_idx][row_idx][self.n-1-_]
+
+                    # bringing front faces to right
+                    for _ in range(self.n):
+                        cube[right_face_idx][row_idx][_] = front_rows[_]
+
+                    return
+
+                case "F" | "Ba" | "Front" | "Back":
+                    top_row_idx = self.n-1 if side == "F" or side.title() == "Front" else 0
+                    right_col_idx = 0 if side == "F" or side.title() == "Front" else self.n-1
+                    bottom_row_idx = 0 if side == "F" or side.title() == "Front" else self.n-1
+                    left_col_idx = self.n-1 if side == "F" or side.title() == " Front" else 0
+
+                    top_face_idx = self.faces_indices["Top"]
+                    right_face_idx = self.faces_indices["Right"]
+                    bottom_face_idx = self.faces_indices["Bottom"]
+                    left_face_idx = self.faces_indices["Left"]
+
+                    top_rows = []
+                    for _ in range(self.n):
+                        top_rows.append(cube[top_face_idx][top_row_idx][_])
+
+                    # bringing right to top
+                    for _ in range(self.n):
+                        cube[top_face_idx][top_row_idx][_] = cube[right_face_idx][_][right_col_idx]
+
+                    # bringing bottom to right
+                    for _ in range(self.n):
+                        cube[right_face_idx][_][right_col_idx] = cube[bottom_face_idx][_][bottom_row_idx]
+
+                    # bringing left to bottom
+                    for _ in range(self.n):
+                        cube[bottom_face_idx][bottom_row_idx][_] = cube[left_face_idx][_][left_col_idx]
+                    
+                    # bringing top to left
+                    for _ in range(self.n):
+                        cube[left_face_idx][_][left_col_idx] = top_rows[_]
+                    
+                    return
+
+
     
     def rotate_x(self, cube, side, direction):
         if side == 'R' or side.title() == "Right":
