@@ -90,7 +90,7 @@ class Helper4x4:
             # rotating side clockwise
             match side:
                 case "R" | "L" | "Right" | "Left":
-                    col_idx = self.n-1 if side == "R" or side == "Right" else 0
+                    col_idx = self.n-1 if side == "R" or side.title() == "Right" else 0
                     top = []
                     top_index = self.faces_indices["Top"]
                     front_index = self.faces_indices["Front"]
@@ -114,7 +114,7 @@ class Helper4x4:
                     return
 
                 case "T" | "Bo" | "Top" | "Bottom":
-                    row_index = 0 if side == 'T' or side == "Top" else self.n-1
+                    row_index = 0 if side == 'T' or side.title() == "Top" else self.n-1
                     back_face_index = 0 if row_index == self.n-1 else self.n-1
 
                     front_index = self.faces_indices["Front"]
@@ -135,10 +135,10 @@ class Helper4x4:
                     right_face_index = self.faces_indices["Right"]
                     left_face_index = self.faces_indices["Left"]
                     bottom_face_index = self.faces_indices["Bottom"]
-                    top_row_index = self.n - 1 if side == "F" or side == "Front" else 0
-                    right_col_index = 0 if side == "F" or side == "Front" else self.n-1
-                    bottom_row_index = 0 if side == "F" or side == "Front" else self.n-1
-                    left_col_index = self.n-1 if side == "F" or side == "Front" else 0
+                    top_row_index = self.n - 1 if side == "F" or side.title() == "Front" else 0
+                    right_col_index = 0 if side == "F" or side.title() == "Front" else self.n-1
+                    bottom_row_index = 0 if side == "F" or side.title() == "Front" else self.n-1
+                    left_col_index = self.n-1 if side == "F" or side.title() == "Front" else 0
 
                     top_row = []
                     # collecting top row colors
@@ -167,17 +167,41 @@ class Helper4x4:
         else:
             # rotating side anti clockwise
             match side:
-                case "R":
+                case "R" | "L" | "Right" | "Left":
+                    col_idx = self.n-1 if side == "R" or side.title() == "Right" else 0
+
+                    top_face_idx = self.faces_indices["Top"]
+                    front_face_idx = self.faces_indices["Front"]
+                    bottom_face_idx = self.faces_indices["Bottom"]
+                    back_face_idx = self.faces_indices["Back"]
+                    
+                    top_col = []
+
+                    # collecting top layer pieces
+                    for _ in range(self.n):
+                        top_col.append(cube[top_face_idx][_][col_idx])
+
+                    # bringing back layer to top
+                    for _ in range(self.n):
+                        cube[top_face_idx][_][col_idx] = cube[back_face_idx][_][col_idx]
+
+                    # bringing bottom layer to back
+                    for _ in range(self.n):
+                        cube[back_face_idx][_][col_idx] = cube[bottom_face_idx][_][col_idx]
+
+                    # bringing front layer to bottom
+                    for _ in range(self.n):
+                        cube[bottom_face_idx][_][col_idx] = cube[front_face_idx][_][col_idx]
+
+                    # bringing top layer to front
+                    for _ in range(self.n):
+                        cube[front_face_idx][_][col_idx] = top_col[_]
+
+                    return
+
+                case "T" | "Bo" | "Top" | "Bottom":
                     pass
-                case "L":
-                    pass
-                case "T":
-                    pass
-                case "F":
-                    pass
-                case "Ba":
-                    pass
-                case "Bo":
+                case "F" | "Ba" | "Front" | "Back":
                     pass
 
     
