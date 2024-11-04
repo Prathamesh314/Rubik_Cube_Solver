@@ -132,8 +132,40 @@ class Helper4x4:
 
                     return
 
-                case "F" | "Ba":
+                case "F" | "Ba" | "Front" | "Back":
+                    top_face_index = self.faces_indices["Top"]
+                    right_face_index = self.faces_indices["Right"]
+                    left_face_index = self.faces_indices["Left"]
+                    bottom_face_index = self.faces_indices["Bottom"]
+                    top_row_index = self.n - 1 if side == "F" or side == "Front" else 0
+                    right_col_index = 0 if side == "F" or side == "Front" else self.n-1
+                    bottom_row_index = 0 if side == "F" or side == "Front" else self.n-1
+                    left_col_index = self.n-1 if side == "F" or side == "Front" else 0
+
+                    top_row = []
+                    # collecting top row colors
+                    for color in self.cube[top_face_index][top_row_index]:
+                        top_row.append(color)
+
+                    # rotating left to top face
+                    for index in range(self.n):
+                        self.cube[top_face_index][top_row_index][self.n-1-index] = self.cube[left_face_index][index][left_col_index]
+
+                      
+                    # rotating bottom to left face
+                    for index in range(self.n):
+                        self.cube[left_face_index][index][left_col_index] = self.cube[bottom_face_index][bottom_row_index][index]
+
+                    index = 0                    
+                    # rotating right to bottom face
+                    for index in range(self.n):
+                        self.cube[bottom_face_index][bottom_row_index][self.n-1-index] = self.cube[right_face_index][index][right_col_index]
+
+                    # rotating top piece to right
+                    for index in range(self.n):
+                        self.cube[right_face_index][index][right_col_index] = top_row[index]
                     return
+                     
         else:
             # rotating side anti clockwise
             match side:
@@ -183,7 +215,7 @@ class Helper4x4:
             self.rotate_face(face=left_face, direction=direction)
             self.rotate_single_sides(side, direction)
         else:
-            raise Exception(f"Side: {side} is invalid in rotation x.")
+            raise Exception(f"Side: {side} is invalid side for x rotation.\nChoose Right or Left")
         
 
     def rotate_y(self, side, direction):
@@ -218,8 +250,42 @@ class Helper4x4:
             self.rotate_face(face=bottom_face, direction=direction)
             self.rotate_single_sides(side=side, direction=direction)
         else:
-            raise Exception(f"Side: {side} is invalid in rotation y.")
+            raise Exception(f"Side: {side} is invalid side for y rotation.\nChoose Top or Bottom")
 
+
+    def rotate_z(self, side, direction):
+        if side == "F" or side.title() == "Front":
+            """
+            faces used in front rotation;
+                1. front face
+                2. top face last row
+                3. right face first col
+                4. left face last col
+                5. bottom face first row
+            """
+
+            front_face_index = self.faces_indices["Front"]
+            front_face = self.cube[front_face_index]
+            self.rotate_face(face=front_face, direction=direction)
+            self.rotate_single_sides(side=side, direction=direction)
+        
+        elif side == "Ba" or side.title() == "Back":
+            """
+            faces used in back rotation:
+                1. back face
+                2. top face first row
+                3. right face last col
+                4. left face first col
+                5. bottom face last row
+            """
+
+            back_face_index = self.faces_indices["Back"]
+            back_face = self.cube[back_face_index]
+            self.rotate_face(face=back_face, direction=direction)
+            self.rotate_single_sides(side=side, direction=direction)
+
+        else:
+            raise Exception(f"Side: {side} is an invalid side for z rotation.\nChoose Front or Back")
     
     def show_cube(self):
         self.rubik_cube.show_cube()
