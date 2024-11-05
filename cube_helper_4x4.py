@@ -8,6 +8,15 @@ class Helper4x4:
             "Left": 4,
             "Right": 5
         }
+
+        self.colors_indices = {
+            "White": 1,
+            "Blue": 2,
+            "Yellow": 3,
+            "Green": 4,
+            "Red": 5,
+            "Orange": 6
+        }
         self.n = 4
     
     def rotate_face(self, face, direction):
@@ -547,3 +556,18 @@ class Helper4x4:
 
         else:
             raise Exception(f"Side: {side} is an invalid side for z rotation.\nChoose Front or Back")
+
+
+    def collect_centre_pieces(self, cube, color):
+        centre_pieces = []
+        if color not in self.colors_indices:
+            raise Exception(f"Color: {color} is an invalid color.\n Choose from Red, White, Yellow, Green, Blue, Orange.")
+        color_index = self.colors_indices[color]
+        
+        for face_idx in range(len(cube)):
+            for row in range(1, 3):
+                for col in range(1, 3):
+                    if cube[face_idx][row][col] == color_index:
+                        centre_pieces.append((face_idx, row, col))
+        
+        return centre_pieces

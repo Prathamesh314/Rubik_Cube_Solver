@@ -68,6 +68,12 @@ class Solver4x4:
         self.cube_helper.rotate_z(cube=self.cube, side=side, direction=direction)
     
 
+    def ___collect_centre_pieces(self, color):
+        print(self.cube_helper.collect_centre_pieces(cube=self.cube, color=color))
+
+    def make_cente_squares(self):
+        self.___collect_centre_pieces("White")
+
 
     def print_face(self, idx):
         if idx == 0:
