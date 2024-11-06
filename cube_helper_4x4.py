@@ -571,3 +571,55 @@ class Helper4x4:
                         centre_pieces.append((face_idx, row, col))
         
         return centre_pieces
+    
+
+    def rotate_sides(self, cube, axis, side, no_of_rotations, direction, inner_outer):
+        if inner_outer == "outer":
+            if axis == "x":
+                for _ in range(no_of_rotations):
+                    self.rotate_x(cube=cube, side=side, direction=direction)
+
+            elif axis == "y":
+                for _ in range(no_of_rotations):
+                    self.rotate_y(cube=cube, side=side, direction=direction)
+
+            elif axis == "z":
+                for _ in range(no_of_rotations):
+                    self.rotate_z(cube=cube, side=side, direction=direction)
+
+            else:
+                raise Exception("Wrong axis.")
+
+        else:
+            if axis == "x":
+                for _ in range(no_of_rotations):
+                    self.rotate_inner_sides(cube=cube, side=side, direction=direction)
+
+            elif axis == "y":
+                for _ in range(no_of_rotations):
+                    self.rotate_inner_sides(cube=cube, side=side, direction=direction)
+
+            elif axis == "z":
+                for _ in range(no_of_rotations):
+                    self.rotate_inner_sides(cube=cube, side=side, direction=direction)
+
+            else:
+                raise Exception("Wrong axis, goddamit.")
+
+    def make_centre(self, cube, color, is_center_complete, face_to_make_color):
+        centre_positions = self.collect_centre_pieces(cube, color)
+        centre_positions.sort(key=lambda x:x[0])
+
+        # face_to_make_color means here we have to make center
+        face_index = self.faces_indices[face_to_make_color]
+
+        for pieces in centre_positions:
+            face, row, col = pieces
+            if not is_center_complete:
+                """
+                create a centre on face_index
+                """
+
+
+
+

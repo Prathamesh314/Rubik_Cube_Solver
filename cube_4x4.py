@@ -67,6 +67,11 @@ class Solver4x4:
     def rotate_z(self, side, direction):
         self.cube_helper.rotate_z(cube=self.cube, side=side, direction=direction)
     
+    def rotate_outer_layers(self, side, direction):
+        self.cube_helper.rotate_outer_sides(cube=self.cube, side=side, direction=direction)
+
+    def rotate_inner_layers(self, side, direction):
+        self.cube_helper.rotate_inner_sides(cube=self.cube, side=side, direction=direction)
 
     def ___collect_centre_pieces(self, color):
         print(self.cube_helper.collect_centre_pieces(cube=self.cube, color=color))
