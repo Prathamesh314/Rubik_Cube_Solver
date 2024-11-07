@@ -606,19 +606,158 @@ class Helper4x4:
             else:
                 raise Exception("Wrong axis, goddamit.")
 
+
+    def give_me_rotation_and_axis(current_face: int, desired_face: int):
+        # Map of rotations needed to get from current face to desired face
+        rotations = {
+            0: { # Back face
+                1: ("x", 1),  # To top: rotate x once 
+                2: ("x", 2),  # To front: rotate x twice
+                3: ("x", 3),  # To bottom: rotate x three times
+                4: ("y", 1),  # To left: rotate y once
+                5: ("y", 3)   # To right: rotate y three times
+            },
+            1: { # Top face  
+                0: ("x", 3),  # To back: rotate x three times
+                2: ("x", 1),  # To front: rotate x once
+                3: ("x", 2),  # To bottom: rotate x twice
+                4: ("z", 1),  # To left: rotate z once
+                5: ("z", 3)   # To right: rotate z three times
+            },
+            2: { # Front face
+                0: ("x", 2),  # To back: rotate x twice
+                1: ("x", 3),  # To top: rotate x three times
+                3: ("x", 1),  # To bottom: rotate x once
+                4: ("y", 3),  # To left: rotate y three times
+                5: ("y", 1)   # To right: rotate y once
+            },
+            3: { # Bottom face
+                0: ("x", 1),  # To back: rotate x once
+                1: ("x", 2),  # To top: rotate x twice
+                2: ("x", 3),  # To front: rotate x three times
+                4: ("z", 3),  # To left: rotate z three times
+                5: ("z", 1)   # To right: rotate z once
+            },
+            4: { # Left face
+                0: ("y", 3),  # To back: rotate y three times
+                1: ("z", 3),  # To top: rotate z three times
+                2: ("y", 1),  # To front: rotate y once
+                3: ("z", 1),  # To bottom: rotate z once
+                5: ("y", 2)   # To right: rotate y twice
+            },
+            5: { # Right face
+                0: ("y", 1),  # To back: rotate y once
+                1: ("z", 1),  # To top: rotate z once
+                2: ("y", 3),  # To front: rotate y three times
+                3: ("z", 3),  # To bottom: rotate z three times
+                4: ("y", 2)   # To left: rotate y twice
+            }
+        }
+
+        # Return no rotation if same face
+        if current_face == desired_face:
+            return None, 0
+
+        # Get rotation from mapping
+        if current_face in rotations and desired_face in rotations[current_face]:
+            return rotations[current_face][desired_face]
+        
+        raise Exception(f"Invalid face indices: current={current_face}, desired={desired_face}")
+
+
     def make_centre(self, cube, color, is_center_complete, face_to_make_color):
         centre_positions = self.collect_centre_pieces(cube, color)
         centre_positions.sort(key=lambda x:x[0])
 
         # face_to_make_color means here we have to make center
         face_index = self.faces_indices[face_to_make_color]
+        color_number = self.colors_indices[color]
+
+        print(f"{face_index=}")
+        print(f"{color_number=}")
 
         for pieces in centre_positions:
+            print(pieces)
             face, row, col = pieces
             if not is_center_complete:
                 """
                 create a centre on face_index
                 """
+                # let's find which side to rotate and how many times?
+                # direction, we are considering clockwise
+
+                # if we have same color piece on same plane
+                """
+                X X X X
+                X W X X
+                X X W X
+                """
+                if face == face_index:
+                    """
+                    case 1:
+                        W X
+                        X X
+
+                    case 2:
+                        W W
+                        X X
+
+                    case 3:
+                        W X
+                        X W
+
+                        or
+
+                        X W
+                        W X
+
+                    case 4:
+                        W W
+                        W X
+
+                        or 
+
+                        W X
+                        W W
+
+                        or 
+
+                        X W
+                        W W
+
+                        or 
+
+                        W W
+                        X W
+                    """
+
+                    # case 3
+                    nrow, ncol = row+1, col+1
+                    if 1<=nrow<=2 and 1<=ncol<=2 and cube[face][nrow][ncol] == color_number:
+                        """
+                        W X
+                        X W
+                        """
+                        print("We got the diagonal condition of row+1 and col+1")
+                        self.rotate_inner_sides(cube=cube, side="Right", direction=1)
+
+                    nrow, ncol = row-1, col-1
+                    if 1<=nrow<=2 and 1<=ncol<=2 and cube[face][nrow][ncol] == color_number:
+                        """
+                        X W
+                        W X
+                        """
+                        print("We got the diagonal condition of row-1 and col-1")
+                        self.rotate_inner_sides(cube=cube, side="Left", direction=1)
+
+                else:
+                    # centre piece is present somewhere else
+                    """
+                    bringing centre to desired face_index
+                    """
+
+
+
 
 
 
