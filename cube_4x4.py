@@ -77,7 +77,8 @@ class Solver4x4:
         print(self.cube_helper.collect_centre_pieces(cube=self.cube, color=color))
 
     def make_cente_squares(self):
-        self.cube_helper.make_centre(cube=self.cube, color="White", is_center_complete=False, face_to_make_color="Top")
+        self.cube_helper.make_first_center(cube=self.cube, color="White")
+        # self.cube_helper.make_centre(cube=self.cube, color="White", is_center_complete=False, face_to_make_color="Top")
 
 
     def print_face(self, idx):

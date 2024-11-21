@@ -357,7 +357,7 @@ class Helper4x4:
             # rotating side anti clockwise
             match side:
                 case "R" | "L" | "Right" | "Left":
-                    col_idx = self.n-1 if side == "R" or side.title() == "Right" else 0
+                    col_idx = self.n-2 if side == "R" or side.title() == "Right" else 1
 
                     top_face_idx = self.faces_indices["Top"]
                     front_face_idx = self.faces_indices["Front"]
@@ -389,8 +389,8 @@ class Helper4x4:
                     return
 
                 case "T" | "Bo" | "Top" | "Bottom":
-                    row_idx = 0 if side == "T" or side.title() == "Top" else self.n-1
-                    back_row_idx = 0 if row_idx == self.n-1 else self.n-1
+                    row_idx = 1 if side == "T" or side.title() == "Top" else self.n-2
+                    back_row_idx = 1 if row_idx == self.n-2 else self.n-2
 
                     front_face_idx = self.faces_indices["Front"]
                     left_face_idx = self.faces_indices["Left"]
@@ -420,10 +420,10 @@ class Helper4x4:
                     return
 
                 case "F" | "Ba" | "Front" | "Back":
-                    top_row_idx = self.n-1 if side == "F" or side.title() == "Front" else 0
-                    right_col_idx = 0 if side == "F" or side.title() == "Front" else self.n-1
-                    bottom_row_idx = 0 if side == "F" or side.title() == "Front" else self.n-1
-                    left_col_idx = self.n-1 if side == "F" or side.title() == " Front" else 0
+                    top_row_idx = self.n-2 if side == "F" or side.title() == "Front" else 1
+                    right_col_idx = 1 if side == "F" or side.title() == "Front" else self.n-2
+                    bottom_row_idx = 1 if side == "F" or side.title() == "Front" else self.n-2
+                    left_col_idx = self.n-2 if side == "F" or side.title() == " Front" else 1
 
                     top_face_idx = self.faces_indices["Top"]
                     right_face_idx = self.faces_indices["Right"]
@@ -665,6 +665,181 @@ class Helper4x4:
         raise Exception(f"Invalid face indices: current={current_face}, desired={desired_face}")
 
 
+    def check_pieces_sideways(self, cube, face_index, row, col, color):
+        """
+        This function checks whether pieces are side to each other or not
+        If they are diagonal to each other, then bring them sideways
+        """
+
+        # first check whether their exists a piece which is present at sideways
+        if col == 1:
+            # checking right side
+            if cube[face_index][row][col+1] == color:
+                print("Sideways present.")
+                return
+            if row == 1:
+                # checking down side
+                if cube[face_index][row+1][col] == color:
+                    print("Downside present.")
+                    return
+            else:
+                # checking upside
+                if cube[face_index][row-1][col] == color:
+                    print("Upside present.")
+                    return
+        else:
+            # checking left side
+            if cube[face_index][row][col-1] == color:
+                print("Sideways present.")
+                return
+            
+            if row == 1:
+                # checking down side
+                if cube[face_index][row+1][col] == color:
+                    print("Downside present.")
+                    return
+            else:
+                # checking upside
+                if cube[face_index][row-1][col] == color:
+                    print("Upside present.")
+                    return
+                
+
+
+        dx = [1, 1, -1, -1]
+        dy = [-1, 1, -1, 1]
+
+        for _ in range(len(dx)):
+            nrow = row + dx[_]
+            ncol = col + dy[_]
+
+            if 1<=nrow<=2 and 1<=ncol<=2 and cube[face_index][nrow][ncol] == color:
+                side = "Right" if col == 2 else "Left"
+                # rotate this side clockwise
+                print(f"Got diagonal case! Rotating inner side: {side} to back.")
+                self.rotate_inner_sides(cube=cube, side=side, direction=1)
+                rotation_direction = 1 if row == 2 else -1
+                print(f"Rotating back face,  {rotation_direction=}")
+                self.rotate_z(cube=cube, side="Back", direction=rotation_direction)
+                print("Bring that piece back.")
+                self.rotate_inner_sides(cube=cube, side=side, direction=-1)
+
+
+
+    def make_first_center(self, cube, color: str):
+
+        def count_pieces(face, color):
+            count = 0
+            for i in range(1, 3):
+                for j in range(1, 3):
+                    if face[i][j] == color:
+                        count += 1
+            return count
+        
+
+        print(f"Making first color: {color}")
+        color_number = self.colors_indices[color]
+        # complete this color at top, i.e. at index 1
+        all_pieces = self.collect_centre_pieces(cube=cube, color=color)
+        top_index = self.faces_indices["Top"]
+        dx = [1, 1, -1, -1]
+        dy = [-1, 1, -1, 1]
+        count_of_white_pieces_at_top = count_pieces(face=cube[top_index], color=color_number)
+        if count_of_white_pieces_at_top == 4:
+            print("White centre finished.")
+            return
+        
+
+        for face, row, col in all_pieces:
+            if face == top_index:
+                print("Hey!! I am at top.")
+                # fixes if peices are diagonal
+                self.check_pieces_sideways(cube=cube, face_index=face, row=row, col=col, color=color_number)
+
+            else:
+                count_of_white_pieces_at_top = count_pieces(face=cube[top_index], color=color_number)
+                if count_of_white_pieces_at_top == 4:
+                    print("White centre finished.")
+                    return
+                
+                if count_of_white_pieces_at_top == 3:
+                    print("L shape case.")
+                    return
+                
+                # back face:
+                if face == 0:
+                    print("Hey! I am at back face, ready to come at top.")
+
+                # front face
+                elif face == 2:
+                    print("Hey! I am at front face, ready to come at top.")
+                    # checking whether same color peice is in same col, at it's top or not
+                    if cube[top_index][1][col] == color_number:
+                        print("Rotating top layer clockwise, to save same color pieces at the top.")
+                        self.rotate_y(cube=cube, side="Top", direction=1)
+                    elif cube[top_index][2][col] == color_number:
+                        print("Rotating top layer to anti-clockwise, to save same color pieces at the top.")
+                        self.rotate_y(cube=cube, side="Top", direction=-1)
+                    
+                    # finally bringing white piece to top from front.
+                    side = "Right" if col == 2 else "Left"
+                    print(f"Rotating inner side: {side}")
+                    self.rotate_inner_sides(cube=cube, side=side, direction=1)
+
+                    # checking whether we have sideways after merging or not?
+                    self.check_pieces_sideways(cube=cube, face_index=top_index, row=row, col=col, color=color_number)
+
+                # bottom face
+                elif face == 3:
+                    print("Hey! I am at bottom face, ready to come at top.")
+
+                # left face
+                elif face == 4:
+                    print("Hey! I am at left face, ready to come at top.")
+                    top_row = col
+                    # if both pieces are on same col
+                    if cube[top_index][top_row][1] == color_number and cube[top_index][top_row][2] == color_number:
+                        print("Both pieces on same level, rotating top face 2x")
+                        self.rotate_y(cube=cube, side="Top", direction=1)
+                        self.rotate_y(cube=cube, side="Top", direction=1)
+                        # bringing left side piece to top
+                        self.rotate_inner_sides(cube=cube, side="Back", direction=-1)
+                    elif top_row == 1:
+                        if cube[top_index][top_row][1] == color_number and cube[top_index][top_row+1][1] == color_number:
+                            # rotating top face anti-clockwise to make space for left piece
+                            print("There is vertical line in col 1.")
+                            self.rotate_y(cube=cube, side="Top", direction=-1)
+                            self.rotate_inner_sides(cube=cube, side="Back", direction=-1)
+                        elif cube[top_index][top_row][2] == color_number and cube[top_index][top_row+1][2] == color_number:
+                            print("There is vertical line in col 2.")
+                            self.rotate_y(cube=cube, side="Top", direction=1)
+                            self.rotate_inner_sides(cube=cube, side="Back", direction=-1)
+                        else:
+                            print("No need to adjust, already adjusted.")
+                            self.rotate_inner_sides(cube=cube, side="Back", direction=-1)
+
+                    elif top_row == 2:
+                        if cube[top_index][top_row][1] == color_number and cube[top_index][top_row-1][1] == color_number:
+                            # rotating top face clockwise to make space for left piece
+                            print("There is vertical line on col 1.")
+                            self.rotate_y(cube=cube, side="Top", direction=1)
+                            self.rotate_inner_sides(cube=cube, side="Front", direction=1)
+                        elif cube[top_index][top_row][2] == color_number and cube[top_index][top_row-1][2] == color_number:
+                            print("There is a vertical line on col 2.")
+                            self.rotate_y(cube=cube, side="Top", direction=-1)
+                            self.rotate_inner_sides(cube=cube, side="Front", direction=1)
+                        else:
+                            print("Already adjusted, no need to adjust")
+                            self.rotate_inner_sides(cube=cube, side="Front", direction=1)
+
+
+                # right face
+                elif face == 5:
+                    print("Hey! I am at right face, ready to come at top.")
+
+
+    
+    
     def make_centre(self, cube, color, is_center_complete, face_to_make_color):
         centre_positions = self.collect_centre_pieces(cube, color)
         centre_positions.sort(key=lambda x:x[0])
