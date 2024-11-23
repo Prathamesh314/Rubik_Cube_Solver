@@ -448,7 +448,7 @@ class Helper4x4:
                     
                     # bringing top to left
                     for _ in range(self.n):
-                        cube[left_face_idx][_][left_col_idx] = top_rows[_]
+                        cube[left_face_idx][_][left_col_idx] = top_rows[self.n-1-_]
                     
                     return
 
@@ -727,6 +727,82 @@ class Helper4x4:
 
 
 
+    def handle_Lcase_first_color(self, cube, pos: tuple, color: str):
+        face, row, col = pos
+
+        # finding the vacancy at top.
+        top_index = self.faces_indices["Top"]
+        top_face = cube[top_index]
+        top_color = self.colors_indices[color]
+
+        vac_row, vac_col = None, None
+        # traversing in a square
+        for i in range(1, 3):
+            for j in range(1, 3):
+                if top_face[i][j] != top_color:
+                    vac_row, vac_col = i, j
+                    break
+            if vac_row is not None:
+                break
+        
+
+        print(f"Vacant Row: {vac_row} and Vacant Col: {vac_col}")
+        final_col = 1 if vac_col == 2 else 2
+
+        # back face
+        if face == 0:
+            print("Hey!! I am present at Back.")
+
+        # front
+        elif face == 2:
+            print("Hey!! I am present at Front.")
+
+        # bottom
+        elif face == 3:
+            print("Hey!! I am present at Bottom.")
+
+        # left
+        elif face == 4:
+            print("Hey!! I am present at Left.")
+            if col == final_col:
+                print("Already at right col. No need to move")
+            
+            else:
+                print("Bringing it to right column")
+                if row == 1:
+                    self.rotate_x(cube=cube, side="Left", direction=-1)
+                else:
+                    self.rotate_x(cube=cube, side="Left", direction=-1)
+                    self.rotate_x(cube=cube, side="Left", direction=-1)
+
+            
+            final_row = col
+            inner_side_to_rotate = None
+            if final_row == 1:
+                print("Already at right row position. No need to move.")
+            else:
+                print("Rotating once in anti-clockwise left face to bring it at correct position.")
+                self.rotate_x(cube=cube, side="Left", direction=-1)
+
+            if vac_row == 1:
+                    inner_side_to_rotate = "Back"
+                    self.rotate_inner_sides(cube=cube, side=inner_side_to_rotate, direction=-1)
+                    self.rotate_x(cube=cube, side="Left", direction=-1)
+                    self.rotate_inner_sides(cube=cube, side="Back", direction=1)
+            else:
+                inner_side_to_rotate = "Front"
+
+            # print(f"{inner_side_to_rotate=}")
+
+
+        # right
+        elif face == 5:
+            print("Hey!! I am present at Right.")
+
+        else:
+            raise Exception(f"face {face} doesnot exist.")
+
+
     def make_first_center(self, cube, color: str):
 
         def count_pieces(face, color):
@@ -750,6 +826,13 @@ class Helper4x4:
             print("White centre finished.")
             return
         
+        if count_of_white_pieces_at_top == 3:
+            print("Handling L case at top.")
+            # filtering only absent piece at top.
+            all_pieces = [i for i in all_pieces if i[0] != top_index]
+            self.handle_Lcase_first_color(cube=cube, pos=all_pieces, color=color)
+            return
+        
 
         for face, row, col in all_pieces:
             count_of_white_pieces_at_top = count_pieces(face=cube[top_index], color=color_number)
@@ -759,6 +842,7 @@ class Helper4x4:
             
             if count_of_white_pieces_at_top == 3:
                 print("L shape case.")
+                self.handle_Lcase_first_color(cube=cube, pos=(face, row, col), color=color)
                 return
             
             if face == top_index:
