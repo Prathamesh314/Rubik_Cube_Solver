@@ -670,7 +670,10 @@ class Helper4x4:
         This function checks whether pieces are side to each other or not
         If they are diagonal to each other, then bring them sideways
         """
+<<<<<<< HEAD
         print("Checking sideways....")
+=======
+>>>>>>> 46c705a1b368b7f8ceaac2f82ef53c05f0bb7fd9
 
         # first check whether their exists a piece which is present at sideways
         if col == 1:
@@ -752,6 +755,7 @@ class Helper4x4:
         
 
         for face, row, col in all_pieces:
+<<<<<<< HEAD
             count_of_white_pieces_at_top = count_pieces(face=cube[top_index], color=color_number)
             if count_of_white_pieces_at_top == 4:
                 print("White centre finished.")
@@ -761,12 +765,26 @@ class Helper4x4:
                 print("L shape case.")
                 return
             
+=======
+>>>>>>> 46c705a1b368b7f8ceaac2f82ef53c05f0bb7fd9
             if face == top_index:
                 print("Hey!! I am at top.")
                 # fixes if peices are diagonal
                 self.check_pieces_sideways(cube=cube, face_index=face, row=row, col=col, color=color_number)
 
             else:
+<<<<<<< HEAD
+=======
+                count_of_white_pieces_at_top = count_pieces(face=cube[top_index], color=color_number)
+                if count_of_white_pieces_at_top == 4:
+                    print("White centre finished.")
+                    return
+                
+                if count_of_white_pieces_at_top == 3:
+                    print("L shape case.")
+                    return
+                
+>>>>>>> 46c705a1b368b7f8ceaac2f82ef53c05f0bb7fd9
                 # back face:
                 if face == 0:
                     print("Hey! I am at back face, ready to come at top.")
@@ -801,11 +819,18 @@ class Helper4x4:
                     # if both pieces are on same col
                     if cube[top_index][top_row][1] == color_number and cube[top_index][top_row][2] == color_number:
                         print("Both pieces on same level, rotating top face 2x")
+<<<<<<< HEAD
                         print(f"{count_of_white_pieces_at_top=}")
                         self.rotate_y(cube=cube, side="Top", direction=1)
                         self.rotate_y(cube=cube, side="Top", direction=1)
                         # bringing left side piece to top
                         self.rotate_inner_sides(cube=cube, side="Back", direction=1)
+=======
+                        self.rotate_y(cube=cube, side="Top", direction=1)
+                        self.rotate_y(cube=cube, side="Top", direction=1)
+                        # bringing left side piece to top
+                        self.rotate_inner_sides(cube=cube, side="Back", direction=-1)
+>>>>>>> 46c705a1b368b7f8ceaac2f82ef53c05f0bb7fd9
                     elif top_row == 1:
                         if cube[top_index][top_row][1] == color_number and cube[top_index][top_row+1][1] == color_number:
                             # rotating top face anti-clockwise to make space for left piece
