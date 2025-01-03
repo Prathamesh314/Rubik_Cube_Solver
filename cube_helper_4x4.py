@@ -336,7 +336,7 @@ class Helper4x4:
 
                 case "T" | "Bo" | "Top" | "Bottom":
                     row_index = 1 if side == 'T' or side == "Top" else self.n-2
-                    back_face_index = 1 if row_index == self.n-1 else self.n-2
+                    back_face_index = 1 if row_index == self.n-2 else self.n-2
 
                     front_index = self.faces_indices["Front"]
                     right_index = self.faces_indices["Right"]
@@ -1306,7 +1306,7 @@ class Helper4x4:
         if face_index == 0:
             # back face
             print("I am at back..")
-            face_to_rotate = "Top" if face_to_rotate == "Bottom" else "Top"
+            face_to_rotate = "Top" if face_to_rotate == "Bottom" else "Bottom"
             print(f"{face_to_rotate=}")
             self.rotate_inner_sides(cube=cube, side=face_to_rotate, direction=1)
 
