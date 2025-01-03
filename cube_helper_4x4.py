@@ -894,6 +894,33 @@ class Helper4x4:
                 print("Piece 2 is at bottom.")
             elif face2 == 4:
                 print("Piece 2 is at left.")
+                if row1 == row2:
+                    if col1 == col2:
+                        # move clockwise left face
+                        self.rotate_x(cube=cube, side="Left", direction=1)
+                        color_number = cube[face1][row1][col1]
+                        # first checking at right face
+                        check_empty_front = self.check_for_empty_space(cube=cube, face_index=5, row=row1, color_number=color_number)
+                        if check_empty_front == 4:
+                            print("All clear at right face")
+                            # checking back face
+                            check_empty_back = self.check_for_empty_space(cube=cube, row=abs(3-row1), face_index=0, color_number=color_number)
+                            if check_empty_back == 4:
+                                print("All clear at back as well")
+                                self.rotate_inner_sides(cube=cube, side="Bottom", direction=-1)
+                            elif check_empty_back == 3:
+                                print("Colliding at col 2")
+                            elif check_empty_back == 2:
+                                print("Colliding at col 1")
+                            else:
+                                print("Colliding at same row")
+                    else:
+                        pass
+                else:
+                    if col1 == col2:
+                        pass
+                    else:
+                        pass
             elif face2 == 5:
                 print("Piece 2 is at right.")
         elif face1 == 3:
@@ -1298,17 +1325,68 @@ class Helper4x4:
                 print("I am at left down")
     
 
+    def check_for_empty_space(self, cube, row, face_index, color_number):
+        """
+        This function takes input as cube, pos (row, col), face_index (face where we need to check) and color_number
+        Work everything in rows, if they paired in a col then bring it to row.
+
+        return 1 if they are on same line { G G }
+        return 2 if one the piece is present in col 1 
+        G X
+        G X
+
+        return 3 if one the piece is present in col 2
+        X G
+        X G
+        """
+        # case 1: check horizontally
+        if cube[face_index][row][1] == color_number and cube[face_index][row][2] == color_number:
+            print("We are on same line")
+            return 1
+        
+        if cube[face_index][row][1] == color_number:
+            print("Piece are present in col 1")
+            return 2
+        
+        if cube[face_index][row][2] == color_number:
+            print("Piece are present in col 2")
+            return 3
+        
+        else:
+            return 4
+    
+    
     def bring_center_pieces_to_correct_pos(self, cube, curr_pos, direction_of_neighbour):
         # bringing to face index 5 [ Right ]
         face_index = curr_pos[0]
         final_row = self.handle_directions_of_pieces(cube=cube, curr_pos=curr_pos, direction_of_neighbour=direction_of_neighbour)
         face_to_rotate = "Top" if final_row == 1 else "Bottom"
+        color_number = self.colors_indices["Green"]
         if face_index == 0:
             # back face
             print("I am at back..")
             face_to_rotate = "Top" if face_to_rotate == "Bottom" else "Bottom"
             print(f"{face_to_rotate=}")
-            self.rotate_inner_sides(cube=cube, side=face_to_rotate, direction=1)
+            # before rotating directly, i need to check whether it disturbs other fixed piece or not.
+            check_empty = self.check_for_empty_space(cube=cube, face_index=5, row=abs(3-final_row),color_number=color_number)
+            
+            if check_empty == 1:
+                # they are on same row
+                self.rotate_inner_sides(cube=cube, side=face_to_rotate, direction=1)
+                self.rotate_x(cube=cube, side="Right", direction=1)
+                self.rotate_x(cube=cube, side="Right", direction=1)
+                self.rotate_inner_sides(cube=cube, side=face_to_rotate, direction=-1)
+            elif check_empty == 2:
+                # they are colliding on col 1
+                self.rotate_y(cube=cube, side="Back", direction=-1)
+                self.rotate_inner_sides(cube=cube, side=face_to_rotate, direction=1)
+            elif check_empty == 3:
+                # they are colliding on col 2
+                self.rotate_y(cube=cube, side="Back", direction=1)
+                self.rotate_inner_sides(cube=cube, side=face_to_rotate, direction=1)
+            else:
+                # all clear
+                self.rotate_inner_sides(cube=cube, side=face_to_rotate, direction=1)
 
 
         elif face_index == 1:
@@ -1340,6 +1418,10 @@ class Helper4x4:
             print("Third center is finished....")
             return
         
+        if count_of_pieces_at_center == 3:
+            print("Handling L shape")
+            return
+        
 
         color_number = self.colors_indices[color]
         print(f"{color_number=}")
@@ -1348,6 +1430,10 @@ class Helper4x4:
             count_of_pieces_at_center = self.__count_pieces(face=cube[center_index], color=color)
             if count_of_pieces_at_center == 4:
                 print("Third center is finished....")
+                break
+
+            if count_of_pieces_at_center == 3:
+                print("Handling L shape inside while loop")
                 break
             
             piece = self.collect_centre_pieces(cube=cube, color=color, skip_face=[center_index])
@@ -1367,8 +1453,11 @@ class Helper4x4:
             if surrounding_piece is None:
                 # No surrounding piece, lone piece
                 print("Lone warrier...")
-
-
+                # finding another piece
+                piece2 = self.collect_centre_pieces(cube=cube, color=color, skip_face=[center_index, face_index])
+                print(f"{piece2=}")
+                self.make_center_pairs(cube=cube, pos1=piece, pos2=piece2)
+                break
             else:
                 # I have a neighbour
                 print("I have a neighbour...")
@@ -1378,10 +1467,6 @@ class Helper4x4:
                 print(f"{placement_of_neighbour=}")
 
                 self.bring_center_pieces_to_correct_pos(cube=cube, curr_pos=piece, direction_of_neighbour=placement_of_neighbour)
-
-
-                
-            break
             
 
 
