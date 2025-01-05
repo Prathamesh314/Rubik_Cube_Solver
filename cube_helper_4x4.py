@@ -863,6 +863,7 @@ class Helper4x4:
                 print("Piece 2 is at front.")
                 if row1 == self.n-1-row2:
                     print("Already on same row.")
+                    return
                 else:
                     side = "Top" if row1 == 2 else "Bottom"
                     print("Rotating inner row.")
@@ -988,6 +989,7 @@ class Helper4x4:
                 print("Piece 2 is at left.")
         else:
             raise Exception("Invalid face indices.")
+
 
     def make_second_center(self, cube, color: str, skip_face: list[int]=[3]):
 
@@ -1309,14 +1311,33 @@ class Helper4x4:
 
     def __count_pieces(self,face, color):
             count = 0
+            color_number = self.colors_indices[color]
+            print(f"{color_number=}")
             for i in range(1, 3):
                 for j in range(1, 3):
-                    if face[i][j] == color:
+                    if face[i][j] == color_number:
                         count += 1
             return count
 
 
     def handle_directions_of_pieces(self, cube, curr_pos, direction_of_neighbour):
+
+        def handle_directions_helper(cube, face, direction):
+            face_index, row, col = curr_pos
+            match face:
+                case "Front" | "Back":
+                    print("I am rotating in z direction")
+                    self.rotate_z(cube=cube, side=face, direction=direction)
+                    return col
+                case "Left" | "Right":
+                    print("I am rotating in x direction")
+                    self.rotate_x(cube=cube, side=face, direction=direction)
+                    return 1 if col == 2 else 2
+                case "Top" | "Bottom":
+                    print("I am rotating in y direction")
+                    self.rotate_y(cube=cube, side=face, direction=direction)
+                    return 1 if col == 2 else 2
+
         face_index, row, col = curr_pos
         face = self.indices_face[face_index]
 
@@ -1331,13 +1352,11 @@ class Helper4x4:
 
             case "Up":
                 print("I am at up")
-                self.rotate_z(cube=cube, side=face, direction=1)
-                return col
+                return handle_directions_helper(cube=cube, face=face, direction=1)
 
             case "Down":
                 print("I am at down")
-                self.rotate_z(cube=cube, side=face, direction=1)
-                return col
+                return handle_directions_helper(cube=cube, face=face, direction=1)
 
             case "Right Up":
                 print("I am at right up")
@@ -1380,6 +1399,7 @@ class Helper4x4:
             return 3
         
         else:
+            print("Pieces are nowhere on the way")
             return 4
     
     
@@ -1399,47 +1419,79 @@ class Helper4x4:
             
             if check_empty == 1:
                 # they are on same row
+                print("They are on the same row")
                 self.rotate_inner_sides(cube=cube, side=face_to_rotate, direction=1)
                 self.rotate_x(cube=cube, side="Right", direction=1)
                 self.rotate_x(cube=cube, side="Right", direction=1)
                 self.rotate_inner_sides(cube=cube, side=face_to_rotate, direction=-1)
             elif check_empty == 2:
                 # they are colliding on col 1
+                print("They are colliding on col 1")
                 self.rotate_y(cube=cube, side="Back", direction=-1)
                 self.rotate_inner_sides(cube=cube, side=face_to_rotate, direction=1)
             elif check_empty == 3:
                 # they are colliding on col 2
+                print("They are colliding on col 1")
                 self.rotate_y(cube=cube, side="Back", direction=1)
                 self.rotate_inner_sides(cube=cube, side=face_to_rotate, direction=1)
             else:
                 # all clear
+                print("All clear")
                 self.rotate_inner_sides(cube=cube, side=face_to_rotate, direction=1)
 
 
         elif face_index == 1:
             # top face
             print("I am at top..")
+            return
 
         elif face_index == 2:
             # front face
             print("I am at front..")
+            return
 
         elif face_index == 3:
             # bottom face
             print("I am at bottom..")
+            return
 
         elif face_index == 4:
             # left face
             print("I am at left..")
+            print(f"{face_to_rotate=}")
+            check_empty = self.check_for_empty_space(cube=cube, face_index=5, row=final_row,color_number=color_number)
+            print(f"{check_empty=}")
+            if check_empty == 4:
+                print("All clear")
+                self.rotate_inner_sides(cube=cube, side=face_to_rotate, direction=1)
+                self.rotate_inner_sides(cube=cube, side=face_to_rotate, direction=1)
+            elif check_empty == 3:
+                print("Colliding on col 2")
+
+            elif check_empty == 2:
+                print("Colliding on col 1")
+
+            elif check_empty == 1:
+                print("we are on the same row.")
+                self.rotate_inner_sides(cube=cube,side=face_to_rotate, direction=1)
+                self.rotate_inner_sides(cube=cube,side=face_to_rotate, direction=1)
+                self.rotate_x(cube=cube, side="Right", direction=1)
+                self.rotate_x(cube=cube, side="Right", direction=1)
+                self.rotate_inner_sides(cube=cube,side=face_to_rotate, direction=-1)
+                self.rotate_inner_sides(cube=cube,side=face_to_rotate, direction=-1)
+                
+            return
 
         elif face_index == 5:
             # right face
             print("I am at right..") 
+            return
 
         else:
             raise Exception("Face index out of bound.")
 
     def make_third_color(self,cube, color, center_index):
+        print("==================\nMaking third color Green")
         count_of_pieces_at_center = self.__count_pieces(face=cube[center_index], color=color)  # collecting center pieces of matching color on that face
         if count_of_pieces_at_center == 4:
             print("Third center is finished....")
@@ -1455,6 +1507,7 @@ class Helper4x4:
         
         while True:
             count_of_pieces_at_center = self.__count_pieces(face=cube[center_index], color=color)
+            print(f"{count_of_pieces_at_center=}")
             if count_of_pieces_at_center == 4:
                 print("Third center is finished....")
                 break
@@ -1464,9 +1517,9 @@ class Helper4x4:
                 break
             
             piece = self.collect_centre_pieces(cube=cube, color=color, skip_face=[center_index])
+            print(f"{piece=}")
             face_index, row, col = piece
 
-            print(f"{piece=}")
 
             surrounding_piece = None
             for i in range(8):
@@ -1484,7 +1537,6 @@ class Helper4x4:
                 piece2 = self.collect_centre_pieces(cube=cube, color=color, skip_face=[center_index, face_index])
                 print(f"{piece2=}")
                 self.make_center_pairs(cube=cube, pos1=piece, pos2=piece2)
-                break
             else:
                 # I have a neighbour
                 print("I have a neighbour...")
@@ -1494,8 +1546,6 @@ class Helper4x4:
                 print(f"{placement_of_neighbour=}")
 
                 self.bring_center_pieces_to_correct_pos(cube=cube, curr_pos=piece, direction_of_neighbour=placement_of_neighbour)
-            
-
 
     def make_other_4_centers(self, cube):
         pos_of_colors={
