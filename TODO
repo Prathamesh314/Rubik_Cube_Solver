@@ -1,0 +1,15 @@
+After completing 4x4 and 3x3 rubik cube solver, next step is to create a game for it
+It will be an online game, where there will be different modes:
+    1. play with AI
+    2. play with other player online
+    3. training arena
+
+Playing rules will, users will be taught with how to use and control the cube
+1. when playing with AI:
+    there will be a timer set and you have to beat AI in time by solving cube faster than AI
+
+2. When playing with people online:
+    here you have to follow same rules, you have to beat your opponent on time by solving the cube
+
+3. Training:
+    in this mode, you can train yourself and increase your speed

@@ -36,6 +36,16 @@ class Helper4x4:
             "Orange": "Red"
         }
 
+        self.fixed_color_positions = {
+            1: 1,
+            3: 3,
+            4: 5,
+            6: 2,
+            2: 4,
+            5: 0
+
+        }
+
         self.dx = [1, -1, 0, 0, 1, 1, -1, -1]
         self.dy = [0, 0, 1, -1, 1, -1, 1, -1]
 
@@ -918,7 +928,24 @@ class Helper4x4:
                         pass
                 else:
                     if col1 == col2:
-                        pass
+                        print("Rows are different and cols are same.")
+                        color_number = cube[face1][row1][col1]
+                        
+                        face_index = self.fixed_color_positions[color_number]
+                        check_empty_space = self.check_for_empty_space(cube=cube, row=row1, face_index=face_index, color_number=color_number)
+                        print(f"{check_empty_space=}")
+                        if check_empty_space == 4:
+                            # all clear
+                            self.rotate_inner_sides(cube=cube, side="Top", direction=1)
+                        elif check_empty_space == 3:
+                            # on col 2
+                            pass
+                        elif check_empty_space == 2:
+                            # on col 1
+                            pass
+                        elif check_empty_space == 1:
+                            # on same row
+                            pass
                     else:
                         pass
             elif face2 == 5:
