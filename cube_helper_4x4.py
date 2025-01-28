@@ -1547,6 +1547,24 @@ class Helper4x4:
 
                 self.bring_center_pieces_to_correct_pos(cube=cube, curr_pos=piece, direction_of_neighbour=placement_of_neighbour)
 
+    
+    
+    def __check_adjacent_piece(self, piece, cube, color_number: int):
+        print(f"{piece=}")
+        face_index, row, col = piece
+
+
+        surrounding_piece = None
+        for i in range(8):
+            nrow = row + self.dx[i]
+            ncol = col + self.dy[i]
+
+            if 1<=nrow<=2 and 1<=ncol<=2 and cube[face_index][nrow][ncol] == color_number:
+                surrounding_piece = (self.dx[i], self.dy[i])
+                break
+        
+        return surrounding_piece
+    
     def make_other_4_centers(self, cube):
         pos_of_colors={
             "Green": "Right",
@@ -1558,9 +1576,142 @@ class Helper4x4:
         list_of_colors=["Green", "Orange", "Blue", "Red"]
 
         self.make_third_color(cube=cube, color="Green", center_index=5)
+        self.make_forth_center(cube=cube, color="Orange", center_index=2)
 
 
 
+    
+    def make_forth_center(self, cube, color, center_index):
+        print("\n================= Completing fourth square..")
+        count_of_pieces_at_center = self.__count_pieces(face=cube[center_index], color=color)
+        print(f"{count_of_pieces_at_center=}")
+        if count_of_pieces_at_center == 4:
+            print("Fourth center finished: Orange")
+            return
+        
+        if count_of_pieces_at_center == 4:
+            print("L shaped case for fourth color: Orange")
+            return
+        
+
+        color_number = self.colors_indices["Orange"]
+        while count_of_pieces_at_center != 4:
+            count_of_pieces_at_center = self.__count_pieces(face=cube[center_index], color=color)
+            if count_of_pieces_at_center == 4:
+                print("Fourth center finished: Orange")
+                return
+            
+            piece = self.collect_centre_pieces(cube=cube, color=color, skip_face=[center_index])
+            if piece is None or not piece:
+                print("Fourth center finished: Orange")
+                return
+            
+            print(f"{piece=}")
+            face_index, row, col = piece
+            if count_of_pieces_at_center == 3:
+                print("L shaped case for fourth color: Orange")
+                print(f"{piece=}")
+                # check if piece's row is 1 or 2
+                match face_index:
+                    case 0:
+                        print("I m at back!")
+                    case 1:
+                        print("I m at top!")
+                    case 3:
+                        print("I m at bottom!")
+                    case 4:
+                        print("I m at left")
+                        if row == 1:
+                            # row = 1 meaning, non-paired piece is on the second row.
+                            unpaired_piece = None
+                            if cube[center_index][2][1] == color_number:
+                                unpaired_piece = (2, 1)
+                            else:
+                                unpaired_piece = (2, 2)
+                            
+                            print(f"{unpaired_piece=}")
+                            if cube[center_index][1][1] == color_number and cube[center_index][1][2] == color_number:
+                                print("We are on the same track")
+                                final_piece_should_come_at = (1, 2) if unpaired_piece == (2, 2) else (1, 1)
+                                rotation = -1 if (final_piece_should_come_at[0] - row) < 0 or (final_piece_should_come_at[1] - col) < 0 else 1
+                                if (row, col) != final_piece_should_come_at:
+                                    print("We need to rotate face")
+                                else:
+                                    print("Just bring it together")
+                                    self.rotate_inner_sides(cube=cube, side="Top", direction=-1)
+                                    direction = -1 if unpaired_piece[1] == 1 else 1
+                                    self.rotate_z(cube=cube, side="Front", direction=direction)
+                                    self.rotate_inner_sides(cube=cube, side="Top", direction=1)
+                            elif cube[center_index][2][1] == color and cube[center_index][2][2] == color_number:
+                                print("We are on opposite track")
+                            elif cube[center_index][1][1] == color_number and cube[center_index][2][1] == color_number:
+                                print("We are orthogonal upside")
+                            elif cube[center_index][1][2] == color_number and cube[center_index][2][2] == color_number:
+                                print("We are orthogonal downside")
+                        else:
+                            pass
+                    case 5:
+                        print("I m at right")
+                
+            
+            match face_index:
+                case 0:
+                    print("I am at back face")
+                    surrounding_piece = self.__check_adjacent_piece(piece=piece, cube=cube, color_number=color_number)
+                    print(f"{surrounding_piece=}")
+
+                    if surrounding_piece is None:
+                        print("Lone warrier...")
+                        # either there are two colors at front face
+                        if count_of_pieces_at_center == 2:
+                            print("We are couples at front face. Orange")
+                            # now there are 6 cases
+                            # case 1: side ways
+                            if cube[center_index][1][1] == color_number and cube[center_index][1][2] == color_number:
+                                print("Flipping first row.")
+                            elif cube[center_index][2][1] == color_number and cube[center_index][2][2] == color_number:
+                                print("Flipping second row.")
+                                rotation = 1 if col == 1 else -1
+                                print(f"Rotating {"clockwise" if rotation == 1 else "anti-clockwise"}")
+                                self.rotate_z(cube=cube, side="Front", direction=rotation)
+                                print("Bring back piece to front")
+                                side = "Right" if col == 2 else "Left"
+                                self.rotate_inner_sides(cube=cube, side=side, direction=1)
+                                self.rotate_inner_sides(cube=cube, side=side, direction=1)
+                                print("Rotating front face twice")
+                                self.rotate_z(cube=cube, side="Front", direction=1)
+                                self.rotate_z(cube=cube, side="Front", direction=1)
+                                print("Bringing inner side back")
+
+                                self.rotate_inner_sides(cube=cube, side=side, direction=-1)
+                                self.rotate_inner_sides(cube=cube, side=side, direction=-1)
+
+                            elif cube[center_index][1][col] == color_number and cube[center_index][2][col] == color_number:
+                                print("Flipping same column.")
+                            elif cube[center_index][1][1] == color_number and cube[center_index][2][2] == color_number:
+                                print("Left diagonal")
+                            elif cube[center_index][1][2] == color_number and cube[center_index][2][1] == color_number:
+                                print("Right diagonal")
+                        # or only one color
+                        else:
+                            print("We are singles at front face. Orange")
+                    
+                    else:
+                        print("Hey! I got a neighbour...")
+                case 1:
+                    print("I am at top")
+                case 3:
+                    print("I am at bottom")
+                case 4:
+                    print("I am at left")
+                case 5:
+                    print("I am at right")
+                case _:
+                    pass
+            
+                    
+
+    
     
     def make_centre(self, cube, color, is_center_complete, face_to_make_color):
         centre_positions = self.collect_centre_pieces(cube, color)
