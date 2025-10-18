@@ -1,11 +1,12 @@
+import GamePage from "@/components/GamePage";
 import dbConnect from "@/utils/db";
 
-dbConnect()
+dbConnect();
 export default function Home() {
-
   return (
     <div>
-      Rubik Cube Solver
+        <GamePage />
     </div>
   );
 }
+
