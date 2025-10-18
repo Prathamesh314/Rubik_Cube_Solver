@@ -1,7 +1,9 @@
 import GamePage from "@/components/GamePage";
 import dbConnect from "@/utils/db";
 
-dbConnect();
+(async () => {
+  await dbConnect();
+})();
 export default function Home() {
   return (
     <div>
