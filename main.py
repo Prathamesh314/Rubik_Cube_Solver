@@ -3,7 +3,7 @@ from cube import Cube
 import numpy as np
 
 
-from rubik import Rubic_Cube
+# from rubik import Rubic_Cube
 
 if __name__ == "__main__":
     # ctemplate.run()

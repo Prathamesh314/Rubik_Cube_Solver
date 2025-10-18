@@ -80,6 +80,9 @@ class Solver4x4:
         self.cube_helper.make_first_center(cube=self.cube, color="White")
         # self.cube_helper.make_centre(cube=self.cube, color="White", is_center_complete=False, face_to_make_color="Top")
 
+    def collect_edge_pieces(self):
+        self.cube_helper.make_edge_pieces(cube=self.cube)
+
 
     def print_face(self, idx):
         if idx == 0:
