@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose, { Mongoose } from 'mongoose';
 
 const MONGODB_URI = process.env.MONGODB_URI as string;
 
@@ -6,46 +6,67 @@ if (!MONGODB_URI) {
   throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
 }
 
-declare global {
-  var mongoose: any;
-}
+/**
+ * Singleton class for MongoDB connection.
+ */
+export class MongoDB {
+  private static instance: MongoDB;
+  private conn: Mongoose | null = null;
+  private promise: Promise<Mongoose> | null = null;
 
-let cached = global.mongoose;
+  private constructor() {}
 
-if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
-}
-
-async function dbConnect() {
-  if (cached.conn) {
-    return cached.conn;
+  /**
+   * Gets the singleton instance of the MongoDB class.
+   * @returns The singleton instance of the MongoDB class.
+   */
+  public static getInstance(): MongoDB {
+    if (!MongoDB.instance) {
+      MongoDB.instance = new MongoDB();
+    }
+    return MongoDB.instance;
   }
 
-  if (!cached.promise) {
-    const opts = {
-      dbName: 'Rubik_cube', // Explicitly specify your database name
-      bufferCommands: false,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-    };
+  /**
+   * Connects to the MongoDB database if not already connected.
+   * @returns A promise that resolves to the Mongoose connection.
+   */
+  public async getConnection(): Promise<Mongoose> {
+    if (this.conn) {
+      return this.conn;
+    }
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      console.log("Connected to MongoDB database");
-      return mongoose;
-    }).catch(err => {
-      console.error('MongoDB connection error:', err);
-      throw err;
-    });
+    if (!this.promise) {
+      const opts = {
+        dbName: 'Rubik_cube', // Explicitly specify your database name
+        bufferCommands: false,
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+      };
+
+      this.promise = mongoose.connect(MONGODB_URI, opts).then((mongooseInstance) => {
+        console.log("Connected to MongoDB database");
+        return mongooseInstance;
+      }).catch(err => {
+        console.error('MongoDB connection error:', err);
+        throw err;
+      });
+    }
+
+    try {
+      this.conn = await this.promise;
+    } catch (e) {
+      this.promise = null;
+      throw e;
+    }
+
+    return this.conn;
   }
-
-  try {
-    cached.conn = await cached.promise;
-  } catch (e) {
-    cached.promise = null;
-    throw e;
-  }
-
-  return cached.conn;
 }
+
+const dbConnect = async (): Promise<Mongoose> => {
+    const mongoDB = MongoDB.getInstance();
+    return mongoDB.getConnection();
+};
 
 export default dbConnect;
