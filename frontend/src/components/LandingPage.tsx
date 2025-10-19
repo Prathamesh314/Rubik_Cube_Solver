@@ -22,11 +22,38 @@ const LandingPage = () => {
   const [loading, setLoading] = React.useState(false);
 
   const handleStartGame = async () => {
-    setLoading(true);
-    // The API call logic remains the same.
-    // For now, it will navigate directly to the queue page.
-    router.push('/queue');
-  };
+    try {
+      setLoading(true);
+  
+      // TODO: pull real player & token from your auth store/context
+      const player = JSON.parse(localStorage.getItem("rc_auth") || "{}")?.player;
+      if (!player?.player_id) throw new Error("Not logged in");
+  
+      const body = { variant: "3x3 cube", player }; // or your selected variant state
+      const res = await fetch("/api/matchmake/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+  
+      const data = await res.json();
+  
+      if (data.status === "queued") {
+        // pass the player id to queue page via query param
+        const pid = encodeURIComponent(data.player_id);
+        router.push(`/queue?pid=${pid}`);
+      } else if (data.status === "matched") {
+        router.push(`/room/${data.room.id}`);
+      } else {
+        console.error("Unexpected response", data);
+        router.push("/queue"); // fallback
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };  
 
   return (
     <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4 font-sans overflow-hidden">

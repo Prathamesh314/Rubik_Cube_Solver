@@ -12,6 +12,8 @@ const PLAYERS_HASH_KEY = "players";
 const waitingKey = (variant: CubeCategories) => `mm:${variant}:waiting`;
 const ROOMS_HASH_KEY = "rooms";
 
+const PLAYER_ROOMS_HASH_KEY = "player:room"; // field = player_id, value = roomId
+
 export class Redis {
     private static instance: Redis;
     redis_client?: RedisClientType;
@@ -214,5 +216,24 @@ export class Redis {
         await this.setPlayerState(player.player_id, PlayerState.Playing);
 
         return { queued: false, room, opponent };
+    }
+
+    /**
+     * This is the code playerId -> roomId mapping
+     */
+    async setPlayerRoom(playerId: string, roomId: string): Promise<void> {
+        this.ensureConnection();
+        await this.redis_client!.hSet(PLAYER_ROOMS_HASH_KEY, playerId, roomId);
+    }
+      
+    async getPlayerRoom(playerId: string): Promise<string | null> {
+        this.ensureConnection();
+        const v = await this.redis_client!.hGet(PLAYER_ROOMS_HASH_KEY, playerId);
+        return v ?? null;
+    }
+      
+    async clearPlayerRoom(playerId: string): Promise<void> {
+        this.ensureConnection();
+        await this.redis_client!.hDel(PLAYER_ROOMS_HASH_KEY, playerId);
     }
 }
