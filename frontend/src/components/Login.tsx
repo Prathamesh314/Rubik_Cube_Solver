@@ -46,7 +46,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       if (onLogin) {
         onLogin({ email });
       }
-      router.push('/game');
+      router.push('/');
     } catch (err) {
       setError('Authentication failed. Please try again.');
     } finally {
@@ -64,7 +64,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       if (onLogin) {
         onLogin({ email: 'google-user@example.com' });
       }
-      router.push('/game');
+      router.push('/');
     } catch (err) {
       setError('Google login failed. Please try again.');
     } finally {
@@ -80,7 +80,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       if (onLogin) {
         onLogin({ isGuest: true });
       }
-      router.push('/game');
+      router.push('/');
     } catch (err) {
       setError('Failed to continue as guest. Please try again.');
     } finally {

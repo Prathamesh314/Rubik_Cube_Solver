@@ -1,8 +1,9 @@
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose, { Schema, Document, Model, Types } from "mongoose";
 import { CubeCategories } from "./player";
 
 // Interface matches Player class in player.ts
 export interface IUser extends Document {
+  _id: Types.ObjectId;
   username: string;
   player_state: string; // Use PlayerState enum value as string
   rating: number;
