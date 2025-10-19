@@ -1,4 +1,4 @@
-import { Player } from '@/models/player';
+import { Player, PlayerState } from '@/modals/player';
 import { createClient, RedisClientType } from 'redis';
 
 const REDIS_URL = process.env.REDIS_URL as string;
@@ -96,7 +96,16 @@ export class Redis {
 
     get_player(player_id: string): Player {
         this.ensureConnection();
-        return Player{};
+        // Return a Player object with dummy values
+        return {
+            player_id: player_id,
+            username: "dummy_user",
+            player_state: PlayerState.Waiting,
+            rating: 0,
+            total_wins: 0,
+            win_percentage: 0,
+            top_speed_to_solve_cube: {},
+        };
     }
 
     get_all_players(): Array<Player> {

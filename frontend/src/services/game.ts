@@ -1,5 +1,5 @@
 
-import { Player } from '@/models/player';
+import { Player } from '@/modals/player';
 import { Redis } from '@/utils/redis';
 
 interface Room {
