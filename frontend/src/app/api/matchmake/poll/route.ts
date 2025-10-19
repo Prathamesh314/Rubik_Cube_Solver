@@ -11,13 +11,13 @@ export async function GET(req: NextRequest) {
     const r = Redis.getInstance();
     await r.connect();
 
-    const roomId = await r.getPlayerRoom(playerId);
+    const roomId = await r.get_player_room(playerId);
     console.log("<Polling route> Room id: ", roomId)
     if (!roomId) {
       return NextResponse.json({ status: "queued" }, { status: 200 });
     }
 
-    const room = await r.getPlayerRoom(roomId);
+    const room = await r.get_player_room(roomId);
     console.log("<Polling route> Room: ", room)
     if (!room) {
       // very rare: mapping exists but room vanished; treat as queued
