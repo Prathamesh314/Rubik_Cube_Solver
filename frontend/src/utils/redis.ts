@@ -8,11 +8,22 @@ const REDIS_PORT = process.env.REDIS_PORT as string;
 
 // We store all players under this single Hash key
 const PLAYERS_HASH_KEY = "players";
+const ROOMS_HASH_KEY = "rooms";
+const PLAYER_ROOMS_HASH_KEY = "player:room"; // field = player_id, value = roomId
+
 // waiting pool per variant: mm:<variant>:waiting | mm: stands for matchmaking.
 const waitingKey = (variant: CubeCategories) => `mm:${variant}:waiting`;
-const ROOMS_HASH_KEY = "rooms";
 
-const PLAYER_ROOMS_HASH_KEY = "player:room"; // field = player_id, value = roomId
+// Redis ==> {
+//     "namespace": {
+//         "players": {
+//             "player_id": Player
+//         },
+//         "room": {
+//             "roomId": "playerId"
+//         }
+//     }
+// }
 
 export class Redis {
     private static instance: Redis;
@@ -101,6 +112,7 @@ export class Redis {
 
     async insert_player(player: Player): Promise<boolean> {
         this.ensureConnection();
+        player.player_state = PlayerState.Waiting;
         const field = player.player_id;
         const value = JSON.stringify(Player.toPlain(player));
 
@@ -111,13 +123,6 @@ export class Redis {
         );
         return inserted === 1;
     }
-
-    async upsert_player(player: Player): Promise<void> {
-        this.ensureConnection();
-        const field = player.player_id;
-        const value = JSON.stringify(Player.toPlain(player));
-        await this.redis_client!.hSet(PLAYERS_HASH_KEY, field, value);
-      }
 
     async get_player(player_id: string): Promise<Player | null> {
         this.ensureConnection();
@@ -133,22 +138,61 @@ export class Redis {
         return Object.values(all).map((v) => Player.fromPlain(JSON.parse(v)));
     }
 
-    async has_player(player_id: string): Promise<boolean> {
-        this.ensureConnection();
-        const exists = await this.redis_client!.hExists(PLAYERS_HASH_KEY, player_id);
-        return !!exists;
-    }
-
-    async setPlayerState(player_id: string, state: PlayerState): Promise<void> {
-        const p = await this.get_player(player_id);
-        if (!p) return;
-        p.player_state = state;
-        await this.upsert_player(p);
-    }
-
     async delete_player(player_id: string): Promise<number> {
         this.ensureConnection();
         return await this.redis_client!.hDel(PLAYERS_HASH_KEY, player_id);
+    }
+
+    async delete_all_players(): Promise<boolean> {
+        this.ensureConnection();
+        // Delete the entire hash of players by deleting the PLAYERS_HASH_KEY
+        const result = await this.redis_client!.del(PLAYERS_HASH_KEY);
+        return result > 0;
+    }
+
+    async has_players(): Promise<boolean> {
+        const res = await this.redis_client?.hLen(PLAYERS_HASH_KEY)
+        return  (res !== undefined && res > 0)
+    }
+
+    /**
+     * This is the code playerId -> roomId mapping
+     */
+    async set_player_room(playerId: string, roomId: string): Promise<void> {
+        this.ensureConnection();
+        await this.redis_client!.hSet(PLAYER_ROOMS_HASH_KEY, playerId, roomId);
+    }
+      
+    async get_player_room(playerId: string): Promise<string | null> {
+        this.ensureConnection();
+        const v = await this.redis_client!.hGet(PLAYER_ROOMS_HASH_KEY, playerId);
+        return v ?? null;
+    }
+      
+    async clear_player_room(playerId: string): Promise<void> {
+        this.ensureConnection();
+        await this.redis_client!.hDel(PLAYER_ROOMS_HASH_KEY, playerId);
+    }
+
+    async delete_all_rooms(): Promise<boolean> {
+        this.ensureConnection();
+        // Delete the entire hash of players by deleting the PLAYERS_HASH_KEY
+        const result = await this.redis_client!.del(PLAYER_ROOMS_HASH_KEY);
+        return result > 0;
+    }
+
+    async insert_room(room: Room) {
+        this.ensureConnection();
+        // The value must be a string (because Redis hashes store string values). Store serialized Room:
+        await this.redis_client!.hSet(ROOMS_HASH_KEY, room.id, JSON.stringify(room));
+    }
+
+    async get_room(roomId: string): Promise<Room> {
+        const roomStr = await this.redis_client!.hGet(ROOMS_HASH_KEY, roomId);
+        if (!roomStr) {
+            throw new Error(`Room with id ${roomId} not found`);
+        }
+        return JSON.parse(roomStr) as Room;
     }
 
     // ---------- Matchmaking MVP ----------
@@ -158,82 +202,111 @@ export class Redis {
      * If not empty: pop one opponent, create a room, set both to Playing, return room.
      * NOTE: MVP assumes single server instance; fine for your first version.
      */
+
     async tryMatchOrEnqueue(
         player: Player,
+        roomId: string,
         variant: CubeCategories
     ): Promise<
-        | { queued: true; player_id: string }
-        | { queued: false; room: Room; opponent: Player }
+        | { queued: true | false; room: Room; }
     > {
-        this.ensureConnection();
+        const has_players = await this.has_players();
+        if (has_players) {
+            const players = await this.get_all_players()
+            // fetch which room the player1 is waiting inside??
+            const opponent_player = players[0]
 
-        // Ensure player record exists/up-to-date
-        await this.upsert_player(player);
+            const roomID = await this.get_player_room(opponent_player.player_id);
+            if (roomID === null){
+                throw new Error("We ran into mysterious error, room id is somehow none for a player waiting ..")
+            }
+            const room: Room = await this.get_room(roomID);
+            room.players.push(opponent_player.player_id)
+            // delete the player from the cache and also room as well
+            await this.delete_player(opponent_player.player_id);
+            await this.clear_player_room(opponent_player.player_id);
 
-        const wKey = waitingKey(variant);
+            return {queued: false, room: room}
 
-        // 1) Is someone already waiting?
-        const waitingCount = await this.redis_client!.hLen(wKey);
-
-        if (waitingCount === 0) {
-        // No one waiting -> enqueue this player
-        await this.redis_client!.hSet(wKey, player.player_id, JSON.stringify(Player.toPlain(player)));
-        await this.setPlayerState(player.player_id, PlayerState.Waiting);
-        return { queued: true, player_id: player.player_id };
         }
-
-        // 2) Someone is waiting -> fetch ONE opponent (hash is unordered; OK for MVP)
-        const keys = await this.redis_client!.hKeys(wKey);
-        const opponentId = keys.find((k) => k !== player.player_id) ?? keys[0]; // avoid self
-        const opponentRaw = await this.redis_client!.hGet(wKey, opponentId);
-        if (!opponentRaw) {
-        // rare race; just enqueue current player as fallback
-        await this.redis_client!.hSet(wKey, player.player_id, JSON.stringify(Player.toPlain(player)));
-        await this.setPlayerState(player.player_id, PlayerState.Waiting);
-        return { queued: true, player_id: player.player_id };
-        }
-
-        // Remove opponent from waiting
-        await this.redis_client!.hDel(wKey, opponentId);
-
-        const opponent = Player.fromPlain(JSON.parse(opponentRaw));
-
-        // Create room
+        // i think we should store room as well, because we have list of player id saved there.
         const room: Room = {
-        id: randomUUID(),
-        players: [opponent.player_id, player.player_id],
-        maxPlayers: 2,
-        gameState: { status: "init", variant },
-        variant,
-        createdAt: Date.now(),
+            id: roomId,
+            players: [player.player_id],
+            maxPlayers: 2,
+            gameState: { status: "init", variant },
+            variant,
+            createdAt: Date.now(),
         };
+        await this.insert_player(player)
+        await this.insert_room(room)
+        await this.set_player_room(player.player_id, roomId)
 
-        // Persist room (simple: one hash of rooms)
-        await this.redis_client!.hSet(ROOMS_HASH_KEY, room.id, JSON.stringify(room));
-
-        // Update both players to Playing
-        await this.setPlayerState(opponent.player_id, PlayerState.Playing);
-        await this.setPlayerState(player.player_id, PlayerState.Playing);
-
-        return { queued: false, room, opponent };
+        return {queued: true, room: room}
     }
 
-    /**
-     * This is the code playerId -> roomId mapping
-     */
-    async setPlayerRoom(playerId: string, roomId: string): Promise<void> {
-        this.ensureConnection();
-        await this.redis_client!.hSet(PLAYER_ROOMS_HASH_KEY, playerId, roomId);
-    }
-      
-    async getPlayerRoom(playerId: string): Promise<string | null> {
-        this.ensureConnection();
-        const v = await this.redis_client!.hGet(PLAYER_ROOMS_HASH_KEY, playerId);
-        return v ?? null;
-    }
-      
-    async clearPlayerRoom(playerId: string): Promise<void> {
-        this.ensureConnection();
-        await this.redis_client!.hDel(PLAYER_ROOMS_HASH_KEY, playerId);
-    }
+    // async tryMatchOrEnqueue(
+    //     player: Player,
+    //     variant: CubeCategories
+    // ): Promise<
+    //     | { queued: true; player_id: string }
+    //     | { queued: false; room: Room; opponent: Player }
+    // > {
+    //     this.ensureConnection();
+
+    //     return {queued: true, player_id: ""}
+
+    //     // Ensure player record exists/up-to-date
+    //     // await this.upsert_player(player);
+
+    //     // const wKey = waitingKey(variant);
+
+    //     // // 1) Is someone already waiting?
+    //     // const waitingCount = await this.redis_client!.hLen(wKey);
+    //     // console.log("Waiting count: ", waitingCount)
+        
+    //     // // If no one is waiting in the queue then 
+    //     // if (waitingCount === 0) {
+    //     //     // No one waiting -> enqueue this player
+    //     //     // await this.redis_client!.hSet(wKey, player.player_id, JSON.stringify(Player.toPlain(player)));
+    //     //     player.player_state = PlayerState.Waiting;
+    //     //     await this.insert_player(player);
+    //     //     return { queued: true, player_id: player.player_id };
+    //     // }
+
+    //     // // 2) Someone is waiting -> fetch ONE opponent (hash is unordered; OK for MVP)
+    //     // const keys = await this.redis_client!.hKeys(wKey);
+    //     // const opponentId = keys.find((k) => k !== player.player_id) ?? keys[0]; // avoid self
+    //     // const opponentRaw = await this.redis_client!.hGet(wKey, opponentId);
+    //     // if (!opponentRaw) {
+    //     // // rare race; just enqueue current player as fallback
+    //     // await this.redis_client!.hSet(wKey, player.player_id, JSON.stringify(Player.toPlain(player)));
+    //     // await this.setPlayerState(player.player_id, PlayerState.Waiting);
+    //     // return { queued: true, player_id: player.player_id };
+    //     // }
+
+    //     // // Remove opponent from waiting
+    //     // await this.redis_client!.hDel(wKey, opponentId);
+
+    //     // const opponent = Player.fromPlain(JSON.parse(opponentRaw));
+
+    //     // // Create room
+    //     // const room: Room = {
+    //     //     id: randomUUID(),
+    //     //     players: [opponent.player_id, player.player_id],
+    //     //     maxPlayers: 2,
+    //     //     gameState: { status: "init", variant },
+    //     //     variant,
+    //     //     createdAt: Date.now(),
+    //     // };
+
+    //     // // Persist room (simple: one hash of rooms)
+    //     // await this.redis_client!.hSet(ROOMS_HASH_KEY, room.id, JSON.stringify(room));
+
+    //     // // Update both players to Playing
+    //     // await this.setPlayerState(opponent.player_id, PlayerState.Playing);
+    //     // await this.setPlayerState(player.player_id, PlayerState.Playing);
+
+    //     // return { queued: false, room, opponent };
+    // }
 }

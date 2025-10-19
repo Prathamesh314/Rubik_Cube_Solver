@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { generateToken, setTokenCookie } from '@/utils/jwt';
 import dbConnect from '@/utils/db';
 import User from '@/modals/user';
+import {PlayerState} from '@/modals/player'
 
 export async function POST(req: NextRequest) {
   try {
@@ -47,7 +48,6 @@ export async function POST(req: NextRequest) {
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
-    console.log("Existing user: ", existingUser);
     if (existingUser) {
       return NextResponse.json(
         {
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
       email,
       username,
       password: hashedPassword,
-      player_state: 'active', // Default value from reference
+      player_state: PlayerState.NotPlaying, // Default value from reference
       rating: 0,
       total_wins: 0,
       win_percentage: 0,

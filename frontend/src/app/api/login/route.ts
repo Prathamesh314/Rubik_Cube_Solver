@@ -1,67 +1,71 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { generateToken, setTokenCookie } from '@/utils/jwt';
+import { generateToken } from '@/utils/jwt';
 import dbConnect from '@/utils/db';
 import User from '@/modals/user';
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, message: 'Method not allowed' });
-  }
-
+export async function POST(request: NextRequest) {
   try {
-    // Connect to database following your pattern
+    // Connect to database
     const mongoose = await dbConnect();
     
     // Ensure mongoose.connection.db is defined before accessing the collection
     if (!mongoose.connection.db) {
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Database connection error' 
-      });
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'Database connection error' 
+        },
+        { status: 500 }
+      );
     }
 
-    const { email, password } = req.body;
+    // Parse request body
+    const body = await request.json();
+    const { email, password } = body;
 
     // Validate input
     if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email and password are required',
-      });
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Email and password are required',
+        },
+        { status: 400 }
+      );
     }
 
     // Find user by email using Mongoose model
     const user = await User.findOne({ email }).select('+password');
     
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials',
-      });
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'User not found',
+        },
+        { status: 401 }
+      );
     }
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials',
-      });
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Invalid credentials',
+        },
+        { status: 401 }
+      );
     }
 
     // Generate JWT token
     const token = generateToken(user._id.toString());
 
-    // Set HTTP-only cookie
-    setTokenCookie(res, token);
-
     // Return user data (without password)
     const userData = {
-      _id: user._id.toString(), // Convert ObjectId to string
+      _id: user._id.toString(),
       email: user.email,
       username: user.username,
       player_state: user.player_state,
@@ -72,18 +76,46 @@ export default async function handler(
       createdAt: user.createdAt,
     };
 
-    return res.status(200).json({
-      success: true,
-      user: userData,
-      token: token, // Optional: include token in response body as well
+    // Create response with user data
+    const response = NextResponse.json(
+      {
+        success: true,
+        user: userData,
+        token: token,
+      },
+      { status: 200 }
+    );
+
+    // Set HTTP-only cookie
+    response.cookies.set({
+      name: 'authToken',
+      value: token,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
     });
+
+    return response;
     
   } catch (error) {
     console.error('Login error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error?.toString() : undefined
-    });
+    return NextResponse.json(
+      {
+        success: false,
+        message: 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? error?.toString() : undefined
+      },
+      { status: 500 }
+    );
   }
+}
+
+// Optional: Handle other methods
+export async function GET() {
+  return NextResponse.json(
+    { success: false, message: 'Method not allowed' },
+    { status: 405 }
+  );
 }

@@ -7,13 +7,22 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Define public routes that don't require authentication
-  const publicRoutes = ['/signup', '/login', '/'];
-  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
+  const publicRoutes = ['/login', '/signup'];
+  const isPublicRoute = publicRoutes.includes(pathname);
+  
+  // Define routes that are always accessible (like homepage)
+  const alwaysAccessible = ['/'];
+  const isAlwaysAccessible = alwaysAccessible.includes(pathname);
+
+  // Allow always accessible routes for everyone
+  if (isAlwaysAccessible) {
+    return NextResponse.next();
+  }
 
   // If user is not authenticated and trying to access protected route
   if (!token && !isPublicRoute) {
-    const signupUrl = new URL('/signup', request.url);
-    return NextResponse.redirect(signupUrl);
+    const loginUrl = new URL('/login', request.url);
+    return NextResponse.redirect(loginUrl);
   }
 
   // If user has token, verify it
@@ -21,31 +30,40 @@ export function middleware(request: NextRequest) {
     try {
       const decoded = verifyToken(token);
       
-      // If token is invalid and user is on protected route
-      if (!decoded && !isPublicRoute) {
-        const signupUrl = new URL('/signup', request.url);
-        const response = NextResponse.redirect(signupUrl);
+      // If token is invalid
+      if (!decoded) {
         // Clear invalid token
+        const response = isPublicRoute 
+          ? NextResponse.next() 
+          : NextResponse.redirect(new URL('/login', request.url));
         response.cookies.delete('authToken');
         return response;
       }
 
-      // If user is authenticated and trying to access login/signup, redirect to dashboard
-      if (decoded && (pathname.startsWith('/login') || pathname.startsWith('/signup'))) {
-        const dashboardUrl = new URL('/dashboard', request.url);
-        return NextResponse.redirect(dashboardUrl);
+      // If user is authenticated and trying to access login/signup, redirect to home
+      if (decoded && isPublicRoute) {
+        const homeUrl = new URL('/', request.url);
+        return NextResponse.redirect(homeUrl);
       }
+
+      // User is authenticated and accessing valid route
+      return NextResponse.next();
+      
     } catch (error) {
       console.error('Token verification error:', error);
       
-      // If token verification fails and user is on protected route
-      if (!isPublicRoute) {
-        const signupUrl = new URL('/signup', request.url);
-        const response = NextResponse.redirect(signupUrl);
-        response.cookies.delete('authToken');
-        return response;
-      }
+      // If token verification fails
+      const response = isPublicRoute 
+        ? NextResponse.next() 
+        : NextResponse.redirect(new URL('/login', request.url));
+      response.cookies.delete('authToken');
+      return response;
     }
+  }
+
+  // Allow public routes without token
+  if (isPublicRoute) {
+    return NextResponse.next();
   }
 
   return NextResponse.next();
@@ -56,12 +74,12 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api/auth (auth API routes)
+     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public files (images, etc.)
      */
-    '/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.svg|.*\\.gif).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.svg|.*\\.gif|.*\\.ico|.*\\.webp).*)',
   ],
 };

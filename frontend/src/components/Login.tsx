@@ -8,16 +8,14 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
-  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
 
   const handleSignUpButtonClick = () => {
-    router.push("/signup")
+    router.push("/signup");
   }
 
   const handleEmailAuth = async (e: React.FormEvent) => {
@@ -32,23 +30,52 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       return;
     }
 
-    if (isSignUp && password !== confirmPassword) {
-      setError('Passwords do not match');
-      setLoading(false);
-      return;
-    }
-
     try {
-      // Here you would integrate with your auth API
-      // For now, we'll simulate the auth process
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      if (onLogin) {
-        onLogin({ email });
+      // Call the login API
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Important: Include cookies in the request
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Authentication failed');
       }
-      router.push('/');
+
+      if (data.success) {
+        // Store user data in memory (React state) - optional since token is in httpOnly cookie
+        const userData = {
+          token: data.token,
+          userId: data.user._id,
+          username: data.user.username,
+          email: data.user.email,
+        };
+
+        // Optional: Store in sessionStorage for client-side access
+        // Note: The httpOnly cookie is already set by the API
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('userId', data.user._id);
+          sessionStorage.setItem('username', data.user.username);
+          sessionStorage.setItem('userEmail', data.user.email);
+        }
+
+        // Call onLogin callback if provided
+        if (onLogin) {
+          onLogin({ email: data.user.email });
+        }
+
+        // Redirect to home page
+        router.push('/');
+        router.refresh(); // Refresh to update middleware state
+      }
     } catch (err) {
-      setError('Authentication failed. Please try again.');
+      console.error('Login error:', err);
+      setError(err instanceof Error ? err.message : 'Authentication failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -56,25 +83,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const handleGoogleLogin = async () => {
     setLoading(true);
-    try {
-      // Here you would integrate with Google OAuth
-      // For now, we'll simulate the process
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      if (onLogin) {
-        onLogin({ email: 'google-user@example.com' });
-      }
-      router.push('/');
-    } catch (err) {
-      setError('Google login failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    setError('Google login is not yet implemented');
+    setLoading(false);
+    // TODO: Implement Google OAuth
   };
 
   const handleGuestLogin = async () => {
     setLoading(true);
     try {
+      // TODO: Implement guest login API
       await new Promise(resolve => setTimeout(resolve, 500));
       
       if (onLogin) {
@@ -113,7 +130,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
           </div>
           <h1 className="text-4xl font-bold text-white mb-2">Rubik's Cube Solver</h1>
-          <p className="text-purple-200">{isSignUp ? 'Create your account' : 'Welcome back!'}</p>
+          <p className="text-purple-200">Welcome back!</p>
         </div>
 
         {/* Login Form */}
@@ -136,6 +153,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-purple-300 focus:outline-none focus:border-purple-400 focus:bg-white/20 transition-all"
                 placeholder="you@example.com"
+                disabled={loading}
                 required
               />
             </div>
@@ -151,33 +169,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-purple-300 focus:outline-none focus:border-purple-400 focus:bg-white/20 transition-all"
                 placeholder="••••••••"
+                disabled={loading}
                 required
               />
             </div>
-
-            {isSignUp && (
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-purple-200 mb-2">
-                  Confirm Password
-                </label>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-purple-300 focus:outline-none focus:border-purple-400 focus:bg-white/20 transition-all"
-                  placeholder="••••••••"
-                  required={isSignUp}
-                />
-              </div>
-            )}
 
             <button
               type="submit"
               disabled={loading}
               className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-violet-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-violet-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02]"
             >
-              {loading ? 'Loading...' : isSignUp ? 'Create Account' : 'Sign In'}
+              {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
 
@@ -220,12 +222,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <div className="mt-6 text-center">
             <button
               type="button"
-              onClick={() => {
-                handleSignUpButtonClick()
-              }}
-              className="text-purple-200 hover:text-white text-sm transition-colors"
+              onClick={handleSignUpButtonClick}
+              disabled={loading}
+              className="text-purple-200 hover:text-white text-sm transition-colors disabled:opacity-50"
             >
-              {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+              Don't have an account? Sign up
             </button>
           </div>
         </div>
