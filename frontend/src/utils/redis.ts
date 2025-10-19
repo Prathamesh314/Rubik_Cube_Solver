@@ -1,8 +1,16 @@
-import { Player, PlayerState } from '@/modals/player';
+import { Player, CubeCategories, PlayerState } from '@/modals/player';
 import { createClient, RedisClientType } from 'redis';
+import { randomUUID } from 'crypto';
+import { Room } from '@/modals/room';
 
 const REDIS_URL = process.env.REDIS_URL as string;
 const REDIS_PORT = process.env.REDIS_PORT as string;
+
+// We store all players under this single Hash key
+const PLAYERS_HASH_KEY = "players";
+// waiting pool per variant: mm:<variant>:waiting | mm: stands for matchmaking.
+const waitingKey = (variant: CubeCategories) => `mm:${variant}:waiting`;
+const ROOMS_HASH_KEY = "rooms";
 
 export class Redis {
     private static instance: Redis;
@@ -89,36 +97,122 @@ export class Redis {
         }
     }
 
-    insert_player(player: Player): boolean {
+    async insert_player(player: Player): Promise<boolean> {
         this.ensureConnection();
-        return true;
+        const field = player.player_id;
+        const value = JSON.stringify(Player.toPlain(player));
+
+        const inserted = await (this.redis_client as any).hSetNX(
+            PLAYERS_HASH_KEY,
+            field,
+            value
+        );
+        return inserted === 1;
     }
 
-    get_player(player_id: string): Player {
+    async upsert_player(player: Player): Promise<void> {
         this.ensureConnection();
-        // Return a Player object with dummy values
-        return {
-            player_id: player_id,
-            username: "dummy_user",
-            player_state: PlayerState.Waiting,
-            rating: 0,
-            total_wins: 0,
-            win_percentage: 0,
-            top_speed_to_solve_cube: {},
+        const field = player.player_id;
+        const value = JSON.stringify(Player.toPlain(player));
+        await this.redis_client!.hSet(PLAYERS_HASH_KEY, field, value);
+      }
+
+    async get_player(player_id: string): Promise<Player | null> {
+        this.ensureConnection();
+        const raw = await this.redis_client!.hGet(PLAYERS_HASH_KEY, player_id);
+        if (!raw) return null;
+        return Player.fromPlain(JSON.parse(raw));
+    }
+
+    async get_all_players(): Promise<Player[]> {
+        this.ensureConnection();
+        const all = await this.redis_client!.hGetAll(PLAYERS_HASH_KEY);
+        if (!all || Object.keys(all).length === 0) return [];
+        return Object.values(all).map((v) => Player.fromPlain(JSON.parse(v)));
+    }
+
+    async has_player(player_id: string): Promise<boolean> {
+        this.ensureConnection();
+        const exists = await this.redis_client!.hExists(PLAYERS_HASH_KEY, player_id);
+        return !!exists;
+    }
+
+    async setPlayerState(player_id: string, state: PlayerState): Promise<void> {
+        const p = await this.get_player(player_id);
+        if (!p) return;
+        p.player_state = state;
+        await this.upsert_player(p);
+    }
+
+    async delete_player(player_id: string): Promise<number> {
+        this.ensureConnection();
+        return await this.redis_client!.hDel(PLAYERS_HASH_KEY, player_id);
+    }
+
+    // ---------- Matchmaking MVP ----------
+    /**
+     * Try to match the given player in a waiting pool for the variant.
+     * If the waiting pool is empty: enqueue player (Waiting), return {queued:true}
+     * If not empty: pop one opponent, create a room, set both to Playing, return room.
+     * NOTE: MVP assumes single server instance; fine for your first version.
+     */
+    async tryMatchOrEnqueue(
+        player: Player,
+        variant: CubeCategories
+    ): Promise<
+        | { queued: true; player_id: string }
+        | { queued: false; room: Room; opponent: Player }
+    > {
+        this.ensureConnection();
+
+        // Ensure player record exists/up-to-date
+        await this.upsert_player(player);
+
+        const wKey = waitingKey(variant);
+
+        // 1) Is someone already waiting?
+        const waitingCount = await this.redis_client!.hLen(wKey);
+
+        if (waitingCount === 0) {
+        // No one waiting -> enqueue this player
+        await this.redis_client!.hSet(wKey, player.player_id, JSON.stringify(Player.toPlain(player)));
+        await this.setPlayerState(player.player_id, PlayerState.Waiting);
+        return { queued: true, player_id: player.player_id };
+        }
+
+        // 2) Someone is waiting -> fetch ONE opponent (hash is unordered; OK for MVP)
+        const keys = await this.redis_client!.hKeys(wKey);
+        const opponentId = keys.find((k) => k !== player.player_id) ?? keys[0]; // avoid self
+        const opponentRaw = await this.redis_client!.hGet(wKey, opponentId);
+        if (!opponentRaw) {
+        // rare race; just enqueue current player as fallback
+        await this.redis_client!.hSet(wKey, player.player_id, JSON.stringify(Player.toPlain(player)));
+        await this.setPlayerState(player.player_id, PlayerState.Waiting);
+        return { queued: true, player_id: player.player_id };
+        }
+
+        // Remove opponent from waiting
+        await this.redis_client!.hDel(wKey, opponentId);
+
+        const opponent = Player.fromPlain(JSON.parse(opponentRaw));
+
+        // Create room
+        const room: Room = {
+        id: randomUUID(),
+        players: [opponent.player_id, player.player_id],
+        maxPlayers: 2,
+        gameState: { status: "init", variant },
+        variant,
+        createdAt: Date.now(),
         };
-    }
 
-    get_all_players(): Array<Player> {
-        this.ensureConnection();
-        return [];
-    }
+        // Persist room (simple: one hash of rooms)
+        await this.redis_client!.hSet(ROOMS_HASH_KEY, room.id, JSON.stringify(room));
 
-    has_player(): boolean {
-        this.ensureConnection();
-        return false;
-    }
+        // Update both players to Playing
+        await this.setPlayerState(opponent.player_id, PlayerState.Playing);
+        await this.setPlayerState(player.player_id, PlayerState.Playing);
 
-    private delete_player(player_id: string) {
-        this.ensureConnection();
+        return { queued: false, room, opponent };
     }
 }

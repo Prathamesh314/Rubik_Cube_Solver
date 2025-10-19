@@ -1,5 +1,14 @@
 import { randomUUID } from "crypto";
-import { Player } from "./player";
+import { Player, CubeCategories } from "./player";
+
+export interface Room {
+    id: string;
+    players: string[]; // [p1, p2]
+    maxPlayers: number;
+    gameState: any;
+    variant: CubeCategories;
+    createdAt: number;
+}
 
 export class RoomState {
     room_id: string;
