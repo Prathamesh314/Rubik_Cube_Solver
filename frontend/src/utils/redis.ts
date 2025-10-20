@@ -1,6 +1,5 @@
 import { Player, CubeCategories, PlayerState } from '@/modals/player';
 import { createClient, RedisClientType } from 'redis';
-import { randomUUID } from 'crypto';
 import { Room } from '@/modals/room';
 
 const REDIS_URL = process.env.REDIS_URL as string;
@@ -131,9 +130,15 @@ export class Redis {
         return Player.fromPlain(JSON.parse(raw));
     }
 
-    async get_all_players(): Promise<Player[]> {
+    async get_all_players(variant?: CubeCategories): Promise<Player[]> {
         this.ensureConnection();
-        const all = await this.redis_client!.hGetAll(PLAYERS_HASH_KEY);
+        let wKey: string | undefined = undefined;
+        if (variant !== undefined) {
+            wKey = waitingKey(variant);
+        }
+        // If wKey is undefined, use PLAYERS_HASH_KEY to get all players
+        const keyToUse = wKey === undefined ? PLAYERS_HASH_KEY : wKey;
+        const all = await this.redis_client!.hGetAll(keyToUse);
         if (!all || Object.keys(all).length === 0) return [];
         return Object.values(all).map((v) => Player.fromPlain(JSON.parse(v)));
     }
@@ -169,16 +174,22 @@ export class Redis {
         return v ?? null;
     }
       
-    async clear_player_room(playerId: string): Promise<void> {
+    async clear_player_room(): Promise<void> {
         this.ensureConnection();
-        await this.redis_client!.hDel(PLAYER_ROOMS_HASH_KEY, playerId);
+        await this.redis_client!.del(PLAYER_ROOMS_HASH_KEY);
     }
 
     async delete_all_rooms(): Promise<boolean> {
         this.ensureConnection();
         // Delete the entire hash of players by deleting the PLAYERS_HASH_KEY
-        const result = await this.redis_client!.del(PLAYER_ROOMS_HASH_KEY);
+        const result = await this.redis_client!.del(ROOMS_HASH_KEY);
         return result > 0;
+    }
+
+    async upsert_room(room_id: string, room: Room) {
+        this.ensureConnection();
+        // Upsert: overwrite the room with same id if exists, or insert if not
+        await this.redis_client!.hSet(ROOMS_HASH_KEY, room_id, JSON.stringify(room));
     }
 
     async insert_room(room: Room) {
@@ -211,20 +222,26 @@ export class Redis {
         | { queued: true | false; room: Room; }
     > {
         const has_players = await this.has_players();
+        console.log("Has players: ", has_players);
         if (has_players) {
-            const players = await this.get_all_players()
+            const players = await this.get_all_players();
+            console.log("All players: ", players)
             // fetch which room the player1 is waiting inside??
             const opponent_player = players[0]
+            console.log("Opponent player: ", opponent_player);
 
             const roomID = await this.get_player_room(opponent_player.player_id);
             if (roomID === null){
                 throw new Error("We ran into mysterious error, room id is somehow none for a player waiting ..")
             }
             const room: Room = await this.get_room(roomID);
-            room.players.push(opponent_player.player_id)
+            room.players.push(player.player_id);
+            await this.upsert_room(roomID, room)
+            await this.insert_player(player);
+            await this.set_player_room(player.player_id, roomId)
             // delete the player from the cache and also room as well
-            await this.delete_player(opponent_player.player_id);
-            await this.clear_player_room(opponent_player.player_id);
+            // await this.delete_player(opponent_player.player_id);
+            // await this.clear_player_room(opponent_player.player_id);
 
             return {queued: false, room: room}
 
@@ -241,6 +258,10 @@ export class Redis {
         await this.insert_player(player)
         await this.insert_room(room)
         await this.set_player_room(player.player_id, roomId)
+
+        const all_players = await this.get_all_players()
+
+        console.log("Get all players: ", all_players)
 
         return {queued: true, room: room}
     }

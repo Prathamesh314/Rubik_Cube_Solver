@@ -44,6 +44,10 @@ export class Player {
         this.top_speed_to_solve_cube = top_speed_to_solve_cube;
     }
 
+    to_string() {
+        return `Player Id: ${this.player_id} | Username: ${this.username} | State: ${this.player_state} | Rating: ${this.rating} | Total Wins: ${this.total_wins} | Win Percentage: ${this.win_percentage} | Top Speed To Solve Cube: ${JSON.stringify(this.top_speed_to_solve_cube)}`;
+    }
+
     // ---- Serialization helpers ----
     static toPlain(p: Player): Record<string, any> {
         return {

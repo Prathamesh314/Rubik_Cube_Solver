@@ -61,73 +61,61 @@ export default function RoomPage() {
   const pollTimerRef = useRef<number | null>(null);
   const visibleRef = useRef<boolean>(true);
 
-  // --- API helpers with mock fallback ---
-  async function fetchRoom(id: string): Promise<RoomData> {
-    try {
-      const res = await fetch(`/api/rooms?id=${encodeURIComponent(id)}`, { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
-    } catch (e) {
-      // Mock for dev if API not implemented yet
-      return {
-        id,
-        players: [{ username: "Player One", rating: 1580 }],
-        maxPlayers: 2,
-        gameState: { status: "init" },
-        variant: "3x3 cube",
-        createdAt: Date.now(),
-      };
-    }
+  const player_str = localStorage.getItem("player")
+  if (player_str == null) {
+    console.error("Cannot start the game because player is null");
   }
 
-  async function refetch() {
-    if (!roomId) return;
-    const data = await fetchRoom(String(roomId));
-    setRoomData(data);
-    setLoading(false);
-  }
-
-  function schedulePoll(ms = 1200) {
-    if (pollTimerRef.current) window.clearTimeout(pollTimerRef.current);
-    pollTimerRef.current = window.setTimeout(async () => {
-      if (!visibleRef.current) return; // pause polling in background
-      await refetch();
-      // keep polling until both players present
-      const hasTwo = (roomData?.players?.length ?? 0) >= 2;
-      if (!hasTwo) schedulePoll(ms);
-    }, ms) as unknown as number;
-  }
-
-  // Initial fetch + polling for opponent
   useEffect(() => {
     let mounted = true;
-    (async () => {
-      try {
-        await refetch();
-        schedulePoll(900);
-      } catch (e: any) {
-        if (!mounted) return;
-        setErr(e?.message ?? "Failed to load room");
-        setLoading(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-      if (pollTimerRef.current) window.clearTimeout(pollTimerRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId]);
 
-  // Pause polling when tab is hidden (battery/net friendly)
-  useEffect(() => {
-    const onVis = () => {
-      visibleRef.current = document.visibilityState === "visible";
-      if (visibleRef.current) schedulePoll(300);
+    const fetchRoomData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/room/${roomId}`);
+
+        if (!response.ok) {
+          throw new Error(
+            `HTTP error! status: ${response.status} (${
+              (await response.json()).error
+            })`
+          );
+        }
+
+        const data: RoomData = await response.json();
+        if(data?.players.length == 1) {
+          console.log("We only have one player");
+        }else if(data?.players.length == 2) {
+          console.log("We have 2 players")
+        } else {
+          console.error("Cannot start the game...")
+        }
+        console.log("Room/roomid data: ", data);
+        
+        // NOTE: The data.players array from the API route will only contain IDs 
+        // unless your API route fetches the full player data. 
+        // You'll need to adjust your API/client code to handle this data structure correctly.
+        setRoomData(data); // Set the fetched plain object data
+
+      } catch (error: any) {
+        if (mounted) {
+          console.error("Fetch room error:", error);
+          setErr(error.message || "Unknown error");
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
     };
-    document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    fetchRoomData();
+    
+    // You'll need separate logic for polling/WebSockets if you want real-time updates
+    // For now, removing the polling logic to keep it simple.
+
+    return () => { mounted = false; };
+  }, [roomId]);
 
   const handleCopyToClipboard = () => {
     navigator.clipboard.writeText(String(roomId));

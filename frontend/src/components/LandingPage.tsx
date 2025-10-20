@@ -83,22 +83,18 @@ export default function LandingPage() {
       const auth = ensureAuth();
       const player = auth.player;
 
+      console.log("Player: ", player);
+
       const res = await fetch("/api/matchmake/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ variant, player }),
       });
       const data = await res.json();
-
-      if (data.status === "queued") {
-        router.push(`/queue?pid=${encodeURIComponent(data.player_id)}`);
-      } else if (data.status === "matched") {
-        router.push(`/room/${data.room.id}`);
-      } else {
-        // fallback: still send to queue
-        router.push(`/queue?pid=${encodeURIComponent(player.player_id)}`);
-      }
+      localStorage.setItem("player", JSON.stringify(player));
+      router.push(`/room/${data.room.id}`);
     } catch (e) {
+      console.error(`Error in landing page: ${e.toString()}`);
       // graceful fallback for dev environments
       const { player_id } = ensureAuth().player;
       router.push(`/queue?pid=${encodeURIComponent(player_id)}`);
