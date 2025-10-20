@@ -161,7 +161,7 @@ export class Redis {
     }
 
     /**
-     * This is the code playerId -> roomId mapping
+     * This is the code for playerId -> roomId mapping
      */
     async set_player_room(playerId: string, roomId: string): Promise<void> {
         this.ensureConnection();
@@ -225,10 +225,8 @@ export class Redis {
         console.log("Has players: ", has_players);
         if (has_players) {
             const players = await this.get_all_players();
-            console.log("All players: ", players)
             // fetch which room the player1 is waiting inside??
             const opponent_player = players[0]
-            console.log("Opponent player: ", opponent_player);
 
             const roomID = await this.get_player_room(opponent_player.player_id);
             if (roomID === null){
@@ -258,10 +256,6 @@ export class Redis {
         await this.insert_player(player)
         await this.insert_room(room)
         await this.set_player_room(player.player_id, roomId)
-
-        const all_players = await this.get_all_players()
-
-        console.log("Get all players: ", all_players)
 
         return {queued: true, room: room}
     }

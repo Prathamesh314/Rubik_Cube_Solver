@@ -83,8 +83,6 @@ export default function LandingPage() {
       const auth = ensureAuth();
       const player = auth.player;
 
-      console.log("Player: ", player);
-
       const res = await fetch("/api/matchmake/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

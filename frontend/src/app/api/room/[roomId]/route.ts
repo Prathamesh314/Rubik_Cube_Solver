@@ -8,12 +8,10 @@ export async function GET(
 ) {
   // ✅ Await the entire params object, then destructure
   const { roomId } = await params;
-  console.log("Room id from api: ", roomId);
 
   try {
     const game = await Game.getInstance();
     const room = await game.getRoom(roomId);
-    console.log("Room from api: ", room)
 
     if (!room) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });

@@ -90,7 +90,6 @@ export default function RoomPage() {
         } else {
           console.error("Cannot start the game...")
         }
-        console.log("Room/roomid data: ", data);
         
         // NOTE: The data.players array from the API route will only contain IDs 
         // unless your API route fetches the full player data. 
