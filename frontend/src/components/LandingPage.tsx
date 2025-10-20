@@ -91,8 +91,12 @@ export default function LandingPage() {
       const data = await res.json();
       localStorage.setItem("player", JSON.stringify(player));
       router.push(`/room/${data.room.id}`);
-    } catch (e) {
-      console.error(`Error in landing page: ${e.toString()}`);
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        console.error(`Error in landing page: ${e.message}`);
+      } else {
+        console.error("Error in landing page:", e);
+      }
       // graceful fallback for dev environments
       const { player_id } = ensureAuth().player;
       router.push(`/queue?pid=${encodeURIComponent(player_id)}`);

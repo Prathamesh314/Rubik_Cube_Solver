@@ -8,7 +8,6 @@ export interface Room {
     gameState: any;
     variant: CubeCategories;
     createdAt: number;
-    scrambledCube?: Array<number>;
 }
 
 export class RoomState {
