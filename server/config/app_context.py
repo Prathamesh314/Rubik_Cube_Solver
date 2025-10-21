@@ -3,10 +3,7 @@ from db.mongo import MongoDb
 
 class AppContext:
     _instance = None
-
-    def __init__(self) -> None:
-        # You may add init logic here, but beware it will be called every instantiation
-        self.mongo_db: MongoDb = None
+    mongo_db: MongoDb = None
 
     @staticmethod
     def get_instance():
