@@ -18,13 +18,15 @@
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "cookie": "^1.0.2",
+    "dotenv": "^17.2.3",
     "jsonwebtoken": "^9.0.2",
     "next": "15.4.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "redis": "^5.8.3",
     "three": "^0.180.0",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

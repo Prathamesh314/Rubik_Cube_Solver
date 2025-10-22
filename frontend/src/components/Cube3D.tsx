@@ -1,40 +1,124 @@
 // components/Cube3D.tsx
-// A self-contained, production-ready Rubik's Cube renderer in React + TypeScript using Three.js.
-// - 3D cube of 27 cubelets
-// - Smooth animated face rotations (500ms)
-// - Keybindings similar to your Python demo:
-//     Clockwise:  a s d w q e  => LEFT, BOTTOM, RIGHT, TOP, FACE, BACK
-//     Anti (CCW): p o i l k j  => LEFT, BOTTOM, RIGHT, TOP, FACE, BACK (counter)
-// - "Next Move" demo button to step through a scripted move list.
-// - Exposes imperative API via ref: scramble(moves), applyMoves(moves), reset()
-// - Can accept a room-synchronized scramble string and keep both players in sync.
-//
-// Install: npm i three
-// Usage:
-//   <Cube3D
-//     scrambleMoves={serverScrambleMoves} // e.g. ["R", "U", "R'", ...] or ['w','d','...']
-//     onReady={(api) => { api.applyMoves(serverScrambleMoves); }}
-//   />
+"use client";
 
 import React, { useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
-// ------------------------------
-// Types & Helpers
-// ------------------------------
+/* =============================================================================
+   Shared Cube Model + Scramble Helpers (merged from src/game/cube.ts)
+============================================================================= */
 
-export type Move =
-  | "LEFT" | "RIGHT" | "TOP" | "BOTTOM" | "FACE" | "BACK"
-  | "LEFT'" | "RIGHT'" | "TOP'" | "BOTTOM'" | "FACE'" | "BACK'";
+export type ColorName = "White" | "Red" | "Yellow" | "Orange" | "Green" | "Blue";
 
+// Match your Python color codes
+export const COLORS: Record<ColorName, number> = {
+  White: 4,
+  Red: 6,
+  Yellow: 2,
+  Orange: 5,
+  Green: 3,
+  Blue: 1,
+};
+
+// Face indices in the same order as Python: ["Back","Top","Face","Bottom","Left","Right"]
+export const DIRS = { Back: 0, Top: 1, Face: 2, Bottom: 3, Left: 4, Right: 5 } as const;
+export type DirName = keyof typeof DIRS;
+
+export const OPPOSITE_COLOR: Record<ColorName, ColorName> = {
+  White: "Yellow",
+  Yellow: "White",
+  Red: "Orange",
+  Orange: "Red",
+  Green: "Blue",
+  Blue: "Green",
+};
+
+export const ORDERS: DirName[] = ["Back", "Top", "Face", "Bottom", "Left", "Right"];
+
+export type Face = number[][];           // 3x3
+export type CubeState = [Face, Face, Face, Face, Face, Face]; // Back,Top,Face,Bottom,Left,Right
+
+export function newSolvedCube(): CubeState {
+  const FACE_COLOR: Record<DirName, number> = {
+    Back: COLORS.Blue,
+    Top: COLORS.White,
+    Face: COLORS.Green,
+    Bottom: COLORS.Yellow,
+    Left: COLORS.Orange,
+    Right: COLORS.Red,
+  };
+
+  const mkFace = (c: number): Face => [[c, c, c],[c, c, c],[c, c, c]];
+  return [
+    mkFace(FACE_COLOR.Back),
+    mkFace(FACE_COLOR.Top),
+    mkFace(FACE_COLOR.Face),
+    mkFace(FACE_COLOR.Bottom),
+    mkFace(FACE_COLOR.Left),
+    mkFace(FACE_COLOR.Right),
+  ];
+}
+
+// --- Moves & scramble (shared with client) -----------------------------------
+
+export type MoveBase = "LEFT" | "RIGHT" | "TOP" | "BOTTOM" | "FACE" | "BACK";
+export type Move = MoveBase | `${MoveBase}'`;
 export type KeyMove = "a"|"s"|"d"|"w"|"q"|"e"|"p"|"o"|"i"|"l"|"k"|"j";
 
+export const ALL_BASE_MOVES: MoveBase[] = ["LEFT","RIGHT","TOP","BOTTOM","FACE","BACK"];
+
+const OPP_FACE: Record<MoveBase, MoveBase> = {
+  LEFT: "RIGHT",
+  RIGHT: "LEFT",
+  TOP: "BOTTOM",
+  BOTTOM: "TOP",
+  FACE: "BACK",
+  BACK: "FACE",
+};
+
+export function inverse(m: Move): Move {
+  return m.endsWith("'") ? (m.slice(0, -1) as MoveBase) : (`${m}'` as Move);
+}
+export function baseOf(m: Move): MoveBase {
+  return (m.endsWith("'") ? m.slice(0, -1) : m) as MoveBase;
+}
+
+/** Generate a legal scramble move list. */
+export function generateScrambledMoves(length = 20): Move[] {
+  const moves: Move[] = [];
+  const variants: Move[] = ALL_BASE_MOVES.flatMap(m => [m, `${m}'` as Move]);
+
+  while (moves.length < length) {
+    const cand = variants[Math.floor(Math.random() * variants.length)];
+    const last = moves[moves.length - 1];
+    const prev = moves[moves.length - 2];
+
+    // no same-face twice or immediate inverse
+    if (last && (baseOf(cand) === baseOf(last) || cand === inverse(last))) continue;
+    // optional: prevent A -> opposite(A) -> A pattern
+    if (prev && baseOf(prev) === baseOf(cand) && baseOf(last) === OPP_FACE[baseOf(cand)]) continue;
+
+    moves.push(cand);
+  }
+  return moves;
+}
+
+/** Returns a simple payload you can attach to a room and broadcast to both players. */
+export function generateScrambledCube(length = 20): { moves: Move[] } {
+  return { moves: generateScrambledMoves(length) };
+}
+
+/* =============================================================================
+   3D Renderer (React + Three.js)
+============================================================================= */
+
+// keybindings (like your Python demo)
 const keyToMove: Record<KeyMove, Move> = {
   a: "LEFT", s: "BOTTOM", d: "RIGHT", w: "TOP", q: "FACE", e: "BACK",
   p: "LEFT'", o: "BOTTOM'", i: "RIGHT'", l: "TOP'", k: "FACE'", j: "BACK'",
 };
 
-const FACE_AXIS: Record<Exclude<Move, `${string}'`>, THREE.Vector3> = {
+const FACE_AXIS: Record<MoveBase, THREE.Vector3> = {
   LEFT:   new THREE.Vector3(1,0,0),
   RIGHT:  new THREE.Vector3(1,0,0),
   TOP:    new THREE.Vector3(0,1,0),
@@ -43,8 +127,8 @@ const FACE_AXIS: Record<Exclude<Move, `${string}'`>, THREE.Vector3> = {
   BACK:   new THREE.Vector3(0,0,1),
 };
 
-// For selecting which cubelets belong to a face:
-const FACE_SELECTOR: Record<Exclude<Move, `${string}'`>, (pos: THREE.Vector3) => boolean> = {
+// select cubelets belonging to a face
+const FACE_SELECTOR: Record<MoveBase, (pos: THREE.Vector3) => boolean> = {
   LEFT:   (p) => p.x < -0.5,
   RIGHT:  (p) => p.x >  0.5,
   TOP:    (p) => p.y >  0.5,
@@ -53,37 +137,30 @@ const FACE_SELECTOR: Record<Exclude<Move, `${string}'`>, (pos: THREE.Vector3) =>
   BACK:   (p) => p.z >  0.5,
 };
 
-function baseMove(move: Move): Exclude<Move, `${string}'`> {
-  return move.replace("'", "") as any;
-}
-
 function dirSign(move: Move): 1 | -1 {
   return move.endsWith("'") ? -1 : 1;
 }
 
-// ------------------------------
-// Imperative API
-// ------------------------------
+// ---------- Imperative API ----------
 export type CubeAPI = {
   reset: () => void;
-  applyMove: (move: Move, animate?: boolean) => Promise<void>;
+  applyMove: (move: Move | KeyMove, animate?: boolean) => Promise<void>;
   applyMoves: (moves: (Move|KeyMove)[], animate?: boolean) => Promise<void>;
   scramble: (moves: (Move|KeyMove)[]) => Promise<void>;
+  /** Generate & (optionally) apply a scramble locally */
+  generateScrambledCube: (length?: number, apply?: boolean) => Promise<Move[]>;
 };
 
 export type Cube3DProps = {
   width?: number;
   height?: number;
-  animationMs?: number; // default 500ms
-  scrambleMoves?: (Move|KeyMove)[]; // if provided, applied on mount
+  animationMs?: number;            // default 500
+  scrambleMoves?: (Move|KeyMove)[]; // moves from server (keeps players in sync)
   onReady?: (api: CubeAPI) => void;
-  showNextMoveButton?: boolean; // demo button like your Python script
+  showNextMoveButton?: boolean;
   demoMoves?: (Move|KeyMove)[];
 };
 
-// ------------------------------
-// Component
-// ------------------------------
 const Cube3D = React.forwardRef<CubeAPI, Cube3DProps>(function Cube3D(
   { width=800, height=600, animationMs=500, scrambleMoves, onReady, showNextMoveButton=true, demoMoves },
   ref
@@ -96,20 +173,17 @@ const Cube3D = React.forwardRef<CubeAPI, Cube3DProps>(function Cube3D(
   const pivotRef = useRef<THREE.Object3D>(new THREE.Object3D());
   const animatingRef = useRef(false);
 
-  // Demo move cursor
   const [demoIndex, setDemoIndex] = useState(0);
 
-  // Materials per face color (classic scheme; adjust as desired)
+  // materials per face (classic)
   const materials = useMemo(() => {
-    const white  = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Up
-    const yellow = new THREE.MeshBasicMaterial({ color: 0xffd500 }); // Down
+    const white  = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Top
+    const yellow = new THREE.MeshBasicMaterial({ color: 0xffd500 }); // Bottom
     const red    = new THREE.MeshBasicMaterial({ color: 0xff0000 }); // Right
     const orange = new THREE.MeshBasicMaterial({ color: 0xff8c00 }); // Left
     const blue   = new THREE.MeshBasicMaterial({ color: 0x0051ba }); // Back
     const green  = new THREE.MeshBasicMaterial({ color: 0x009e60 }); // Front
-
-    // Cubelet material order in THREE.BoxGeometry is [px, nx, py, ny, pz, nz]
-    // Map to: Right(px)=red, Left(nx)=orange, Top(py)=white, Bottom(ny)=yellow, Front(pz)=green, Back(nz)=blue
+    // THREE.BoxGeometry index order: [px, nx, py, ny, pz, nz]
     return [red, orange, white, yellow, green, blue];
   }, []);
 
@@ -126,7 +200,7 @@ const Cube3D = React.forwardRef<CubeAPI, Cube3DProps>(function Cube3D(
 
     // Scene & Camera
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0f172a); // slate-900 vibes
+    scene.background = new THREE.Color(0x0f172a);
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
@@ -150,8 +224,6 @@ const Cube3D = React.forwardRef<CubeAPI, Cube3DProps>(function Cube3D(
         for (let z = -1; z <= 1; z++) {
           const mesh = new THREE.Mesh(geom, materials);
           mesh.position.set(x, y, z);
-          mesh.castShadow = false;
-          mesh.receiveShadow = false;
           cubelets.push(mesh);
           scene.add(mesh);
         }
@@ -164,7 +236,7 @@ const Cube3D = React.forwardRef<CubeAPI, Cube3DProps>(function Cube3D(
     pivotRef.current = new THREE.Object3D();
     scene.add(pivotRef.current);
 
-    // Controls (basic drag rotation)
+    // Simple drag to spin scene
     let isDragging = false;
     let prevX = 0, prevY = 0;
     const onDown = (e: MouseEvent) => { isDragging = true; prevX = e.clientX; prevY = e.clientY; };
@@ -204,14 +276,14 @@ const Cube3D = React.forwardRef<CubeAPI, Cube3DProps>(function Cube3D(
   // Face rotation animation
   const rotateFace = async (move: Move, duration = animationMs): Promise<void> => {
     if (!sceneRef.current || !rendererRef.current) return;
-    if (animatingRef.current) return; // drop if busy; you can queue if desired
+    if (animatingRef.current) return; // drop if busy; (you can queue)
     animatingRef.current = true;
 
-    const m = baseMove(move);
+    const m = baseOf(move);
     const axis = FACE_AXIS[m].clone();
     const sign = dirSign(move);
 
-    // Select cubelets on this face (using world positions rounded to mitigate float drift)
+    // Select the face cubelets
     const selected = cubeletsRef.current.filter((c) => {
       const wp = c.getWorldPosition(new THREE.Vector3());
       const rp = new THREE.Vector3(Math.round(wp.x), Math.round(wp.y), Math.round(wp.z));
@@ -223,7 +295,6 @@ const Cube3D = React.forwardRef<CubeAPI, Cube3DProps>(function Cube3D(
     pivot.position.set(0,0,0);
     pivot.rotation.set(0,0,0);
     selected.forEach((c) => {
-      // store world transform then reparent
       const wp = c.getWorldPosition(new THREE.Vector3());
       const wr = c.getWorldQuaternion(new THREE.Quaternion());
       pivot.add(c);
@@ -231,14 +302,14 @@ const Cube3D = React.forwardRef<CubeAPI, Cube3DProps>(function Cube3D(
       c.quaternion.copy(wr);
     });
 
-    // Animate pivot rotation
+    // Animate 90°
     const start = performance.now();
-    const endRot = (Math.PI / 2) * sign; // 90 degrees CW/CCW
+    const endRot = (Math.PI / 2) * sign;
 
     await new Promise<void>((resolve) => {
       const step = (now: number) => {
         const t = Math.min(1, (now - start) / duration);
-        const eased = 0.5 - 0.5 * Math.cos(Math.PI * t); // cosine ease-in-out
+        const eased = 0.5 - 0.5 * Math.cos(Math.PI * t);
         pivot.setRotationFromAxisAngle(axis, endRot * eased);
         rendererRef.current!.render(sceneRef.current!, cameraRef.current!);
         if (t < 1) requestAnimationFrame(step); else resolve();
@@ -246,22 +317,21 @@ const Cube3D = React.forwardRef<CubeAPI, Cube3DProps>(function Cube3D(
       requestAnimationFrame(step);
     });
 
-    // Detach cubelets back to scene and snap to nearest right angle to avoid drift
+    // Detach back to scene & snap to grid to avoid drift
     selected.forEach((c) => {
       const wp = c.getWorldPosition(new THREE.Vector3());
       const wr = c.getWorldQuaternion(new THREE.Quaternion());
       sceneRef.current!.add(c);
       c.position.copy(wp.round());
       c.quaternion.copy(wr);
-      // Snap rotation to nearest 90° around principal axes
       const e = new THREE.Euler().setFromQuaternion(c.quaternion);
-      e.x = Math.round(e.x / (Math.PI / 2)) * (Math.PI / 2);
-      e.y = Math.round(e.y / (Math.PI / 2)) * (Math.PI / 2);
-      e.z = Math.round(e.z / (Math.PI / 2)) * (Math.PI / 2);
+      const s = Math.PI / 2;
+      e.x = Math.round(e.x / s) * s;
+      e.y = Math.round(e.y / s) * s;
+      e.z = Math.round(e.z / s) * s;
       c.setRotationFromEuler(e);
     });
 
-    // Reset pivot
     pivot.rotation.set(0,0,0);
     animatingRef.current = false;
   };
@@ -276,19 +346,25 @@ const Cube3D = React.forwardRef<CubeAPI, Cube3DProps>(function Cube3D(
     },
     async applyMove(move: Move | KeyMove, animate = true) {
       const norm = (keyToMove as any)[move] ?? move;
-      if (animate) await rotateFace(norm as Move); else await rotateFace(norm as Move, 0);
+      await rotateFace(norm as Move, animate ? animationMs : 0);
     },
     async applyMoves(moves: (Move|KeyMove)[], animate = true) {
       for (const m of moves) {
-        await (this as any).applyMove(m, animate);
+        const norm = (keyToMove as any)[m] ?? m;
+        await rotateFace(norm as Move, animate ? animationMs : 0);
       }
     },
     async scramble(moves: (Move|KeyMove)[]) {
-      await (this as any).applyMoves(moves, true);
+      await (this as CubeAPI).applyMoves(moves, true);
+    },
+    async generateScrambledCube(length = 20, apply = true) {
+      const moves = generateScrambledMoves(length);
+      if (apply) await (this as CubeAPI).applyMoves(moves, true);
+      return moves;
     },
   }), [animationMs]);
 
-  // Keybindings (like your Python example)
+  // Keybindings
   useEffect(() => {
     const onKey = async (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
@@ -301,44 +377,35 @@ const Cube3D = React.forwardRef<CubeAPI, Cube3DProps>(function Cube3D(
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Apply scramble passed from props (once on mount/prop change)
+  // Apply scramble from props (once per change)
   useEffect(() => {
     if (!scrambleMoves?.length) return;
     let cancelled = false;
     (async () => {
       for (const m of scrambleMoves) {
         if (cancelled) return;
-        await rotateFace(((keyToMove as any)[m] ?? m) as Move);
+        const norm = (keyToMove as any)[m] ?? m;
+        await rotateFace(norm as Move);
       }
     })();
     return () => { cancelled = true; };
   }, [scrambleMoves]);
 
-  // Demo button (like "Next Move")
+  // Demo button sequence (optional)
   const demoSeq = demoMoves ?? ["e","p","w","i","w","d","d","w"];
   const playNext = async () => {
     const m = demoSeq[demoIndex % demoSeq.length] as Move | KeyMove;
     setDemoIndex((i) => i + 1);
-    await (refApi.current?.applyMove || rotateFace)((keyToMove as any)[m] ?? (m as any));
+    const norm = (keyToMove as any)[m] ?? m;
+    await rotateFace(norm as Move);
   };
-
-  // small hack to use API inside playNext without circular ref
-  const refApi = useRef<CubeAPI | null>(null);
-  useEffect(() => {
-    const api: CubeAPI = {
-      reset: () => {},
-      applyMove: async (m) => { await rotateFace(((keyToMove as any)[m] ?? m) as Move); },
-      applyMoves: async (moves) => { for (const mv of moves) await rotateFace(((keyToMove as any)[mv] ?? mv) as Move); },
-      scramble: async (moves) => { for (const mv of moves) await rotateFace(((keyToMove as any)[mv] ?? mv) as Move); },
-    };
-    refApi.current = api;
-    onReady?.(api);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <div className="w-full flex flex-col items-center gap-4">
-      <div ref={mountRef} style={{ width, height, borderRadius: 16, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.35)" }} />
+      <div
+        ref={mountRef}
+        style={{ width, height, borderRadius: 16, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.35)" }}
+      />
       {showNextMoveButton && (
         <button
           onClick={playNext}
@@ -354,23 +421,15 @@ const Cube3D = React.forwardRef<CubeAPI, Cube3DProps>(function Cube3D(
 
 export default Cube3D;
 
-// ------------------------------
-// Example usage (e.g., inside your room page)
-// ------------------------------
-// import Cube3D, { CubeAPI } from "@/components/Cube3D";
-//
-// export default function RoomCubeDemo() {
-//   const apiRef = React.useRef<CubeAPI | null>(null);
-//
-//   return (
-//     <div className="p-6">
-//       <Cube3D
-//         width={720}
-//         height={520}
-//         animationMs={500}
-//         scrambleMoves={["R","U","R'","U'"]} // or server-provided sequence
-//         onReady={(api) => { apiRef.current = api; }}
-//       />
-//     </div>
-//   );
-// }
+/* =============================================================================
+   Example usage:
+
+   // import Cube3D, { CubeAPI, generateScrambledCube } from "@/components/Cube3D";
+   //
+   // const apiRef = useRef<CubeAPI | null>(null);
+   // <Cube3D onReady={(api) => {
+   //   apiRef.current = api;
+   //   const { moves } = generateScrambledCube(20);
+   //   api.applyMoves(moves);    // same moves you also send to the other player via WS
+   // }} />
+============================================================================= */

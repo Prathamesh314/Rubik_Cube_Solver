@@ -2,8 +2,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Player } from "@/modals/player";
-
-/* ================= Icons ================= */
+import { Env } from "@/lib/env_config";
+import { GameEvents, GameEventTypes } from "@/services/websocket";
+import { Game } from "@/services/game";
+import { Room } from "@/modals/room";
+import { generateScrambledMoves } from "@/components/Cube3D";
 
 const UserIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 20 20" fill="currentColor">
@@ -36,19 +39,17 @@ const CopyIcon = ({ className = "w-5 h-5" }) => (
   </svg>
 );
 
-/* ================= Types ================= */
-
 type RoomPlayer = { username: string; rating: number };
 type RoomData = {
   id: string;
-  players: RoomPlayer[];           // [p1, p2?]
-  maxPlayers: number;              // 2
+  players: RoomPlayer[]; 
+  maxPlayers: number;
   gameState: any;
-  variant: string;                 // "3x3 cube" | "4x4 cube"
+  variant: string;
   createdAt: number;
 };
 
-/* ================= Page ================= */
+const WS_URL = Env.NEXT_PUBLIC_WEBSOCKET_URL
 
 export default function RoomPage() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -59,8 +60,14 @@ export default function RoomPage() {
   const [isCopied, setIsCopied] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  const [room, setRoom] = useState<Room>();
+
   const [player_a, setPlayerA] = useState<Player>();
   const [player_b, setPlayerB] = useState<Player>();
+  const [connectWs, setConnectWs] = useState<boolean>(false);
+  const [isGameStarted, SetIsGameStarted] = useState<number>(0);
+
+  const wsRef = useRef<WebSocket | null>(null);
 
   const pollTimerRef = useRef<number | null>(null);
   const visibleRef = useRef<boolean>(true);
@@ -93,14 +100,40 @@ export default function RoomPage() {
           console.log("We have 2 players");
           setPlayerA(data.players[0] as Player);
           setPlayerB(data.players[1] as Player);
-        } else {
+          setConnectWs(true);
+          const r = await (await Game.getInstance()).getRoom(roomId);
+          setRoom(r);
+          if (isGameStarted == 0) {
+            SetIsGameStarted(1);
+          }
+        } else if (data.players.length >= 3) {
           console.error("Cannot start the game...")
+          return
         }
         
-        // NOTE: The data.players array from the API route will only contain IDs 
-        // unless your API route fetches the full player data. 
-        // You'll need to adjust your API/client code to handle this data structure correctly.
-        setRoomData(data); // Set the fetched plain object data
+        setRoomData(data);
+
+        if(connectWs) {
+          const ws = new WebSocket(WS_URL);
+          wsRef.current = ws;
+
+          if (isGameStarted == 1){
+            SetIsGameStarted(2);
+            const msg: GameEvents = {
+              type: GameEventTypes.GameStarted,
+              value: {
+                base_values: {
+                  room: room,
+                  participants: [player_a, player_b],
+                },
+                start_time: new Date().toISOString(),
+                scrambled_cube: generateScrambledMoves(20)
+              }
+            }
+            
+            ws.send(JSON.stringify(msg));
+          }
+        }
 
       } catch (error: any) {
         if (mounted) {

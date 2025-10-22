@@ -11,6 +11,15 @@ export enum CubeCategories {
     FourCube = "4x4 cube"
 }
 
+export const THREE_SIDE_CUBE_MOVES = [
+  // Single face turns (clockwise)
+  "U", "D", "L", "R", "F", "B",
+  // Single face turns (counter-clockwise)
+  "U'", "D'", "L'", "R'", "F'", "B'",
+  // Single face turns (180 degrees)
+  "U2", "D2", "L2", "R2", "F2", "B2"
+];
+
 export class SpeedCollection {
     cube_category: CubeCategories;
     top_speed: number;
