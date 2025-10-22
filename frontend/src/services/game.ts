@@ -44,6 +44,9 @@ class Game {
     return await this.redis.get_room(room_id)
   }
 
+  async update_scrambled_cube(player_id: string, cube: any) {
+  }
+
 }
 
 export { Game };

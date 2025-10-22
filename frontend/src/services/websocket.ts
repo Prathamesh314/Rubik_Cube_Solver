@@ -5,6 +5,7 @@ import { WEBSOCKET_PORT, NEXT_PUBLIC_WEBSOCKET_URL } from '@/lib/env_config';
 import { Room } from '@/modals/room';
 import { Player, THREE_SIDE_CUBE_MOVES } from '@/modals/player';
 import { generateScrambledMoves, Move } from "@/components/Cube3D";
+import { Game } from './game';
 
 const websocket_port = WEBSOCKET_PORT ?? 8002;
 const websocket_url = NEXT_PUBLIC_WEBSOCKET_URL ?? "localhost:8002";
@@ -60,7 +61,6 @@ wss.on('connection', (ws) => {
     try {
       // Parse the incoming message (it comes as Buffer/string)
       const message: GameEvents = JSON.parse(rawMessage.toString());
-      
       console.log('Received message:', message);
       let currentPlayerId: string | undefined;
       let currentRoomId: string | undefined;
@@ -91,6 +91,9 @@ wss.on('connection', (ws) => {
           message.value.base_values.participants.forEach(player => {
             if (player?.player_id) {
               roomData!.players.set(player.player_id, ws as any);
+              Game.getInstance().then((game) => {
+                // You can use 'game' here if needed
+              });
             }
           });
 

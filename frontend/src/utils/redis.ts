@@ -1,6 +1,7 @@
 import { Player, CubeCategories, PlayerState } from '@/modals/player';
 import { createClient, RedisClientType } from 'redis';
 import { Room } from '@/modals/room';
+import { Move } from '@/components/Cube3D';
 
 const REDIS_URL = process.env.REDIS_URL as string;
 const REDIS_PORT = process.env.REDIS_PORT as string;
@@ -163,6 +164,17 @@ export class Redis {
     async has_players(): Promise<boolean> {
         const res = await this.redis_client?.hLen(PLAYERS_HASH_KEY)
         return  (res !== undefined && res > 0)
+    }
+
+    async update_player_cube(player_id: string, cube: Move[]) {
+        const player = await this.get_player(player_id)
+        if (player) {
+            player.scrambledCube = cube;
+            await this.upsert_player(player_id, player);
+            return
+        } else {
+            throw Error("Cannot find player. I donot know how we ran into this error!!")
+        }
     }
 
     /**
