@@ -1,34 +1,27 @@
-// "use client"
-// import Cube3D, { CubeAPI, Move, KeyMove } from '@/components/Cube3D'
-// import React, { useRef } from 'react'
+"use client";
 
-// const page = () => {
-//   const apiRef = useRef<CubeAPI | null>(null)
-//   // Use valid Move/KeyMove types. Valid moves: "LEFT" | "RIGHT" | "TOP" | "BOTTOM" | "FACE" | "BACK" | and their primes or keys a/s/...
-//   // Equivalent scramble to ["R","U","R'","U'"] is ["RIGHT", "TOP", "RIGHT'", "TOP'"]
-//   const scramble: (Move | KeyMove)[] = ["RIGHT", "TOP", "RIGHT'", "TOP'"]
+import RubiksCubeAdvanced from "@/components/RubikCube3d";
 
-//   return (
-//     <div>
-//       <Cube3D
-//         width={720}
-//         height={520}
-//         animationMs={500}
-//         scrambleMoves={scramble} // or server-provided sequence
-//         onReady={(api) => { apiRef.current = api; }}
-//       />
-//     </div>
-//   )
-// }
+export default function Page() {
+  const orders = ["Back", "Top", "Front", "Bottom", "Left", "Right"];
+  const scrambledCube = [
+    [
+      [6, 2, 3],
+      [2, 5, 6],
+      [4, 3, 6],
+    ],
+    [[5, 2, 4], [2, 1, 3], [4, 5, 2]],
+    [[1, 4, 5], [1, 6, 3], [2, 6, 3]],
+    [[5, 1, 6], [1, 3, 5], [1, 1, 6]],
+    [[3, 5, 5], [6, 2, 5], [2, 4, 1]],
+    [[3, 4, 1], [6, 4, 4], [2, 3, 4]],
+  ];
 
-// export default page
-
-import React from 'react'
-
-const page = () => {
   return (
-    <div>Bye bye....</div>
-  )
+    <RubiksCubeAdvanced 
+      scrambledCube={scrambledCube} 
+      orders={orders}
+      colorMapping={["#fff", "#ff0", "#f00", "#ffa500", "#00f", "#0f0"]}
+    />
+  );
 }
-
-export default page
