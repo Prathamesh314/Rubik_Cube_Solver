@@ -1,2 +1,0 @@
-class MongoDb:
-    pass
