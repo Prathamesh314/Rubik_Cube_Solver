@@ -123,6 +123,11 @@ export class Redis {
         return inserted === 1;
     }
 
+    async upsert_player(player_id: string, player: Player){
+        const value = JSON.stringify(Player.toPlain(player));
+        await this.redis_client?.hSet(PLAYERS_HASH_KEY, player_id, value);
+    }
+
     async get_player(player_id: string): Promise<Player | null> {
         this.ensureConnection();
         const raw = await this.redis_client!.hGet(PLAYERS_HASH_KEY, player_id);
@@ -234,8 +239,15 @@ export class Redis {
             }
             const room: Room = await this.get_room(roomID);
             room.players.push(player.player_id);
+
             await this.upsert_room(roomID, room)
             await this.insert_player(player);
+
+            player.player_state = PlayerState.Playing
+            opponent_player.player_state = PlayerState.Playing
+            await this.upsert_player(player.player_id, player);
+            await this.upsert_player(opponent_player.player_id, opponent_player)
+            
             await this.set_player_room(player.player_id, roomId)
             // delete the player from the cache and also room as well
             // await this.delete_player(opponent_player.player_id);

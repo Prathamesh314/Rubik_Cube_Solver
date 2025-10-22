@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { Player } from "@/modals/player";
 
 /* ================= Icons ================= */
 
@@ -58,6 +59,9 @@ export default function RoomPage() {
   const [isCopied, setIsCopied] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  const [player_a, setPlayerA] = useState<Player>();
+  const [player_b, setPlayerB] = useState<Player>();
+
   const pollTimerRef = useRef<number | null>(null);
   const visibleRef = useRef<boolean>(true);
 
@@ -86,7 +90,9 @@ export default function RoomPage() {
         if(data?.players.length == 1) {
           console.log("We only have one player");
         }else if(data?.players.length == 2) {
-          console.log("We have 2 players")
+          console.log("We have 2 players");
+          setPlayerA(data.players[0] as Player);
+          setPlayerB(data.players[1] as Player);
         } else {
           console.error("Cannot start the game...")
         }
@@ -147,9 +153,6 @@ export default function RoomPage() {
     );
   }
 
-  const player1 = roomData?.players?.[0] ?? { username: "Player One", rating: 1580 };
-  const player2 = roomData?.players?.[1] ?? null;
-
   return (
     <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4 md:p-8 font-sans">
       {/* Top block: title + room id + copy */}
@@ -206,8 +209,8 @@ export default function RoomPage() {
               <div className="bg-slate-700 rounded-full p-4 mb-4">
                 <UserIcon className="w-12 h-12 text-blue-400" />
               </div>
-              <h2 className="text-2xl font-bold">{player1.username}</h2>
-              <p className="text-yellow-400 font-semibold">Rating: {player1.rating}</p>
+              <h2 className="text-2xl font-bold">{player_a?.username}</h2>
+              <p className="text-yellow-400 font-semibold">Rating: {player_a?.rating}</p>
             </div>
           </div>
 
@@ -218,13 +221,13 @@ export default function RoomPage() {
 
           {/* Player 2 */}
           <div className="md:col-span-2 bg-slate-800/50 border border-slate-700 rounded-lg shadow-xl p-6 text-center">
-            {player2 ? (
+            {player_b ? (
               <div className="flex flex-col items-center">
                 <div className="bg-slate-700 rounded-full p-4 mb-4">
                   <UserIcon className="w-12 h-12 text-red-400" />
                 </div>
-                <h2 className="text-2xl font-bold">{player2.username}</h2>
-                <p className="text-yellow-400 font-semibold">Rating: {player2.rating}</p>
+                <h2 className="text-2xl font-bold">{player_b?.username}</h2>
+                <p className="text-yellow-400 font-semibold">Rating: {player_b?.rating}</p>
               </div>
             ) : (
               <div className="flex flex-col items-center text-slate-500">

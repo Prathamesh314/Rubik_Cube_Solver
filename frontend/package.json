@@ -7,9 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "ws:dev": "tsx watch src/services/websocket.ts",
+    "ws:build": "tsc",
+    "ws:start": "node dist/src/servces/websocket.js",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:ws": "jest src/services/websocket.test.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -19,7 +23,8 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "redis": "^5.8.3",
-    "three": "^0.180.0"
+    "three": "^0.180.0",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -33,11 +38,14 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/three": "^0.180.0",
+    "@types/ws": "^8.18.1",
     "eslint": "^9",
     "eslint-config-next": "15.4.4",
     "jest": "^30.2.0",
     "tailwindcss": "^4",
     "ts-jest": "^29.4.5",
+    "ts-node-dev": "^2.0.0",
+    "tsx": "^4.20.6",
     "typescript": "^5"
   }
 }

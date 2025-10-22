@@ -35,7 +35,7 @@ class Game {
    * - If opponent exists -> { queued:false, room }
    * - If no opponent -> { queued:true, player_id }
    */
-  async startGame(player: Player, roomId: string, variant: CubeCategories): Promise<{queued: true | false, room: Room}> {
+  async findPlayer(player: Player, roomId: string, variant: CubeCategories): Promise<{queued: true | false, room: Room}> {
     if (!this._initialized) await this.initialize();
     return this.redis.tryMatchOrEnqueue(player, roomId, variant);
   }

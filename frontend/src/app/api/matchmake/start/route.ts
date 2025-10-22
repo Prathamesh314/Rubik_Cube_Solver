@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     const game = await Game.getInstance();
 
     const room_id = randomUUID();
-    const res = await game.startGame(playerInstance, room_id, variant); // Use the instance
+    const res = await game.findPlayer(playerInstance, room_id, variant); // Use the instance
     return NextResponse.json(res, { status: 200 });
   } catch (e: any) {
     console.log(`Error in start route /api/matchmake/start: ${e.toString()}`)
