@@ -6,7 +6,7 @@ import { Env } from "@/lib/env_config";
 import { GameEvents, GameEventTypes } from "@/services/websocket";
 import { Game } from "@/services/game";
 import { Room } from "@/modals/room";
-import { generateScrambledMoves } from "@/components/Cube3D";
+import {generateScrambledCube} from "@/components/cube"
 
 const UserIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 20 20" fill="currentColor">
@@ -119,6 +119,7 @@ export default function RoomPage() {
 
           if (isGameStarted == 1){
             SetIsGameStarted(2);
+            const { moves, state } = generateScrambledCube(20);
             const msg: GameEvents = {
               type: GameEventTypes.GameStarted,
               value: {
@@ -127,7 +128,7 @@ export default function RoomPage() {
                   participants: [player_a, player_b],
                 },
                 start_time: new Date().toISOString(),
-                scrambled_cube: generateScrambledMoves(20)
+                scrambled_cube: state
               }
             }
             
