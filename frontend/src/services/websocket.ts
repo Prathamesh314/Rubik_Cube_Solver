@@ -4,7 +4,6 @@ import http from 'http';
 import { WEBSOCKET_PORT, NEXT_PUBLIC_WEBSOCKET_URL } from '@/lib/env_config';
 import { Room } from '@/modals/room';
 import { Player, THREE_SIDE_CUBE_MOVES } from '@/modals/player';
-import { generateScrambledMoves, Move } from "@/components/Cube3D";
 import { Game } from './game';
 
 const websocket_port = WEBSOCKET_PORT ?? 8002;
@@ -26,7 +25,7 @@ export interface BaseMessageValues {
 
 export interface GameStartEventMessageValues{
   base_values: BaseMessageValues
-  scrambled_cube: Move[]
+  scrambled_cube: number[][][]
   start_time: string
 }
 
@@ -48,7 +47,7 @@ export type GameEvents =
 // Store active rooms and their connections
 interface RoomConnections {
   players: Map<string, WebSocket>;  // player_id -> WebSocket
-  scrambledMoves?: Move[];
+  scrambledMoves?: number[][][];
   startTime?: string;
 }
 
@@ -81,7 +80,7 @@ wss.on('connection', (ws) => {
           if (!roomData) {
             roomData = {
               players: new Map(),
-              scrambledMoves: message.value.scrambled_cube ?? generateScrambledMoves(20),
+              scrambledMoves: message.value.scrambled_cube ?? [[[]]],
               startTime: message.value.start_time ?? new Date().toISOString(),
             };
             rooms.set(roomId, roomData);

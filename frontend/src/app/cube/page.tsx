@@ -1,27 +1,52 @@
 "use client";
 
-import RubiksCubeAdvanced from "@/components/RubikCube3d";
+import { useEffect, useRef } from "react";
+import { initRubiksCube } from "@/components/cube";
 
 export default function Page() {
-  const orders = ["Back", "Top", "Front", "Bottom", "Left", "Right"];
-  const scrambledCube = [
-    [
-      [6, 2, 3],
-      [2, 5, 6],
-      [4, 3, 6],
-    ],
-    [[5, 2, 4], [2, 1, 3], [4, 5, 2]],
-    [[1, 4, 5], [1, 6, 3], [2, 6, 3]],
-    [[5, 1, 6], [1, 3, 5], [1, 1, 6]],
-    [[3, 5, 5], [6, 2, 5], [2, 4, 1]],
-    [[3, 4, 1], [6, 4, 4], [2, 3, 4]],
-  ];
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    // Example solved state [U, R, F, D, L, B] with values 1..6
+    const solved: number[][][] = [
+      [ [6,6,6],[6,6,6],[6,6,6] ], // U (white)
+      [ [1,1,1],[1,1,1],[1,1,1] ], // R (red)
+      [ [2,2,2],[2,2,2],[2,2,2] ], // F (green)
+      [ [4,4,4],[4,4,4],[4,4,4] ], // D (yellow)
+      [ [5,5,5],[5,5,5],[5,5,5] ], // L (orange)
+      [ [3,3,3],[3,3,3],[3,3,3] ], // B (blue)
+    ];
+
+    const colorMap = {
+      1: "#C41E3A", // Red
+      2: "#009B48", // Green
+      3: "#0051BA", // Blue
+      4: "#FFD500", // Yellow
+      5: "#FF5800", // Orange
+      6: "#FFFFFF", // White
+    };
+
+    const api = initRubiksCube(containerRef.current, solved, colorMap);
+
+    // Example: programmatic turns after mount
+    // (async () => { await api.turn("U", true); await api.turn("R", false); })();
+
+    return () => api.dispose();
+  }, []);
 
   return (
-    <RubiksCubeAdvanced 
-      scrambledCube={scrambledCube} 
-      orders={orders}
-      colorMapping={["#fff", "#ff0", "#f00", "#ffa500", "#00f", "#0f0"]}
-    />
+    <div className="min-h-[100dvh] flex flex-col">
+      <div className="p-4 text-lg font-semibold">Rubik Cube</div>
+      <div
+        ref={containerRef}
+        style={{ width: "100%", height: "calc(100dvh - 56px)" }}
+      />
+      <div className="p-3 text-sm opacity-75">
+        Controls: Drag to orbit, wheel to zoom. Press U R F D L B for CW. Hold
+        Shift for CCW.
+      </div>
+    </div>
   );
 }
