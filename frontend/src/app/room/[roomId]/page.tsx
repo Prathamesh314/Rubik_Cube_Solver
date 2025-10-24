@@ -1,11 +1,16 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Player } from "@/modals/player";
 import { Env } from "@/lib/env_config";
 import { GameEvents, GameEventTypes } from "@/types/game-events";
 import { Room } from "@/modals/room";
-import {generateScrambledCube} from "@/components/cube"
+import { generateScrambledCube, initRubiksCube } from "@/components/cube";
+
+const WS_URL = Env.NEXT_PUBLIC_WEBSOCKET_URL;
+
+type FocusSide = "self" | "opponent" | null;
 
 const UserIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 20 20" fill="currentColor">
@@ -13,169 +18,285 @@ const UserIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
   </svg>
 );
 
-const ClockIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
+function Badge({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-slate-800/80 px-3 py-1 text-xs font-semibold text-slate-200 ring-1 ring-slate-700">
+      {children}
+    </span>
+  );
+}
 
-const TrophyIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M13 21.945V13H21.945a9.001 9.001 0 00-8.945-8.945z" />
-  </svg>
-);
+function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={() => {
+        navigator.clipboard.writeText(value);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1200);
+      }}
+      className="inline-flex items-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-sm text-slate-200 ring-1 ring-slate-700 hover:bg-slate-700 transition"
+      title="Copy Room ID"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+      </svg>
+      {copied ? "Copied!" : "Copy"}
+    </button>
+  );
+}
 
-const ChartIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-  </svg>
-);
+const colorMap = {
+  1: "#C41E3A", // Red
+  2: "#009B48", // Green
+  3: "#0051BA", // Blue
+  4: "#FFD500", // Yellow
+  5: "#FF5800", // Orange
+  6: "#FFFFFF", // White
+};
 
-const CopyIcon = ({ className = "w-5 h-5" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-  </svg>
-);
+function PlayerHeader({
+  username,
+  rating,
+  accent = "blue",
+  sideLabel,
+}: {
+  username?: string;
+  rating?: number;
+  accent?: "blue" | "rose";
+  sideLabel: "You" | "Opponent";
+}) {
+  const accentColor = accent === "blue" ? "text-blue-400 bg-blue-400/10 ring-blue-500/30" : "text-rose-400 bg-rose-400/10 ring-rose-500/30";
+  return (
+    <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center gap-3">
+        <div className={`rounded-full p-3 ring-1 ${accentColor}`}>
+          <UserIcon className={`w-6 h-6 ${accent === "blue" ? "text-blue-300" : "text-rose-300"}`} />
+        </div>
+        <div className="leading-tight">
+          <div className="text-lg font-bold text-white">{username ?? "—"}</div>
+          <div className="text-xs text-slate-400">Rating • <span className="text-slate-200 font-semibold">{rating ?? "—"}</span></div>
+        </div>
+      </div>
+      <Badge>{sideLabel}</Badge>
+    </div>
+  );
+}
 
-type RoomPlayer = { username: string; rating: number };
+function CubeCanvas({
+  state,
+  interactive,
+  focused,
+  onFocus,
+}: {
+  state: number[][][] | null;
+  interactive: boolean;
+  focused: boolean;
+  onFocus: () => void;
+}) {
+  const shellRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const apiRef = useRef<{ turn: (f: any, cw?: boolean) => void; dispose: () => void } | null>(null);
 
-const WS_URL = Env.NEXT_PUBLIC_WEBSOCKET_URL
+  useEffect(() => {
+    if (!containerRef.current || !state) return;
+
+    apiRef.current?.dispose();
+    apiRef.current = initRubiksCube(containerRef.current, state, colorMap);
+
+    const kick = () => window.dispatchEvent(new Event("resize"));
+    const t1 = requestAnimationFrame(kick);
+    const t2 = setTimeout(kick, 50);
+
+    return () => {
+      cancelAnimationFrame(t1);
+      clearTimeout(t2);
+      apiRef.current?.dispose();
+      apiRef.current = null;
+    };
+  }, [state]);
+
+  useEffect(() => {
+    if (!shellRef.current) return;
+    const ro = new ResizeObserver(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+    ro.observe(shellRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const onKeyDownCapture = (e: KeyboardEvent) => {
+      if (!interactive || !focused) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("keydown", onKeyDownCapture, { capture: true });
+    return () => window.removeEventListener("keydown", onKeyDownCapture, { capture: true });
+  }, [interactive, focused]);
+
+  return (
+    <div
+      ref={shellRef}
+      className={[
+        // ✅ Reduced height and added margin top to position cube higher
+        "relative w-full h-[38vh] md:h-[42vh] lg:h-[46vh] mt-4",
+        "overflow-hidden rounded-2xl ring-1 ring-slate-800/80",
+        "bg-[radial-gradient(1200px_600px_at_50%_-10%,rgba(99,102,241,0.10),rgba(2,6,23,0))]",
+        focused && interactive ? "outline outline-2 outline-indigo-500/60" : "",
+      ].join(" ")}
+      onClick={onFocus}
+    >
+      {interactive && (
+        <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-md bg-black/40 px-2 py-1 text-[10px] uppercase tracking-wide text-slate-200">
+          {focused ? "Keyboard Active" : "Click to Control"}
+        </div>
+      )}
+
+      {/* ✅ Added padding top to the cube container to position it higher */}
+      <div ref={containerRef} className="absolute inset-0 pt-4" />
+
+      {!state && (
+        <div className="absolute inset-0 grid place-items-center text-slate-500 text-sm">
+          Waiting for start state…
+        </div>
+      )}
+
+      {/* ✅ Reduced the height of the bottom gradient since cube is positioned higher */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/40 to-transparent" />
+    </div>
+  );
+}
 
 export default function RoomPage() {
   const { roomId } = useParams<{ roomId: string }>();
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
-  const [roomData, setRoomData] = useState<Room | null>(null);
-  const [isCopied, setIsCopied] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const [room, setRoom] = useState<Room>();
+  const [room, setRoom] = useState<Room | null>(null);
+  const [playerA, setPlayerA] = useState<Player | undefined>();
+  const [playerB, setPlayerB] = useState<Player | undefined>();
 
-  const [player_a, setPlayerA] = useState<Player>();
-  const [player_b, setPlayerB] = useState<Player>();
-  const [connectWs, setConnectWs] = useState<boolean>(false);
-  const [isGameStarted, SetIsGameStarted] = useState<number>(0);
-
+  const [wsReady, setWsReady] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
-  const pollTimerRef = useRef<number | null>(null);
-  const visibleRef = useRef<boolean>(true);
+  const [startState, setStartState] = useState<number[][][] | null>(null);
+  const [focusSide, setFocusSide] = useState<FocusSide>(null);
+
+  const selfPlayerId = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = localStorage.getItem("player");
+      if (!raw) return null;
+      const p = JSON.parse(raw) as Player;
+      return p?.player_id ?? null;
+    } catch {
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
-    const player_str = localStorage.getItem("player")
-    if (player_str == null) {
-      console.error("Cannot start the game because player is null");
-    }
     let mounted = true;
 
     const fetchRoomData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/room/${roomId}`);
-
-        if (!response.ok) {
-          throw new Error(
-            `HTTP error! status: ${response.status} (${
-              (await response.json()).error
-            })`
-          );
+        const res = await fetch(`/api/room/${roomId}`);
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          throw new Error(`HTTP ${res.status}${j?.error ? ` (${j.error})` : ""}`);
         }
+        const data: Room = await res.json();
+        if (!mounted) return;
 
-        const data: Room = await response.json();
-        if(data?.players.length == 1) {
-          console.log("We only have one player");
-        }else if(data?.players.length == 2) {
-          console.log("We have 2 players");
-          setPlayerA(data.players[0] as Player);
-          setPlayerB(data.players[1] as Player);
-          setConnectWs(true);
-          window.location.reload();
-          // const r = await (await Game.getInstance()).getRoom(roomId);
-          setRoom(data);
-          if (isGameStarted == 0) {
-            SetIsGameStarted(1);
+        setRoom(data);
+
+        if (data?.players?.length) {
+          const me = data.players.find((p: any) => p.player_id === selfPlayerId) as Player | undefined;
+          if (me) {
+            setPlayerA(me);
+            const opp = data.players.find((p: any) => p.player_id !== me.player_id) as Player | undefined;
+            setPlayerB(opp);
+          } else {
+            setPlayerA(data.players[0] as Player);
+            setPlayerB(data.players[1] as Player | undefined);
           }
-        } else if (data.players.length >= 3) {
-          console.error("Cannot start the game...")
-          return
         }
-        
-        setRoomData(data);
 
-        if(connectWs) {
-          const ws = new WebSocket(WS_URL);
-          wsRef.current = ws;
-          ws.onopen = () => console.log("WS connected");
-          ws.onmessage = (e) => console.log("WS message:", e.data);
-          ws.onerror = (e) => console.error("WS error:", e);
-          ws.onclose = () => console.log("WS closed");
+        if ((data?.players?.length ?? 0) >= 2) {
+          if (!startState) {
+            const { state, moves } = generateScrambledCube(20);
+            setStartState(state);
 
-          if (isGameStarted == 1){
-            SetIsGameStarted(2);
-            const { moves, state } = generateScrambledCube(20);
-            console.log("Moves: ", moves)
             const msg: GameEvents = {
               type: GameEventTypes.GameStarted,
               value: {
                 base_values: {
-                  room: room,
-                  participants: [player_a, player_b],
+                  room: data,
+                  participants: data.players as any,
                 },
                 start_time: new Date().toISOString(),
-                scrambled_cube: state
-              }
+                scrambled_cube: state,
+              },
+            };
+            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+              wsRef.current.send(JSON.stringify(msg));
             }
-            
-            ws.send(JSON.stringify(msg));
           }
         }
-
-      } catch (error: any) {
-        if (mounted) {
-          console.error("Fetch room error:", error);
-          setErr(error.message || "Unknown error");
-        }
+      } catch (e: any) {
+        if (!mounted) return;
+        setErr(e?.message ?? "Unknown error");
       } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        if (mounted) setLoading(false);
       }
     };
 
     fetchRoomData();
-    
-    // You'll need separate logic for polling/WebSockets if you want real-time updates
-    // For now, removing the polling logic to keep it simple.
+    return () => {
+      mounted = false;
+    };
+  }, [roomId, selfPlayerId, startState]);
 
-    return () => { mounted = false; };
-  }, [roomId]);
+  useEffect(() => {
+    if (wsReady || typeof window === "undefined") return;
+    const ws = new WebSocket(WS_URL);
+    wsRef.current = ws;
 
-  const handleCopyToClipboard = () => {
-    navigator.clipboard.writeText(String(roomId));
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 1600);
-  };
+    ws.onopen = () => setWsReady(true);
+    ws.onclose = () => setWsReady(false);
+    ws.onerror = () => setWsReady(false);
+    ws.onmessage = (e) => {
+      // future: handle opponent turns / timers here
+    };
+
+    return () => ws.close();
+  }, [wsReady]);
+
+  useEffect(() => {
+    if (startState && playerA) {
+      setFocusSide("self");
+    }
+  }, [startState, playerA]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-white text-2xl font-semibold">Loading Room...</div>
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
+        <div className="animate-pulse text-xl">Loading room…</div>
       </div>
     );
   }
 
   if (err) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6 text-center">
         <div>
-          <h2 className="text-xl font-bold mb-2">Couldn’t load the room</h2>
+          <h2 className="text-xl font-bold mb-2">Couldn't load the room</h2>
           <p className="text-slate-400 mb-6">{err}</p>
-          <button
-            className="underline text-indigo-300"
-            onClick={() => router.push("/")}
-          >
+          <button className="underline text-indigo-300" onClick={() => router.push("/")}>
             Go Home
           </button>
         </div>
@@ -183,135 +304,106 @@ export default function RoomPage() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4 md:p-8 font-sans">
-      {/* Top block: title + room id + copy */}
-      <div className="w-full max-w-2xl mx-auto">
-        <div className="text-center mb-6">
-          <h1 className="text-3xl md:text-4xl font-bold">Room</h1>
-          <p className="mt-2 text-slate-300 text-lg flex items-center justify-center gap-2">
-            Room ID: <span className="font-mono text-indigo-300">{roomId}</span>
-            <button
-              onClick={handleCopyToClipboard}
-              className="p-1 bg-slate-800 border border-slate-700 rounded hover:bg-indigo-700 transition"
-              title="Copy Room ID"
-            >
-              {isCopied ? <span className="text-xs px-1">Copied!</span> : <CopyIcon />}
-            </button>
-          </p>
-          <p className="mt-6 text-base text-slate-400">Game UI comes here (WS, cube, timers...).</p>
-          <button className="mt-6 underline text-slate-300" onClick={() => router.push("/")}>
-            Go Home
-          </button>
-        </div>
-      </div>
+  const bothReady = !!playerA && !!playerB && !!startState;
 
-      {/* Main section */}
-      <div className="w-full max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400">
+  return (
+    <div className="min-h-screen bg-slate-950 text-white">
+      <header className="sticky top-0 z-40 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-md bg-indigo-500/20 ring-1 ring-indigo-500/30 flex items-center justify-center">
+              <span className="text-indigo-300 text-sm font-black">RC</span>
+            </div>
+            <div>
+              <div className="text-sm text-slate-400 leading-tight">Room</div>
+              <div className="font-semibold tracking-tight">{roomId}</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <CopyButton value={String(roomId)} />
+            <button
+              onClick={() => router.push("/")}
+              className="rounded-md bg-red-600/80 px-4 py-2 text-sm font-semibold ring-1 ring-red-500/40 hover:bg-red-600 transition"
+            >
+              Leave
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-7xl px-4 pt-6"> {/* ✅ Reduced top padding */}
+        <div className="text-center">
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400">
             Match Room
           </h1>
-          <div className="flex items-center justify-center mt-4">
-            <p className="text-slate-400 mr-3">ROOM ID:</p>
-            <div className="bg-slate-800 border border-slate-700 rounded-md flex items-center">
-              <span className="font-mono text-indigo-300 px-3">{roomId}</span>
-              <button
-                onClick={handleCopyToClipboard}
-                className="p-2 bg-slate-700 hover:bg-indigo-600 transition-colors rounded-r-md"
-                title="Copy Room ID"
-              >
-                {isCopied ? <span className="text-xs px-1">Copied!</span> : <CopyIcon />}
-              </button>
-            </div>
-          </div>
-          <p className="mt-3 text-sm text-slate-400">
-            Variant: <span className="text-slate-200 font-medium">{roomData?.variant || "—"}</span>
+          <p className="mt-2 text-slate-400 text-sm">
+            Variant: <span className="text-slate-200 font-medium">{room?.variant ?? "—"}</span>
           </p>
         </div>
 
-        {/* Player Matchup */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-center mb-12">
-          {/* Player 1 */}
-          <div className="md:col-span-2 bg-slate-800/50 border border-slate-700 rounded-lg shadow-xl p-6 text-center">
-            <div className="flex flex-col items-center">
-              <div className="bg-slate-700 rounded-full p-4 mb-4">
-                <UserIcon className="w-12 h-12 text-blue-400" />
-              </div>
-              <h2 className="text-2xl font-bold">{player_a?.username}</h2>
-              <p className="text-yellow-400 font-semibold">Rating: {player_a?.rating}</p>
-            </div>
-          </div>
-
-          {/* VS */}
-          <div className="text-center">
-            <p className="text-4xl md:text-6xl font-black text-slate-600 animate-pulse">VS</p>
-          </div>
-
-          {/* Player 2 */}
-          <div className="md:col-span-2 bg-slate-800/50 border border-slate-700 rounded-lg shadow-xl p-6 text-center">
-            {player_b ? (
-              <div className="flex flex-col items-center">
-                <div className="bg-slate-700 rounded-full p-4 mb-4">
-                  <UserIcon className="w-12 h-12 text-red-400" />
-                </div>
-                <h2 className="text-2xl font-bold">{player_b?.username}</h2>
-                <p className="text-yellow-400 font-semibold">Rating: {player_b?.rating}</p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center text-slate-500">
-                <div className="border-2 border-dashed border-slate-600 rounded-full p-4 mb-4">
-                  <UserIcon className="w-12 h-12" />
-                </div>
-                <h2 className="text-2xl font-bold">Waiting for Opponent...</h2>
-                <p className="font-semibold">Searching...</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Status + Rules */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-            <h3 className="text-xl font-semibold mb-4 text-white">Game Status</h3>
-            <p className="text-2xl font-bold text-green-400">
-              {(roomData?.players?.length ?? 0) >= 2 ? "Both players connected" : "Game starting soon..."}
+        <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2"> {/* ✅ Reduced top margin */}
+          <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5">
+            <h3 className="text-sm font-semibold text-slate-300">Game Status</h3>
+            <p className={`mt-2 text-2xl font-bold ${bothReady ? "text-green-400" : "text-slate-400"}`}>
+              {bothReady ? "Both players connected" : "Waiting for opponent…"}
             </p>
-            <p className="text-slate-400 mt-2">
-              {(roomData?.players?.length ?? 0) >= 2
-                ? "Prepare for the match!"
-                : "We’ll start once the opponent joins."}
+            <p className="mt-1 text-slate-400">
+              {bothReady ? "Click your board to enable keyboard moves (U R F D L B, hold Shift for CCW)." : "We'll start once the opponent joins."}
             </p>
           </div>
-
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-            <h3 className="text-xl font-semibold mb-4 text-white">Game Rules</h3>
-            <ul className="space-y-3">
-              <li className="flex items-center">
-                <ClockIcon />
-                <span className="ml-3 text-slate-300">Solve the Rubik&apos;s Cube as fast as possible.</span>
-              </li>
-              <li className="flex items-center">
-                <TrophyIcon />
-                <span className="ml-3 text-slate-300">The first player to solve wins the match.</span>
-              </li>
-              <li className="flex items-center">
-                <ChartIcon />
-                <span className="ml-3 text-slate-300">Your rating will be updated based on the result.</span>
-              </li>
+          <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5">
+            <h3 className="text-sm font-semibold text-slate-300">Rules</h3>
+            <ul className="mt-2 space-y-2 text-slate-300 text-sm leading-relaxed">
+              <li>Same scramble for both players.</li>
+              <li>First to solve wins and rating updates accordingly.</li>
+              <li>Keyboard: U R F D L B (hold Shift for counter-clockwise).</li>
             </ul>
           </div>
         </div>
 
-        {/* Leave */}
-        <div className="mt-12 text-center">
-          <button
-            onClick={() => router.push("/")}
-            className="bg-red-600/80 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105"
-          >
-            Leave Room
-          </button>
+        {/* ✅ Reduced top margin for boards */}
+        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
+          {/* Left: Self */}
+          <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-5">
+            <PlayerHeader
+              username={playerA?.username}
+              rating={playerA?.rating}
+              accent="blue"
+              sideLabel="You"
+            />
+            <CubeCanvas
+              state={startState}
+              interactive={true}
+              focused={focusSide === "self"}
+              onFocus={() => setFocusSide("self")}
+            />
+          </div>
+
+          {/* Right: Opponent */}
+          <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-5">
+            <PlayerHeader
+              username={playerB?.username ?? "Waiting…"}
+              rating={playerB?.rating}
+              accent="rose"
+              sideLabel="Opponent"
+            />
+            <CubeCanvas
+              state={startState}
+              interactive={false}
+              focused={focusSide === "opponent"}
+              onFocus={() => setFocusSide("opponent")}
+            />
+            {!playerB && (
+              <div className="mt-3 text-center text-sm text-slate-500">Searching for an opponent…</div>
+            )}
+          </div>
+        </div>
+
+        <div className="my-8 flex items-center justify-center gap-3"> {/* ✅ Reduced margin */}
+          <span className={`h-2 w-2 rounded-full ${bothReady ? "bg-green-400" : "bg-slate-600"}`} />
+          <span className="text-xs text-slate-400">
+            {bothReady ? "Game ready" : "Waiting for opponent"}
+          </span>
         </div>
       </div>
     </div>

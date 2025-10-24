@@ -42,7 +42,7 @@ export class Player {
     total_wins: number;
     win_percentage: number;
     top_speed_to_solve_cube: { [key in CubeCategories]?: SpeedCollection };
-    scrambledCube?: number[][][];
+    scrambledCube: number[][][] = [[[]]];
 
     constructor(username: string, player_state: PlayerState = PlayerState.Waiting, rating: number = 0, total_wins: number = 0, win_percentage: number, top_speed_to_solve_cube: { [key in CubeCategories]?: SpeedCollection }) {
         this.player_id = randomUUID();
