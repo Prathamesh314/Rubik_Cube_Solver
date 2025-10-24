@@ -249,7 +249,7 @@ export class Redis {
                 throw new Error("We ran into mysterious error, room id is somehow none for a player waiting ..")
             }
             const room: Room = await this.get_room(roomID);
-            room.players.push(player.player_id);
+            room.players.push(player);
 
             await this.upsert_room(roomID, room)
             await this.insert_player(player);
@@ -270,7 +270,7 @@ export class Redis {
         // i think we should store room as well, because we have list of player id saved there.
         const room: Room = {
             id: roomId,
-            players: [player.player_id],
+            players: [player],
             maxPlayers: 2,
             gameState: { status: "init", variant },
             variant,

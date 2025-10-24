@@ -3,7 +3,7 @@ import { Player, CubeCategories } from "./player";
 
 export interface Room {
     id: string;
-    players: string[]; // [p1, p2]
+    players: Player[]; // [p1, p2]
     maxPlayers: number;
     gameState: any;
     variant: CubeCategories;

@@ -3,8 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Player } from "@/modals/player";
 import { Env } from "@/lib/env_config";
-import { GameEvents, GameEventTypes } from "@/services/websocket";
-import { Game } from "@/services/game";
+import { GameEvents, GameEventTypes } from "@/types/game-events";
 import { Room } from "@/modals/room";
 import {generateScrambledCube} from "@/components/cube"
 
@@ -40,14 +39,6 @@ const CopyIcon = ({ className = "w-5 h-5" }) => (
 );
 
 type RoomPlayer = { username: string; rating: number };
-type RoomData = {
-  id: string;
-  players: RoomPlayer[]; 
-  maxPlayers: number;
-  gameState: any;
-  variant: string;
-  createdAt: number;
-};
 
 const WS_URL = Env.NEXT_PUBLIC_WEBSOCKET_URL
 
@@ -56,7 +47,7 @@ export default function RoomPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
-  const [roomData, setRoomData] = useState<RoomData | null>(null);
+  const [roomData, setRoomData] = useState<Room | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -72,12 +63,11 @@ export default function RoomPage() {
   const pollTimerRef = useRef<number | null>(null);
   const visibleRef = useRef<boolean>(true);
 
-  const player_str = localStorage.getItem("player")
-  if (player_str == null) {
-    console.error("Cannot start the game because player is null");
-  }
-
   useEffect(() => {
+    const player_str = localStorage.getItem("player")
+    if (player_str == null) {
+      console.error("Cannot start the game because player is null");
+    }
     let mounted = true;
 
     const fetchRoomData = async () => {
@@ -93,7 +83,7 @@ export default function RoomPage() {
           );
         }
 
-        const data: RoomData = await response.json();
+        const data: Room = await response.json();
         if(data?.players.length == 1) {
           console.log("We only have one player");
         }else if(data?.players.length == 2) {
@@ -101,8 +91,9 @@ export default function RoomPage() {
           setPlayerA(data.players[0] as Player);
           setPlayerB(data.players[1] as Player);
           setConnectWs(true);
-          const r = await (await Game.getInstance()).getRoom(roomId);
-          setRoom(r);
+          window.location.reload();
+          // const r = await (await Game.getInstance()).getRoom(roomId);
+          setRoom(data);
           if (isGameStarted == 0) {
             SetIsGameStarted(1);
           }
@@ -116,10 +107,15 @@ export default function RoomPage() {
         if(connectWs) {
           const ws = new WebSocket(WS_URL);
           wsRef.current = ws;
+          ws.onopen = () => console.log("WS connected");
+          ws.onmessage = (e) => console.log("WS message:", e.data);
+          ws.onerror = (e) => console.error("WS error:", e);
+          ws.onclose = () => console.log("WS closed");
 
           if (isGameStarted == 1){
             SetIsGameStarted(2);
             const { moves, state } = generateScrambledCube(20);
+            console.log("Moves: ", moves)
             const msg: GameEvents = {
               type: GameEventTypes.GameStarted,
               value: {

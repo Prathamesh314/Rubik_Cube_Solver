@@ -2,7 +2,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 
-// --- tiny auth helpers (client-only) ---
+// --- tiny auth helpers (client-only) with SSR guards ---
 const AUTH_KEY = "rc_auth";
 type AuthStorage = {
   token: string | null;
@@ -17,7 +17,9 @@ type AuthStorage = {
   };
 };
 
+// ✅ FIX: Add SSR guard
 function getAuth(): AuthStorage | null {
+  if (typeof window === 'undefined') return null; // SSR guard
   try {
     const raw = localStorage.getItem(AUTH_KEY);
     return raw ? JSON.parse(raw) : null;
@@ -26,10 +28,17 @@ function getAuth(): AuthStorage | null {
   }
 }
 
+// ✅ FIX: Add SSR guard
 function setAuth(data: AuthStorage) {
-  localStorage.setItem(AUTH_KEY, JSON.stringify(data));
+  if (typeof window === 'undefined') return; // SSR guard
+  try {
+    localStorage.setItem(AUTH_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error("Failed to save auth:", error);
+  }
 }
 
+// ✅ FIX: Add SSR guard
 function ensureAuth(): AuthStorage {
   const existing = getAuth();
   if (existing?.player?.player_id) return existing;
@@ -38,7 +47,7 @@ function ensureAuth(): AuthStorage {
   const id = crypto.randomUUID();
   const guestNum = id.split("-")[0].slice(0, 6);
   const auth: AuthStorage = {
-    token: null, // no token for guests; fill later if you add JWT
+    token: null,
     player: {
       player_id: id,
       username: `guest-${guestNum}`,
@@ -46,14 +55,13 @@ function ensureAuth(): AuthStorage {
       rating: 1200,
       total_wins: 0,
       win_percentage: 0,
-      top_speed_to_solve_cube: {}, // can pre-seed "3x3 cube" if you want
+      top_speed_to_solve_cube: {},
     },
   };
   setAuth(auth);
   return auth;
 }
 
-// --- pretty cube icon (kept from your design) ---
 const CubeIcon = () => (
   <svg width="64" height="64" viewBox="0 0 64 64" className="w-24 h-24 md:w-32 md:h-32 text-white">
     <path d="M32 2L2 17L32 32L62 17L32 2Z" fill="#0051BA"/>
@@ -71,9 +79,15 @@ export default function LandingPage() {
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
   const [variant, setVariant] = React.useState<"3x3 cube" | "4x4 cube">("3x3 cube");
+  
+  // ✅ Optional: Track if auth is initialized
+  const [authReady, setAuthReady] = React.useState(false);
 
-  // Optional: ensure a guest identity exists as soon as user lands here
-  React.useEffect(() => { ensureAuth(); }, []);
+  // ✅ Ensure a guest identity exists as soon as user lands here
+  React.useEffect(() => {
+    ensureAuth();
+    setAuthReady(true);
+  }, []);
 
   const handleStartGame = async () => {
     try {
@@ -88,8 +102,18 @@ export default function LandingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ variant, player }),
       });
+      
+      if (!res.ok) {
+        throw new Error(`Failed to start matchmaking: ${res.status}`);
+      }
+      
       const data = await res.json();
-      localStorage.setItem("player", JSON.stringify(player));
+      
+      // ✅ Safe localStorage access (already in click handler, but add guard for consistency)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem("player", JSON.stringify(player));
+      }
+      
       router.push(`/room/${data.room.id}`);
     } catch (e: unknown) {
       if (e instanceof Error) {
@@ -98,8 +122,10 @@ export default function LandingPage() {
         console.error("Error in landing page:", e);
       }
       // graceful fallback for dev environments
-      const { player_id } = ensureAuth().player;
-      router.push(`/queue?pid=${encodeURIComponent(player_id)}`);
+      const auth = ensureAuth();
+      if (auth?.player?.player_id) {
+        router.push(`/queue?pid=${encodeURIComponent(auth.player.player_id)}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -170,7 +196,7 @@ export default function LandingPage() {
         </div>
 
         <div className="text-sm text-slate-500">
-          We’ll place you in a queue if no opponent is instantly available.
+          We'll place you in a queue if no opponent is instantly available.
         </div>
       </div>
     </div>
