@@ -1,3 +1,4 @@
+// Filename: src/app/room/[roomId]/page.tsx
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -83,48 +84,143 @@ function PlayerHeader({
   );
 }
 
-function CubeCanvas({
-  state,
-  interactive,
-  focused,
-  onFocus,
-}: {
+// function CubeCanvas({
+//   state,
+//   interactive,
+//   focused,
+//   onFocus,
+// }: {
+//   state: number[][][] | null;
+//   interactive: boolean;
+//   focused: boolean;
+//   onFocus: () => void;
+// }) {
+//   const shellRef = useRef<HTMLDivElement | null>(null);
+//   const containerRef = useRef<HTMLDivElement | null>(null);
+//   const apiRef = useRef<{ turn: (f: any, cw?: boolean) => void; dispose: () => void } | null>(null);
+
+//   useEffect(() => {
+//     if (!containerRef.current || !state) return;
+
+//     apiRef.current?.dispose();
+//     apiRef.current = initRubiksCube(containerRef.current, state, colorMap);
+
+//     const kick = () => window.dispatchEvent(new Event("resize"));
+//     const t1 = requestAnimationFrame(kick);
+//     const t2 = setTimeout(kick, 50);
+
+//     return () => {
+//       cancelAnimationFrame(t1);
+//       clearTimeout(t2);
+//       apiRef.current?.dispose();
+//       apiRef.current = null;
+//     };
+//   }, [state]);
+
+//   useEffect(() => {
+//     if (!shellRef.current) return;
+//     const ro = new ResizeObserver(() => {
+//       window.dispatchEvent(new Event("resize"));
+//     });
+//     ro.observe(shellRef.current);
+//     return () => ro.disconnect();
+//   }, []);
+
+//   useEffect(() => {
+//     const onKeyDownCapture = (e: KeyboardEvent) => {
+//       if (!interactive || !focused) {
+//         e.stopImmediatePropagation();
+//         e.preventDefault();
+//       }
+//     };
+//     window.addEventListener("keydown", onKeyDownCapture, { capture: true });
+//     return () => window.removeEventListener("keydown", onKeyDownCapture, { capture: true });
+//   }, [interactive, focused]);
+
+//   return (
+//     <div
+//       ref={shellRef}
+//       className={[
+//         // ✅ Reduced height and added margin top to position cube higher
+//         "relative w-full h-[38vh] md:h-[42vh] lg:h-[46vh] mt-4",
+//         "overflow-hidden rounded-2xl ring-1 ring-slate-800/80",
+//         "bg-[radial-gradient(1200px_600px_at_50%_-10%,rgba(99,102,241,0.10),rgba(2,6,23,0))]",
+//         focused && interactive ? "outline outline-2 outline-indigo-500/60" : "",
+//       ].join(" ")}
+//       onClick={onFocus}
+//     >
+//       {interactive && (
+//         <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-md bg-black/40 px-2 py-1 text-[10px] uppercase tracking-wide text-slate-200">
+//           {focused ? "Keyboard Active" : "Click to Control"}
+//         </div>
+//       )}
+
+//       {/* ✅ Added padding top to the cube container to position it higher */}
+//       <div ref={containerRef} className="absolute inset-0 pt-4" />
+
+//       {!state && (
+//         <div className="absolute inset-0 grid place-items-center text-slate-500 text-sm">
+//           Waiting for start state…
+//         </div>
+//       )}
+
+//       {/* ✅ Reduced the height of the bottom gradient since cube is positioned higher */}
+//       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/40 to-transparent" />
+//     </div>
+//   );
+// }
+function CubeCanvas({ state, interactive, focused, onFocus }: {
   state: number[][][] | null;
   interactive: boolean;
   focused: boolean;
   onFocus: () => void;
-}) {
+ }) {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const apiRef = useRef<{ turn: (f: any, cw?: boolean) => void; dispose: () => void } | null>(null);
 
+  const [readySize, setReadySize] = useState<{w:number;h:number} | null>(null);
+
+  // Observe size and remember when it's actually > 0
   useEffect(() => {
-    if (!containerRef.current || !state) return;
+    if (!containerRef.current) return;
+    const el = containerRef.current;
 
-    apiRef.current?.dispose();
-    apiRef.current = initRubiksCube(containerRef.current, state, colorMap);
-
-    const kick = () => window.dispatchEvent(new Event("resize"));
-    const t1 = requestAnimationFrame(kick);
-    const t2 = setTimeout(kick, 50);
-
-    return () => {
-      cancelAnimationFrame(t1);
-      clearTimeout(t2);
-      apiRef.current?.dispose();
-      apiRef.current = null;
+    const update = () => {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) setReadySize({ w: r.width, h: r.height });
     };
-  }, [state]);
 
-  useEffect(() => {
-    if (!shellRef.current) return;
-    const ro = new ResizeObserver(() => {
-      window.dispatchEvent(new Event("resize"));
-    });
-    ro.observe(shellRef.current);
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    // run once after layout
+    requestAnimationFrame(update);
+
     return () => ro.disconnect();
   }, []);
 
+  // Initialize cube ONLY when we have state and a measured size
+  useEffect(() => {
+    if (!containerRef.current || !state || !readySize) return;
+
+    // Clean previous instance
+    apiRef.current?.dispose();
+
+    // IMPORTANT: clear any old canvases if something leaked
+    containerRef.current.innerHTML = "";
+
+    apiRef.current = initRubiksCube(containerRef.current, state, colorMap);
+
+    // We no longer need to dispatch fake resize events;
+    // the RO + onResize in cube will keep it correct.
+
+    return () => {
+      apiRef.current?.dispose();
+      apiRef.current = null;
+    };
+  }, [state, readySize]);
+  
+  // Block keyboard when not focused
   useEffect(() => {
     const onKeyDownCapture = (e: KeyboardEvent) => {
       if (!interactive || !focused) {
@@ -140,7 +236,6 @@ function CubeCanvas({
     <div
       ref={shellRef}
       className={[
-        // ✅ Reduced height and added margin top to position cube higher
         "relative w-full h-[38vh] md:h-[42vh] lg:h-[46vh] mt-4",
         "overflow-hidden rounded-2xl ring-1 ring-slate-800/80",
         "bg-[radial-gradient(1200px_600px_at_50%_-10%,rgba(99,102,241,0.10),rgba(2,6,23,0))]",
@@ -154,20 +249,19 @@ function CubeCanvas({
         </div>
       )}
 
-      {/* ✅ Added padding top to the cube container to position it higher */}
-      <div ref={containerRef} className="absolute inset-0 pt-4" />
+      {/* The canvas mounts here and stretches to fill */}
+      <div ref={containerRef} className="absolute inset-0" />
 
       {!state && (
         <div className="absolute inset-0 grid place-items-center text-slate-500 text-sm">
           Waiting for start state…
         </div>
       )}
-
-      {/* ✅ Reduced the height of the bottom gradient since cube is positioned higher */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/40 to-transparent" />
     </div>
   );
 }
+
 
 export default function RoomPage() {
   const { roomId } = useParams<{ roomId: string }>();

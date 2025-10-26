@@ -1,4 +1,5 @@
-// lib/rubiks-cube.ts
+// src/components/cube.ts
+
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
@@ -364,26 +365,36 @@ class RubiksCube {
     // Scene
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x0b0b0b);
-
-    const w = container.clientWidth || 800;
-    const h = container.clientHeight || 600;
-
+  
+    const rect = container.getBoundingClientRect();
+    const w = Math.max(1, rect.width);
+    const h = Math.max(1, rect.height);
+  
+    // Renderer
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(w, h, false);             // internal buffer only
+    this.renderer.shadowMap.enabled = true;         // ✅ enable shadows
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace; // ✅ recommended
+  
+    // Stretch to container
+    this.renderer.domElement.style.width = "100%";
+    this.renderer.domElement.style.height = "100%";
+    this.renderer.domElement.style.display = "block";
+    container.appendChild(this.renderer.domElement);
+  
     // Camera
     this.camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 100);
     this.camera.position.set(5.5, 5.5, 7.5);
-
-    // Renderer
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.setSize(w, h);
-    this.renderer.shadowMap.enabled = true;
-    container.appendChild(this.renderer.domElement);
-
+    this.camera.lookAt(0, 0, 0);                    // ✅ optional but nice
+  
     // Controls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
-
+    this.controls.target.set(0, 0, 0);
+    this.controls.update();
+  
     // Lights & floor
     const hemi = new THREE.HemisphereLight(0xffffff, 0x12121a, 0.6);
     this.scene.add(hemi);
@@ -391,7 +402,7 @@ class RubiksCube {
     key.position.set(8, 12, 6);
     key.castShadow = true;
     this.scene.add(key);
-
+  
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(20, 20),
       new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.9 })
@@ -400,12 +411,12 @@ class RubiksCube {
     floor.position.y = -2.2;
     floor.receiveShadow = true;
     this.scene.add(floor);
-
+  
     // Root & pivot
     this.root = new THREE.Group();
     this.scene.add(this.root);
     this.root.add(this.pivot);
-
+  
     // Build 27 cubelets
     for (let yi = 0; yi < 3; yi++) {
       for (let zi = 0; zi < 3; zi++) {
@@ -417,17 +428,18 @@ class RubiksCube {
         }
       }
     }
-
+  
     // Paint stickers
     this.paint(this.state);
-
+  
     // Resize + loop
     window.addEventListener("resize", this.onResize);
     this.renderer.setAnimationLoop(this.render);
-
+  
     // Keyboard moves
     window.addEventListener("keydown", this.onKeyDown);
   }
+  
 
   onKeyDown = (e: KeyboardEvent) => {
     const k = e.key.toUpperCase();
@@ -437,13 +449,23 @@ class RubiksCube {
     }
   };
 
+//   onResize = () => {
+//     const w = this.container.clientWidth || window.innerWidth;
+//     const h = this.container.clientHeight || window.innerHeight;
+//     this.camera.aspect = w / h;
+//     this.camera.updateProjectionMatrix();
+//     this.renderer.setSize(w, h);
+//   };
   onResize = () => {
-    const w = this.container.clientWidth || window.innerWidth;
-    const h = this.container.clientHeight || window.innerHeight;
+    const rect = this.container.getBoundingClientRect();
+    const w = Math.max(1, rect.width);
+    const h = Math.max(1, rect.height);
+  
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(w, h);
+    this.renderer.setSize(w, h, false); // keep CSS at 100%
   };
+  
 
   render = () => {
     this.controls.update();

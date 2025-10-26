@@ -1,4 +1,4 @@
-// utils/cubeUtils.ts
+// src/utils/cube_utils.ts
 export interface ColorMapping {
     [colorName: string]: number;
   }
