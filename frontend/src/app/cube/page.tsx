@@ -1,3 +1,4 @@
+// filepath: src/app/cube/page.tsx
 "use client";
 
 import { useEffect, useRef } from "react";

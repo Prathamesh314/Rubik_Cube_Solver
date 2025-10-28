@@ -5,27 +5,10 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Player } from "@/modals/player";
 import { Env } from "@/lib/env_config";
-import { GameEvents, GameEventTypes } from "@/types/game-events";
 import { Room } from "@/modals/room";
-import { generateScrambledCube, initRubiksCube } from "@/components/cube";
+import {GameEventTypes} from "@/types/game-events";
 
 const WS_URL = Env.NEXT_PUBLIC_WEBSOCKET_URL;
-
-type FocusSide = "self" | "opponent" | null;
-
-const UserIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 20 20" fill="currentColor">
-    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-  </svg>
-);
-
-function Badge({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-slate-800/80 px-3 py-1 text-xs font-semibold text-slate-200 ring-1 ring-slate-700">
-      {children}
-    </span>
-  );
-}
 
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
@@ -47,222 +30,6 @@ function CopyButton({ value }: { value: string }) {
   );
 }
 
-const colorMap = {
-  1: "#C41E3A", // Red
-  2: "#009B48", // Green
-  3: "#0051BA", // Blue
-  4: "#FFD500", // Yellow
-  5: "#FF5800", // Orange
-  6: "#FFFFFF", // White
-};
-
-function PlayerHeader({
-  username,
-  rating,
-  accent = "blue",
-  sideLabel,
-}: {
-  username?: string;
-  rating?: number;
-  accent?: "blue" | "rose";
-  sideLabel: "You" | "Opponent";
-}) {
-  const accentColor = accent === "blue" ? "text-blue-400 bg-blue-400/10 ring-blue-500/30" : "text-rose-400 bg-rose-400/10 ring-rose-500/30";
-  return (
-    <div className="flex items-center justify-between mb-3">
-      <div className="flex items-center gap-3">
-        <div className={`rounded-full p-3 ring-1 ${accentColor}`}>
-          <UserIcon className={`w-6 h-6 ${accent === "blue" ? "text-blue-300" : "text-rose-300"}`} />
-        </div>
-        <div className="leading-tight">
-          <div className="text-lg font-bold text-white">{username ?? "—"}</div>
-          <div className="text-xs text-slate-400">Rating • <span className="text-slate-200 font-semibold">{rating ?? "—"}</span></div>
-        </div>
-      </div>
-      <Badge>{sideLabel}</Badge>
-    </div>
-  );
-}
-
-// function CubeCanvas({
-//   state,
-//   interactive,
-//   focused,
-//   onFocus,
-// }: {
-//   state: number[][][] | null;
-//   interactive: boolean;
-//   focused: boolean;
-//   onFocus: () => void;
-// }) {
-//   const shellRef = useRef<HTMLDivElement | null>(null);
-//   const containerRef = useRef<HTMLDivElement | null>(null);
-//   const apiRef = useRef<{ turn: (f: any, cw?: boolean) => void; dispose: () => void } | null>(null);
-
-//   useEffect(() => {
-//     if (!containerRef.current || !state) return;
-
-//     apiRef.current?.dispose();
-//     apiRef.current = initRubiksCube(containerRef.current, state, colorMap);
-
-//     const kick = () => window.dispatchEvent(new Event("resize"));
-//     const t1 = requestAnimationFrame(kick);
-//     const t2 = setTimeout(kick, 50);
-
-//     return () => {
-//       cancelAnimationFrame(t1);
-//       clearTimeout(t2);
-//       apiRef.current?.dispose();
-//       apiRef.current = null;
-//     };
-//   }, [state]);
-
-//   useEffect(() => {
-//     if (!shellRef.current) return;
-//     const ro = new ResizeObserver(() => {
-//       window.dispatchEvent(new Event("resize"));
-//     });
-//     ro.observe(shellRef.current);
-//     return () => ro.disconnect();
-//   }, []);
-
-//   useEffect(() => {
-//     const onKeyDownCapture = (e: KeyboardEvent) => {
-//       if (!interactive || !focused) {
-//         e.stopImmediatePropagation();
-//         e.preventDefault();
-//       }
-//     };
-//     window.addEventListener("keydown", onKeyDownCapture, { capture: true });
-//     return () => window.removeEventListener("keydown", onKeyDownCapture, { capture: true });
-//   }, [interactive, focused]);
-
-//   return (
-//     <div
-//       ref={shellRef}
-//       className={[
-//         // ✅ Reduced height and added margin top to position cube higher
-//         "relative w-full h-[38vh] md:h-[42vh] lg:h-[46vh] mt-4",
-//         "overflow-hidden rounded-2xl ring-1 ring-slate-800/80",
-//         "bg-[radial-gradient(1200px_600px_at_50%_-10%,rgba(99,102,241,0.10),rgba(2,6,23,0))]",
-//         focused && interactive ? "outline outline-2 outline-indigo-500/60" : "",
-//       ].join(" ")}
-//       onClick={onFocus}
-//     >
-//       {interactive && (
-//         <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-md bg-black/40 px-2 py-1 text-[10px] uppercase tracking-wide text-slate-200">
-//           {focused ? "Keyboard Active" : "Click to Control"}
-//         </div>
-//       )}
-
-//       {/* ✅ Added padding top to the cube container to position it higher */}
-//       <div ref={containerRef} className="absolute inset-0 pt-4" />
-
-//       {!state && (
-//         <div className="absolute inset-0 grid place-items-center text-slate-500 text-sm">
-//           Waiting for start state…
-//         </div>
-//       )}
-
-//       {/* ✅ Reduced the height of the bottom gradient since cube is positioned higher */}
-//       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/40 to-transparent" />
-//     </div>
-//   );
-// }
-function CubeCanvas({ state, interactive, focused, onFocus }: {
-  state: number[][][] | null;
-  interactive: boolean;
-  focused: boolean;
-  onFocus: () => void;
- }) {
-  const shellRef = useRef<HTMLDivElement | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const apiRef = useRef<{ turn: (f: any, cw?: boolean) => void; dispose: () => void } | null>(null);
-
-  const [readySize, setReadySize] = useState<{w:number;h:number} | null>(null);
-
-  // Observe size and remember when it's actually > 0
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const el = containerRef.current;
-
-    const update = () => {
-      const r = el.getBoundingClientRect();
-      if (r.width > 0 && r.height > 0) setReadySize({ w: r.width, h: r.height });
-    };
-
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    // run once after layout
-    requestAnimationFrame(update);
-
-    return () => ro.disconnect();
-  }, []);
-
-  // Initialize cube ONLY when we have state and a measured size
-  useEffect(() => {
-    if (!containerRef.current || !state || !readySize) return;
-
-    // Clean previous instance
-    apiRef.current?.dispose();
-
-    // IMPORTANT: clear any old canvases if something leaked
-    containerRef.current.innerHTML = "";
-
-    apiRef.current = initRubiksCube(containerRef.current, state, colorMap);
-
-    // We no longer need to dispatch fake resize events;
-    // the RO + onResize in cube will keep it correct.
-
-    return () => {
-      apiRef.current?.dispose();
-      apiRef.current = null;
-    };
-  }, [state, readySize]);
-  
-  // Block keyboard when not focused
-  useEffect(() => {
-    const onKeyDownCapture = (e: KeyboardEvent) => {
-      if (!interactive || !focused) {
-        e.stopImmediatePropagation();
-        e.preventDefault();
-      }
-    };
-    window.addEventListener("keydown", onKeyDownCapture, { capture: true });
-    return () => window.removeEventListener("keydown", onKeyDownCapture, { capture: true });
-  }, [interactive, focused]);
-
-  return (
-    <div
-      ref={shellRef}
-      className={[
-        "relative w-full h-[38vh] md:h-[42vh] lg:h-[46vh] mt-4",
-        "overflow-hidden rounded-2xl ring-1 ring-slate-800/80",
-        "bg-[radial-gradient(1200px_600px_at_50%_-10%,rgba(99,102,241,0.10),rgba(2,6,23,0))]",
-        focused && interactive ? "outline outline-2 outline-indigo-500/60" : "",
-      ].join(" ")}
-      onClick={onFocus}
-    >
-      {interactive && (
-        <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-md bg-black/40 px-2 py-1 text-[10px] uppercase tracking-wide text-slate-200">
-          {focused ? "Keyboard Active" : "Click to Control"}
-        </div>
-      )}
-
-      {/* The canvas mounts here and stretches to fill */}
-      <div ref={containerRef} className="absolute inset-0" />
-
-      {!state && (
-        <div className="absolute inset-0 grid place-items-center text-slate-500 text-sm">
-          Waiting for start state…
-        </div>
-      )}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/40 to-transparent" />
-    </div>
-  );
-}
-
-
 export default function RoomPage() {
   const { roomId } = useParams<{ roomId: string }>();
   const router = useRouter();
@@ -273,12 +40,15 @@ export default function RoomPage() {
   const [room, setRoom] = useState<Room | null>(null);
   const [playerA, setPlayerA] = useState<Player | undefined>();
   const [playerB, setPlayerB] = useState<Player | undefined>();
+  const [roomSize, setRoomSize] = useState<number>(0);
 
   const [wsReady, setWsReady] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [startState, setStartState] = useState<number[][][] | null>(null);
-  const [focusSide, setFocusSide] = useState<FocusSide>(null);
+  const [selfCubeState, setSelfCubeState] = useState<number[][][] | null>(null);
+  const [opponentCubeState, setOpponentCubeState] = useState<number[][][] | null>(null);
 
   const selfPlayerId = useMemo(() => {
     if (typeof window === "undefined") return null;
@@ -307,6 +77,11 @@ export default function RoomPage() {
         if (!mounted) return;
 
         setRoom(data);
+        if (data.players.length == 1){
+          setRoomSize(1);
+        }else if (data.players.length == 2){
+          setRoomSize(2);
+        }
 
         if (data?.players?.length) {
           const me = data.players.find((p: any) => p.player_id === selfPlayerId) as Player | undefined;
@@ -317,28 +92,6 @@ export default function RoomPage() {
           } else {
             setPlayerA(data.players[0] as Player);
             setPlayerB(data.players[1] as Player | undefined);
-          }
-        }
-
-        if ((data?.players?.length ?? 0) >= 2) {
-          if (!startState) {
-            const { state, moves } = generateScrambledCube(20);
-            setStartState(state);
-
-            const msg: GameEvents = {
-              type: GameEventTypes.GameStarted,
-              value: {
-                base_values: {
-                  room: data,
-                  participants: data.players as any,
-                },
-                start_time: new Date().toISOString(),
-                scrambled_cube: state,
-              },
-            };
-            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-              wsRef.current.send(JSON.stringify(msg));
-            }
           }
         }
       } catch (e: any) {
@@ -353,28 +106,106 @@ export default function RoomPage() {
     return () => {
       mounted = false;
     };
-  }, [roomId, selfPlayerId, startState]);
+  }, [roomId, selfPlayerId]);
 
+  // WebSocket connection effect - runs only once
   useEffect(() => {
-    if (wsReady || typeof window === "undefined") return;
+    if (typeof window === "undefined" || !roomId || !selfPlayerId) return;
+
+    // Don't create a new connection if one already exists
+    if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) {
+      return;
+    }
+
+    console.log('Establishing WebSocket connection...');
     const ws = new WebSocket(WS_URL);
     wsRef.current = ws;
 
-    ws.onopen = () => setWsReady(true);
-    ws.onclose = () => setWsReady(false);
-    ws.onerror = () => setWsReady(false);
-    ws.onmessage = (e) => {
-      // future: handle opponent turns / timers here
+    ws.onopen = () => {
+      console.log('WebSocket connected');
+      setWsReady(true);
+      
+      // Join the room
+      ws.send(JSON.stringify({
+        type: 'JOIN_ROOM',
+        room_id: roomId,
+        player_id: selfPlayerId
+      }));
     };
 
-    return () => ws.close();
-  }, [wsReady]);
+    ws.onclose = () => {
+      console.log('WebSocket disconnected');
+      setWsReady(false);
+      
+      // Attempt to reconnect after 3 seconds
+      reconnectTimeoutRef.current = setTimeout(() => {
+        console.log('Attempting to reconnect...');
+        // Trigger re-render which will create new connection
+        wsRef.current = null;
+      }, 3000);
+    };
 
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      setWsReady(false);
+    };
+
+    ws.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        console.log("Data received client side: ", data);
+        switch (data.type) {
+          case GameEventTypes.KeyBoardButtonPressed:
+            console.log("Data recived for keyboard pressed event on client side: ", data);
+            break
+        }
+      } catch (err) {
+        console.error('Failed to parse WebSocket message:', err);
+      }
+    };
+
+    return () => {
+      console.log('Cleaning up WebSocket connection');
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+        ws.close();
+      }
+    };
+  }, [roomId, selfPlayerId]); // Only depend on stable identifiers
+
+  // Keyboard event listener - separate effect
   useEffect(() => {
-    if (startState && playerA) {
-      setFocusSide("self");
-    }
-  }, [startState, playerA]);
+    if (!wsReady || !roomId || !selfPlayerId) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const ws = wsRef.current;
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+      const message = {
+        type: 'KeyBoardButtonPressed',
+        value: {
+          room: { id: roomId, ...room },
+          player: selfPlayerId === playerA?.player_id ? playerA : playerB,
+          keyboardButton: e.key
+        }
+      };
+
+      try {
+        console.log("Message: ", message)
+        ws.send(JSON.stringify(message));
+      } catch (err) {
+        console.error('Failed to send keyboard event:', err);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [wsReady, roomId, selfPlayerId, playerA, playerB]);
 
   if (loading) {
     return (
@@ -412,6 +243,11 @@ export default function RoomPage() {
               <div className="text-sm text-slate-400 leading-tight">Room</div>
               <div className="font-semibold tracking-tight">{roomId}</div>
             </div>
+            {/* WebSocket connection status indicator */}
+            <div 
+              className={`ml-2 h-2 w-2 rounded-full ${wsReady ? 'bg-green-500' : 'bg-red-500'}`}
+              title={wsReady ? 'Connected' : 'Disconnected'}
+            />
           </div>
           <div className="flex items-center gap-3">
             <CopyButton value={String(roomId)} />
@@ -425,7 +261,7 @@ export default function RoomPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-4 pt-6"> {/* ✅ Reduced top padding */}
+      <div className="mx-auto max-w-7xl px-4 pt-6">
         <div className="text-center">
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400">
             Match Room
@@ -435,7 +271,7 @@ export default function RoomPage() {
           </p>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2"> {/* ✅ Reduced top margin */}
+        <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
           <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5">
             <h3 className="text-sm font-semibold text-slate-300">Game Status</h3>
             <p className={`mt-2 text-2xl font-bold ${bothReady ? "text-green-400" : "text-slate-400"}`}>
@@ -455,45 +291,7 @@ export default function RoomPage() {
           </div>
         </div>
 
-        {/* ✅ Reduced top margin for boards */}
-        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
-          {/* Left: Self */}
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-5">
-            <PlayerHeader
-              username={playerA?.username}
-              rating={playerA?.rating}
-              accent="blue"
-              sideLabel="You"
-            />
-            <CubeCanvas
-              state={startState}
-              interactive={true}
-              focused={focusSide === "self"}
-              onFocus={() => setFocusSide("self")}
-            />
-          </div>
-
-          {/* Right: Opponent */}
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-5">
-            <PlayerHeader
-              username={playerB?.username ?? "Waiting…"}
-              rating={playerB?.rating}
-              accent="rose"
-              sideLabel="Opponent"
-            />
-            <CubeCanvas
-              state={startState}
-              interactive={false}
-              focused={focusSide === "opponent"}
-              onFocus={() => setFocusSide("opponent")}
-            />
-            {!playerB && (
-              <div className="mt-3 text-center text-sm text-slate-500">Searching for an opponent…</div>
-            )}
-          </div>
-        </div>
-
-        <div className="my-8 flex items-center justify-center gap-3"> {/* ✅ Reduced margin */}
+        <div className="my-8 flex items-center justify-center gap-3">
           <span className={`h-2 w-2 rounded-full ${bothReady ? "bg-green-400" : "bg-slate-600"}`} />
           <span className="text-xs text-slate-400">
             {bothReady ? "Game ready" : "Waiting for opponent"}

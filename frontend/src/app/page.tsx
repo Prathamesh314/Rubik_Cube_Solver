@@ -10,11 +10,8 @@ export default function Home() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const userId = sessionStorage.getItem('userId');
-      // const token = sessionStorage.getItem('token'); 
-      
       if (!userId) {
-        router.push('/login');
-        // window.location.reload();
+        window.location.href = '/login';
       }
     }
   }, [router]);
