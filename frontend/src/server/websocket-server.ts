@@ -7,6 +7,7 @@ import { WEBSOCKET_PORT, NEXT_PUBLIC_WEBSOCKET_URL } from '@/lib/env_config';
 import type { Room } from '@/modals/room';
 import type { Player } from '@/modals/player';
 import { GameEventTypes, type GameEvents, type JoinRoomMessage, type LeaveRoomMessage, type PlayerMoveMessage } from '@/types/game-events';
+import { applyMove } from '@/components/cube';
 
 const websocket_port = WEBSOCKET_PORT ?? 8002;
 const websocket_url = NEXT_PUBLIC_WEBSOCKET_URL ?? 'ws://localhost:8002';
@@ -204,6 +205,9 @@ wss.on('connection', (ws) => {
             console.error('No room_id in keyboard button pressed message');
             return;
           }
+          const updated_cube_state = applyMove(message.value.player.scrambledCube, { face: message.value.keyboardButton, clockwise: true })
+          message.value.player.scrambledCube = updated_cube_state;
+          // TODO: update in redis as well.
 
           const all_players_of_room = rooms.get(roomId);
           

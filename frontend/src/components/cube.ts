@@ -80,7 +80,7 @@ function cloneState(s: CubeState): CubeState {
 // Conventions: applying a move rotates the face as seen from outside that face.
 // The edge cycles below are consistent with common cube simulators.
 
-function applyMove(state: CubeState, move: Move): CubeState {
+export function applyMove(state: CubeState, move: Move): CubeState {
   const s = cloneState(state);
   const { face, clockwise } = move;
 

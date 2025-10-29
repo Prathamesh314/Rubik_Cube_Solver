@@ -20,6 +20,31 @@ const COLOR_MAP = {
   6: "#FFFFFF", // White
 };
 
+function IsRubikCubeSolved(cube: number[][][]): boolean {
+  if (!Array.isArray(cube) || cube.length !== 6) return false;
+
+  const isUniformFace = (face: number[][]): boolean => {
+    if (!Array.isArray(face) || face.length === 0) return false;
+    const cols = face[0].length;
+    if (cols === 0) return false;
+
+    const target = face[0][0];
+    for (let r = 0; r < face.length; r++) {
+      if (!Array.isArray(face[r]) || face[r].length !== cols) return false;
+      for (let c = 0; c < cols; c++) {
+        if (face[r][c] !== target) return false;
+      }
+    }
+    return true;
+  };
+
+  for (let f = 0; f < 6; f++) {
+    if (!isUniformFace(cube[f]!)) return false;
+  }
+  return true;
+}
+
+
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
   return (
@@ -63,7 +88,6 @@ export default function RoomPage() {
   const [selfCubeState, setSelfCubeState] = useState<number[][][] | null>(null);
   const [opponentCubeState, setOpponentCubeState] = useState<number[][][] | null>(null);
 
-  // ✅ derive selfPlayerId safely (runs only on client)
   const selfPlayerId = useMemo(() => {
     if (typeof window === "undefined") return null;
     try {
@@ -76,7 +100,6 @@ export default function RoomPage() {
     }
   }, []);
 
-  // ✅ INIT cubes only when we actually want to show them and have a start state
   useEffect(() => {
     if (!showCube || !startState) return;
 
@@ -148,7 +171,6 @@ export default function RoomPage() {
     };
   }, [roomId, selfPlayerId]);
 
-  // ✅ WebSocket: create once per room/selfPlayerId and let readyState guard reconnections
   useEffect(() => {
     if (typeof window === "undefined" || !roomId || !selfPlayerId) return;
 
