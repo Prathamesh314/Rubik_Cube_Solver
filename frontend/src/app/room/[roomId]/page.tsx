@@ -6,9 +6,19 @@ import { useParams, useRouter } from "next/navigation";
 import { Player } from "@/modals/player";
 import { Env } from "@/lib/env_config";
 import { Room } from "@/modals/room";
-import {GameEventTypes} from "@/types/game-events";
+import { GameEventTypes } from "@/types/game-events";
+import { generateScrambledCube, initRubiksCube } from "@/components/cube";
 
 const WS_URL = Env.NEXT_PUBLIC_WEBSOCKET_URL;
+
+const COLOR_MAP = {
+  1: "#C41E3A", // Red
+  2: "#009B48", // Green
+  3: "#0051BA", // Blue
+  4: "#FFD500", // Yellow
+  5: "#FF5800", // Orange
+  6: "#FFFFFF", // White
+};
 
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
@@ -41,15 +51,19 @@ export default function RoomPage() {
   const [playerA, setPlayerA] = useState<Player | undefined>();
   const [playerB, setPlayerB] = useState<Player | undefined>();
   const [roomSize, setRoomSize] = useState<number>(0);
+  const [showCube, setShowCube] = useState<boolean>(false);
 
   const [wsReady, setWsReady] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const leftRef = useRef<HTMLDivElement | null>(null);
+  const rightRef = useRef<HTMLDivElement | null>(null);
 
   const [startState, setStartState] = useState<number[][][] | null>(null);
   const [selfCubeState, setSelfCubeState] = useState<number[][][] | null>(null);
   const [opponentCubeState, setOpponentCubeState] = useState<number[][][] | null>(null);
 
+  // ✅ derive selfPlayerId safely (runs only on client)
   const selfPlayerId = useMemo(() => {
     if (typeof window === "undefined") return null;
     try {
@@ -61,6 +75,26 @@ export default function RoomPage() {
       return null;
     }
   }, []);
+
+  // ✅ INIT cubes only when we actually want to show them and have a start state
+  useEffect(() => {
+    if (!showCube || !startState) return;
+
+    let leftApi: any = null;
+    let rightApi: any = null;
+
+    if (leftRef.current) {
+      leftApi = initRubiksCube(leftRef.current, startState, COLOR_MAP, { controlsEnabled: true });
+    }
+    if (rightRef.current) {
+      rightApi = initRubiksCube(rightRef.current, startState, COLOR_MAP, { controlsEnabled: false });
+    }
+
+    return () => {
+      if (leftApi) leftApi.dispose();
+      if (rightApi) rightApi.dispose();
+    };
+  }, [showCube, startState]);
 
   useEffect(() => {
     let mounted = true;
@@ -77,10 +111,16 @@ export default function RoomPage() {
         if (!mounted) return;
 
         setRoom(data);
-        if (data.players.length == 1){
+        if (data.players.length === 1) {
           setRoomSize(1);
-        }else if (data.players.length == 2){
+        } else if (data.players.length === 2) {
           setRoomSize(2);
+          // same scramble for both
+          const scrambled_cube = generateScrambledCube(20).state;
+          setStartState(scrambled_cube);
+          data.players[0].scrambledCube = scrambled_cube;
+          data.players[1].scrambledCube = scrambled_cube;
+          setShowCube(true);
         }
 
         if (data?.players?.length) {
@@ -108,74 +148,54 @@ export default function RoomPage() {
     };
   }, [roomId, selfPlayerId]);
 
-  // WebSocket connection effect - runs only once
+  // ✅ WebSocket: create once per room/selfPlayerId and let readyState guard reconnections
   useEffect(() => {
     if (typeof window === "undefined" || !roomId || !selfPlayerId) return;
 
-    // Don't create a new connection if one already exists
     if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) {
       return;
     }
 
-    console.log('Establishing WebSocket connection...');
     const ws = new WebSocket(WS_URL);
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log('WebSocket connected');
       setWsReady(true);
-      
-      // Join the room
-      ws.send(JSON.stringify({
-        type: 'JOIN_ROOM',
-        room_id: roomId,
-        player_id: selfPlayerId
-      }));
+      ws.send(JSON.stringify({ type: "JOIN_ROOM", room_id: roomId, player_id: selfPlayerId }));
     };
 
     ws.onclose = () => {
-      console.log('WebSocket disconnected');
       setWsReady(false);
-      
-      // Attempt to reconnect after 3 seconds
       reconnectTimeoutRef.current = setTimeout(() => {
-        console.log('Attempting to reconnect...');
-        // Trigger re-render which will create new connection
-        wsRef.current = null;
+        wsRef.current = null; // allow effect to run again
       }, 3000);
     };
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      setWsReady(false);
-    };
+    ws.onerror = () => setWsReady(false);
 
     ws.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
-        console.log("Data received client side: ", data);
         switch (data.type) {
+          case GameEventTypes.GameStarted:
+            window.location.reload();
+            break;
           case GameEventTypes.KeyBoardButtonPressed:
-            console.log("Data recived for keyboard pressed event on client side: ", data);
-            break
+            // handle as needed
+            break;
         }
       } catch (err) {
-        console.error('Failed to parse WebSocket message:', err);
+        console.error("Failed to parse WebSocket message:", err);
       }
     };
 
     return () => {
-      console.log('Cleaning up WebSocket connection');
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-        ws.close();
-      }
+      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) ws.close();
     };
-  }, [roomId, selfPlayerId]); // Only depend on stable identifiers
+  }, [roomId, selfPlayerId]);
 
-  // Keyboard event listener - separate effect
+  // Keyboard -> send to WS
   useEffect(() => {
     if (!wsReady || !roomId || !selfPlayerId) return;
 
@@ -184,28 +204,24 @@ export default function RoomPage() {
       if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
       const message = {
-        type: 'KeyBoardButtonPressed',
+        type: "KeyBoardButtonPressed",
         value: {
           room: { id: roomId, ...room },
           player: selfPlayerId === playerA?.player_id ? playerA : playerB,
-          keyboardButton: e.key
-        }
+          keyboardButton: e.key,
+        },
       };
 
       try {
-        console.log("Message: ", message)
         ws.send(JSON.stringify(message));
       } catch (err) {
-        console.error('Failed to send keyboard event:', err);
+        console.error("Failed to send keyboard event:", err);
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [wsReady, roomId, selfPlayerId, playerA, playerB]);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [wsReady, roomId, selfPlayerId, playerA, playerB, room]);
 
   if (loading) {
     return (
@@ -233,6 +249,7 @@ export default function RoomPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
+      {/* Header */}
       <header className="sticky top-0 z-40 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
@@ -243,10 +260,9 @@ export default function RoomPage() {
               <div className="text-sm text-slate-400 leading-tight">Room</div>
               <div className="font-semibold tracking-tight">{roomId}</div>
             </div>
-            {/* WebSocket connection status indicator */}
-            <div 
-              className={`ml-2 h-2 w-2 rounded-full ${wsReady ? 'bg-green-500' : 'bg-red-500'}`}
-              title={wsReady ? 'Connected' : 'Disconnected'}
+            <div
+              className={`ml-2 h-2 w-2 rounded-full ${wsReady ? "bg-green-500" : "bg-red-500"}`}
+              title={wsReady ? "Connected" : "Disconnected"}
             />
           </div>
           <div className="flex items-center gap-3">
@@ -296,6 +312,23 @@ export default function RoomPage() {
           <span className="text-xs text-slate-400">
             {bothReady ? "Game ready" : "Waiting for opponent"}
           </span>
+        </div>
+
+        {/* Rubik's Cubes area */}
+        <div className="flex flex-col md:flex-row items-stretch justify-center gap-4 mt-8 mb-16">
+          <div
+            ref={leftRef}
+            tabIndex={0}
+            className="flex-1 min-w-[250px] min-h-[400px] md:min-h-[480px] bg-[#2222] flex items-start justify-start ring-2 ring-indigo-700/30 outline-none focus:ring-4 transition"
+            style={{ maxWidth: "100%", height: "calc(45vh + 80px)" }}
+            title="Click to enable keyboard controls"
+          />
+          <div
+            ref={rightRef}
+            className="flex-1 min-w-[250px] min-h-[400px] md:min-h-[480px] bg-[#2222] flex items-end justify-end"
+            style={{ maxWidth: "100%", height: "calc(45vh + 80px)" }}
+            title="Opponent's view"
+          />
         </div>
       </div>
     </div>

@@ -10,6 +10,10 @@ interface ColorMap {
   [k: number]: string;
 }
 
+interface CubeOptions {
+  controlsEnabled?: boolean;
+}
+
 /** face index order: 0:U,1:R,2:F,3:D,4:L,5:B */
 const FACE_ORDER: Record<FaceName, FaceIndex> = { U: 0, R: 1, F: 2, D: 3, L: 4, B: 5 };
 
@@ -356,45 +360,51 @@ class RubiksCube {
   cubelets: THREE.Mesh[] = [];
   pivot = new THREE.Group();
   animating = false;
+  controlsEnabled: boolean;
 
   constructor(
     public container: HTMLElement,
     public state: number[][][],
-    public colorMap: ColorMap
+    public colorMap: ColorMap,
+    options: CubeOptions = {}
   ) {
+    this.controlsEnabled = options.controlsEnabled ?? true; // default true
+
     // Scene
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x0b0b0b);
-  
+
     const rect = container.getBoundingClientRect();
     const w = Math.max(1, rect.width);
     const h = Math.max(1, rect.height);
-  
+
     // Renderer
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(w, h, false);             // internal buffer only
     this.renderer.shadowMap.enabled = true;         // ✅ enable shadows
     this.renderer.outputColorSpace = THREE.SRGBColorSpace; // ✅ recommended
-  
+
     // Stretch to container
     this.renderer.domElement.style.width = "100%";
     this.renderer.domElement.style.height = "100%";
     this.renderer.domElement.style.display = "block";
     container.appendChild(this.renderer.domElement);
-  
+
     // Camera
     this.camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 100);
     this.camera.position.set(5.5, 5.5, 7.5);
     this.camera.lookAt(0, 0, 0);                    // ✅ optional but nice
-  
+
     // Controls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
     this.controls.target.set(0, 0, 0);
     this.controls.update();
-  
+    // Enable or disable controls according to option
+    this.controls.enabled = !!this.controlsEnabled;
+
     // Lights & floor
     const hemi = new THREE.HemisphereLight(0xffffff, 0x12121a, 0.6);
     this.scene.add(hemi);
@@ -402,7 +412,7 @@ class RubiksCube {
     key.position.set(8, 12, 6);
     key.castShadow = true;
     this.scene.add(key);
-  
+
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(20, 20),
       new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.9 })
@@ -411,12 +421,12 @@ class RubiksCube {
     floor.position.y = -2.2;
     floor.receiveShadow = true;
     this.scene.add(floor);
-  
+
     // Root & pivot
     this.root = new THREE.Group();
     this.scene.add(this.root);
     this.root.add(this.pivot);
-  
+
     // Build 27 cubelets
     for (let yi = 0; yi < 3; yi++) {
       for (let zi = 0; zi < 3; zi++) {
@@ -428,18 +438,19 @@ class RubiksCube {
         }
       }
     }
-  
+
     // Paint stickers
     this.paint(this.state);
-  
+
     // Resize + loop
     window.addEventListener("resize", this.onResize);
     this.renderer.setAnimationLoop(this.render);
-  
-    // Keyboard moves
-    window.addEventListener("keydown", this.onKeyDown);
+
+    // Keyboard moves (only enable when controls are enabled)
+    if (this.controlsEnabled) {
+      window.addEventListener("keydown", this.onKeyDown);
+    }
   }
-  
 
   onKeyDown = (e: KeyboardEvent) => {
     const k = e.key.toUpperCase();
@@ -449,33 +460,29 @@ class RubiksCube {
     }
   };
 
-//   onResize = () => {
-//     const w = this.container.clientWidth || window.innerWidth;
-//     const h = this.container.clientHeight || window.innerHeight;
-//     this.camera.aspect = w / h;
-//     this.camera.updateProjectionMatrix();
-//     this.renderer.setSize(w, h);
-//   };
   onResize = () => {
     const rect = this.container.getBoundingClientRect();
     const w = Math.max(1, rect.width);
     const h = Math.max(1, rect.height);
-  
+
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h, false); // keep CSS at 100%
   };
-  
 
   render = () => {
-    this.controls.update();
+    if (this.controlsEnabled) {
+      this.controls.update();
+    }
     this.renderer.render(this.scene, this.camera);
   };
 
   dispose() {
     this.renderer.setAnimationLoop(null);
     window.removeEventListener("resize", this.onResize);
-    window.removeEventListener("keydown", this.onKeyDown);
+    if (this.controlsEnabled) {
+      window.removeEventListener("keydown", this.onKeyDown);
+    }
     this.renderer.dispose();
   }
 
@@ -568,6 +575,14 @@ class RubiksCube {
   }
 }
 
+/**
+ * Extended cube initializer, now accepts an extra options param.
+ * 
+ * @param container - The DOM element container for the cube
+ * @param state - The cube state (6x3x3 array)
+ * @param colorMap - The color map (number: colorHex)
+ * @param options - { controlsEnabled?: boolean }
+ */
 export function initRubiksCube(
   container: HTMLElement,
   state: number[][][],
@@ -578,11 +593,14 @@ export function initRubiksCube(
     4: "#FFD500",
     5: "#FF5800",
     6: "#FFFFFF",
-  }
+  },
+  options: CubeOptions = {}
 ) {
-  const cube = new RubiksCube(container, state, colorMap);
+  const cube = new RubiksCube(container, state, colorMap, options);
   return {
     turn: (face: FaceName, cw = true) => cube.turn(face, cw),
     dispose: () => cube.dispose(),
+    // You may wish to expose controlsEnabled externally if needed:
+    controlsEnabled: cube.controlsEnabled,
   };
 }
