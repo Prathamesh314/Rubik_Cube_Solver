@@ -20,30 +20,6 @@ const COLOR_MAP = {
   6: "#FFFFFF", // White
 };
 
-function IsRubikCubeSolved(cube: number[][][]): boolean {
-  if (!Array.isArray(cube) || cube.length !== 6) return false;
-
-  const isUniformFace = (face: number[][]): boolean => {
-    if (!Array.isArray(face) || face.length === 0) return false;
-    const cols = face[0].length;
-    if (cols === 0) return false;
-
-    const target = face[0][0];
-    for (let r = 0; r < face.length; r++) {
-      if (!Array.isArray(face[r]) || face[r].length !== cols) return false;
-      for (let c = 0; c < cols; c++) {
-        if (face[r][c] !== target) return false;
-      }
-    }
-    return true;
-  };
-
-  for (let f = 0; f < 6; f++) {
-    if (!isUniformFace(cube[f]!)) return false;
-  }
-  return true;
-}
-
 
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
@@ -100,17 +76,38 @@ export default function RoomPage() {
     }
   }, []);
 
+  async function handleLeaveRoom() {
+    if (!roomId || !selfPlayerId) return;
+    try {
+      const res = await fetch("/api/remove_player", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          roomId,
+          playerId: selfPlayerId
+        })
+      });
+      router.push("/");
+      return await res.json();
+    } catch (e) {
+      console.error("Failed to leave room:", e);
+      return null;
+    }
+  }
+
   useEffect(() => {
     if (!showCube || !startState) return;
 
     let leftApi: any = null;
     let rightApi: any = null;
 
-    if (leftRef.current) {
-      leftApi = initRubiksCube(leftRef.current, startState, COLOR_MAP, { controlsEnabled: true });
+    if (leftRef.current && wsRef.current) {
+      leftApi = initRubiksCube(leftRef.current, startState, COLOR_MAP, wsRef.current, playerA, room,  {playerA, playerB}, { controlsEnabled: true });
     }
-    if (rightRef.current) {
-      rightApi = initRubiksCube(rightRef.current, startState, COLOR_MAP, { controlsEnabled: false });
+    if (rightRef.current && wsRef.current) {
+      rightApi = initRubiksCube(rightRef.current, startState, COLOR_MAP, wsRef.current, playerB, room, {playerA, playerB}, { controlsEnabled: false });
     }
 
     return () => {
@@ -290,7 +287,7 @@ export default function RoomPage() {
           <div className="flex items-center gap-3">
             <CopyButton value={String(roomId)} />
             <button
-              onClick={() => router.push("/")}
+              onClick={handleLeaveRoom}
               className="rounded-md bg-red-600/80 px-4 py-2 text-sm font-semibold ring-1 ring-red-500/40 hover:bg-red-600 transition"
             >
               Leave

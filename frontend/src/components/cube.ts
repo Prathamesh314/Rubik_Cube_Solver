@@ -1,7 +1,10 @@
 // src/components/cube.ts
 
+import { Player } from "@/modals/player";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { Room } from "@/modals/room";
+import { GameEventTypes } from "@/types/game-events";
 
 type FaceName = "U" | "R" | "F" | "D" | "L" | "B";
 type FaceIndex = 0 | 1 | 2 | 3 | 4 | 5;
@@ -39,6 +42,31 @@ type CubeState = number[][][]; // 6 x 3 x 3
 
 // Face index map (must match your renderer expectations)
 const FACE_INDEX: Record<FaceName, number> = { U: 0, R: 1, F: 2, D: 3, L: 4, B: 5 };
+
+// Checking the cube is solved or not after every move.
+function IsRubikCubeSolved(cube: number[][][]): boolean {
+    if (!Array.isArray(cube) || cube.length !== 6) return false;
+  
+    const isUniformFace = (face: number[][]): boolean => {
+      if (!Array.isArray(face) || face.length === 0) return false;
+      const cols = face[0].length;
+      if (cols === 0) return false;
+  
+      const target = face[0][0];
+      for (let r = 0; r < face.length; r++) {
+        if (!Array.isArray(face[r]) || face[r].length !== cols) return false;
+        for (let c = 0; c < cols; c++) {
+          if (face[r][c] !== target) return false;
+        }
+      }
+      return true;
+    };
+  
+    for (let f = 0; f < 6; f++) {
+      if (!isUniformFace(cube[f]!)) return false;
+    }
+    return true;
+  }
 
 // Build a solved cube with color IDs 1..6 (you can remap as you like)
 function makeSolved(): CubeState {
@@ -361,13 +389,26 @@ class RubiksCube {
   pivot = new THREE.Group();
   animating = false;
   controlsEnabled: boolean;
+  websocket_conn: WebSocket | null;
+  player: Player | undefined;
+
+  room: Room | null;
+  participants: Array<Player | undefined>;
 
   constructor(
     public container: HTMLElement,
     public state: number[][][],
     public colorMap: ColorMap,
+    public wsRef: WebSocket | null,
+    player: Player|undefined,
+    room: Room | null,
+    participants: Array<Player | undefined>,
     options: CubeOptions = {}
   ) {
+    this.player = player;
+    this.websocket_conn = wsRef
+    this.room = room
+    this.participants = participants
     this.controlsEnabled = options.controlsEnabled ?? true; // default true
 
     // Scene
@@ -571,6 +612,30 @@ class RubiksCube {
       c.rotation.set(snap(e.x), snap(e.y), snap(e.z));
     }
 
+    // ⬇️ NEW: advance logical state & check solved
+    this.state = applyMove(this.state, { face, clockwise });
+    if (IsRubikCubeSolved(this.state)) {
+      const ws = this.websocket_conn;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        const message = {
+          type: GameEventTypes.GameFinished,
+          value: {
+            base_values: {
+              room: this.room,
+              participants: this.participants,
+            },
+            end_time: new Date().toISOString(),
+          },
+        };
+        try {
+          ws.send(JSON.stringify(message));
+          console.log("Game finished event send..");
+        } catch (err) {
+          console.error("Failed to send GameFinished message:", err);
+        }
+      }
+    }
+
     this.animating = false;
   }
 }
@@ -594,9 +659,16 @@ export function initRubiksCube(
     5: "#FF5800",
     6: "#FFFFFF",
   },
+  wsRef: WebSocket | null,
+  player: Player|undefined,
+  room: Room | null,
+  participants: Array<Player | undefined>,
   options: CubeOptions = {}
 ) {
-  const cube = new RubiksCube(container, state, colorMap, options);
+    if (player === undefined) {
+        throw Error("Cannot start the game the player is undefined....")
+    }
+  const cube = new RubiksCube(container, state, colorMap, wsRef, player, room, participants, options);
   return {
     turn: (face: FaceName, cw = true) => cube.turn(face, cw),
     dispose: () => cube.dispose(),

@@ -44,7 +44,8 @@ export default function Page() {
 
     // Left cube: interactive/rotatable
     if (leftRef.current) {
-      leftApi = initRubiksCube(leftRef.current, solved, colorMap, { controlsEnabled: true });
+      // Pass wsRef and player as null/undefined since not used here
+      leftApi = initRubiksCube(leftRef.current, solved, colorMap, null, undefined, null, {}, { controlsEnabled: true });
     }
     // Right cube: not rotatable (view only)
     if (rightRef.current) {
@@ -52,6 +53,9 @@ export default function Page() {
         rightRef.current,
         scrambled,
         colorMap,
+        null,
+        undefined,
+        null, {},
         { controlsEnabled: false }  // disables orbit/keyboard controls
       );
     }

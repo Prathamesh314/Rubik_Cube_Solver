@@ -183,6 +183,19 @@ export class Redis {
         this.ensureConnection();
         await this.redis_client!.hSet(PLAYER_ROOMS_HASH_KEY, playerId, roomId);
     }
+
+    async remove_player_from_room(playerId: string, roomId: string): Promise<boolean> {
+        this.ensureConnection();
+        const currentRoom = await this.redis_client!.hGet(PLAYER_ROOMS_HASH_KEY, playerId);
+        if (currentRoom === roomId) {
+            // Remove player-to-room mapping
+            await this.redis_client!.hDel(PLAYER_ROOMS_HASH_KEY, playerId);
+            // Remove player from main players hash
+            await this.redis_client!.hDel(PLAYERS_HASH_KEY, playerId);
+            return true;
+        }
+        return false;
+    }
       
     async get_player_room(playerId: string): Promise<string | null> {
         this.ensureConnection();

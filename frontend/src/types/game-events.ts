@@ -26,10 +26,10 @@ export interface GameStartEventMessageValues {
 }
 
 export interface GameEndEventMessageValues {
-  base_values: BaseMessageValues;
-  end_time: string;
-}
-
+    base_values: BaseMessageValues;
+    end_time: string;
+  }
+  
 export interface CubeMovedEventMessageValues {
   base_values: BaseMessageValues;
   move: keyof typeof THREE_SIDE_CUBE_MOVES;
