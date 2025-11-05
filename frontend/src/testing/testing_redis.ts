@@ -1,6 +1,6 @@
 import { Player, PlayerState } from "@/modals/player";
 import { Redis } from "@/utils/redis";
-import { randomUUID } from "crypto";
+// import { randomUUID } from "crypto";
 
 async function show_keys(redis: Redis){
     if (redis.redis_client) {
@@ -62,21 +62,21 @@ async function main() {
         {}
     );
 
-    const has_players = await redis.has_players();
-    if (has_players) {
-        const players = await redis.get_all_players()
-        const player1 = players[0]
-        console.log("All players: ", player1);
+    // const has_players = await redis.has_players();
+    // if (has_players) {
+    //     const players = await redis.get_all_players()
+    //     const player1 = players[0]
+    //     console.log("All players: ", player1);
     //     // fetch which room the player1 is waiting inside??
 
-        const roomID = await redis.get_player_room(player1.player_id);
-        console.log("Roomid: ", roomID);
+        // const roomID = await redis.get_player_room(player1.player_id);
+        // console.log("Roomid: ", roomID);
     //     // delete the player from the cache and also room as well
     //     await redis.delete_player(player1.player_id);
     //     await redis.clear_player_room(player1.player_id);
 
     //     console.log("Playe 1 removed....")
-    }
+    // }
     // } else {
     //     await redis.insert_player(p1)
     //     const roomID: string = randomUUID()
@@ -88,13 +88,13 @@ async function main() {
     // console.log("Inserted res: ", insert_res)
     // const has_players = await redis.has_players();
     // console.log("Has players: ", has_players)
-    // await redis.delete_all_players();
-    // await redis.delete_all_rooms();
+    await redis.delete_all_players();
+    await redis.delete_all_rooms();
     
-    // await redis.clear_player_room();
+    await redis.clear_player_room();
 
     // Display all keys and their values in Redis (assuming you have access to redis_client)
-    await show_keys(redis)
+    // await show_keys(redis)
     process.exit(0);
 }
 

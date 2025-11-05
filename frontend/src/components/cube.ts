@@ -5,6 +5,9 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Room } from "@/modals/room";
 import { GameEventTypes } from "@/types/game-events";
+// add near the top of cube.ts
+import CubeHelper from "@/utils/cube_helper"; // <-- change path if different
+
 
 type FaceName = "U" | "R" | "F" | "D" | "L" | "B";
 type FaceIndex = 0 | 1 | 2 | 3 | 4 | 5;
@@ -41,7 +44,7 @@ type Move = { face: FaceName; clockwise: boolean };
 type CubeState = number[][][]; // 6 x 3 x 3
 
 // Face index map (must match your renderer expectations)
-const FACE_INDEX: Record<FaceName, number> = { U: 0, R: 1, F: 2, D: 3, L: 4, B: 5 };
+const FACE_INDEX: Record<FaceName, number> = { B: 0, U: 1, F: 2, D: 3, L: 4, R: 5 };
 
 // Checking the cube is solved or not after every move.
 function IsRubikCubeSolved(cube: number[][][]): boolean {
@@ -107,171 +110,213 @@ function cloneState(s: CubeState): CubeState {
 // --- Move application ---
 // Conventions: applying a move rotates the face as seen from outside that face.
 // The edge cycles below are consistent with common cube simulators.
+// export function applyMove(state: CubeState, move: Move): CubeState {
+//     const s = cloneState(state);
+//     const { face, clockwise } = move;
+  
+//     const U = FACE_INDEX.U, R = FACE_INDEX.R, F = FACE_INDEX.F,
+//           D = FACE_INDEX.D, L = FACE_INDEX.L, B = FACE_INDEX.B;
+  
+//     const rotCW = (idx: number) => { s[idx] = rotateFaceCW(s[idx]); };
+//     const rotCCW = (idx: number) => { s[idx] = rotateFaceCCW(s[idx]); };
+  
+//     // --- Helper functions ---
+//     // Gets a copy of a row
+//     const row = (f: number, r: number) => s[f][r].slice();
+//     // Sets a row from a copy
+//     const setRow = (f: number, r: number, vals: number[]) => { s[f][r] = vals.slice(); };
+//     // Gets a column as a new array
+//     const col = (f: number, c: number) => [s[f][0][c], s[f][1][c], s[f][2][c]];
+//     // Sets a column from an array
+//     const setCol = (f: number, c: number, vals: number[]) => {
+//       s[f][0][c] = vals[0]; s[f][1][c] = vals[1]; s[f][2][c] = vals[2];
+//     };
+//     // Returns a new, reversed array (non-mutating)
+//     const rev = (arr: number[]) => arr.slice().reverse();
+//     // ---
+  
+//     switch (face) {
+//       case "U": {
+//         clockwise ? rotCW(U) : rotCCW(U);
+//         // Cycle top rows of F, R, B, L
+//         const F0 = row(F, 0), R0 = row(R, 0), B0 = row(B, 0), L0 = row(L, 0);
+//         if (clockwise) {
+//           setRow(R, 0, F0);
+//           setRow(B, 0, R0);
+//           setRow(L, 0, B0);
+//           setRow(F, 0, L0);
+//         } else {
+//           setRow(L, 0, F0);
+//           setRow(B, 0, L0);
+//           setRow(R, 0, B0);
+//           setRow(F, 0, R0);
+//         }
+//         break;
+//       }
+//       case "D": {
+//         clockwise ? rotCW(D) : rotCCW(D);
+//         // Cycle bottom rows of F, L, B, R
+//         const F2 = row(F, 2), R2 = row(R, 2), B2 = row(B, 2), L2 = row(L, 2);
+//         if (clockwise) {
+//           setRow(L, 2, F2);
+//           setRow(B, 2, L2);
+//           setRow(R, 2, B2);
+//           setRow(F, 2, R2);
+//         } else {
+//           setRow(R, 2, F2);
+//           setRow(B, 2, R2);
+//           setRow(L, 2, B2);
+//           setRow(F, 2, L2);
+//         }
+//         break;
+//       }
+//       case "F": {
+//         clockwise ? rotCW(F) : rotCCW(F);
+//         // Affect U row 2, R col 0, D row 0, L col 2
+//         const U2 = row(U, 2);
+//         const R0 = col(R, 0);
+//         const D0 = row(D, 0);
+//         const L2 = col(L, 2);
+  
+//         if (clockwise) {
+//           // U(r2) -> R(c0), R(c0) -> D(r0, rev), D(r0) -> L(c2, rev), L(c2) -> U(r2, rev)
+//           setCol(R, 0, U2);
+//           setRow(D, 0, rev(R0));
+//           setCol(L, 2, rev(D0));
+//           setRow(U, 2, rev(L2));
+//         } else {
+//           // U(r2) -> L(c2), L(c2) -> D(r0, rev), D(r0) -> R(c0, rev), R(c0) -> U(r2)
+//           setCol(L, 2, U2);
+//           setRow(D, 0, rev(L2));
+//           setCol(R, 0, rev(D0));
+//           setRow(U, 2, R0);
+//         }
+//         break;
+//       }
+//       case "B": {
+//         clockwise ? rotCW(B) : rotCCW(B);
+//         // Affect U row 0, L col 0, D row 2, R col 2
+//         const U0 = row(U, 0);
+//         const L0 = col(L, 0);
+//         const D2 = row(D, 2);
+//         const R2 = col(R, 2);
+  
+//         if (clockwise) {
+//           // U(r0) -> L(c0, rev), L(c0) -> D(r2), D(r2) -> R(c2, rev), R(c2) -> U(r0, rev)
+//           setCol(L, 0, rev(U0));
+//           setRow(D, 2, L0);
+//           setCol(R, 2, rev(D2));
+//           setRow(U, 0, rev(R2));
+//         } else {
+//           // U(r0) -> R(c2), R(c2) -> D(r2, rev), D(r2) -> L(c0, rev), L(c0) -> U(r0)
+//           setCol(R, 2, U0);
+//           setRow(D, 2, rev(R2));
+//           setCol(L, 0, rev(D2));
+//           setRow(U, 0, L0);
+//         }
+//         break;
+//       }
+//       case "R": {
+//         clockwise ? rotCW(R) : rotCCW(R);
+//         // Affect U col 2, F col 2, D col 2, B col 0
+//         const U2 = col(U, 2);
+//         const F2 = col(F, 2);
+//         const D2 = col(D, 2);
+//         const B0 = col(B, 0);
+  
+//         if (clockwise) {
+//           // U(c2) -> F(c2), F(c2) -> D(c2), D(c2) -> B(c0, rev), B(c0) -> U(c2, rev)
+//           setCol(F, 2, U2);
+//           setCol(D, 2, F2);
+//           setCol(B, 0, rev(D2));
+//           setCol(U, 2, rev(B0));
+//         } else {
+//           // U(c2) -> B(c0, rev), B(c0) -> D(c2, rev), D(c2) -> F(c2), F(c2) -> U(c2)
+//           setCol(B, 0, rev(U2));
+//           setCol(D, 2, rev(B0));
+//           setCol(F, 2, D2);
+//           setCol(U, 2, F2);
+//         }
+//         break;
+//       }
+//       case "L": {
+//         clockwise ? rotCW(L) : rotCCW(L);
+//         // Affect U col 0, B col 2, D col 0, F col 0
+//         const U0 = col(U, 0);
+//         const B2 = col(B, 2);
+//         const D0 = col(D, 0);
+//         const F0 = col(F, 0);
+  
+//         if (clockwise) {
+//           // U(c0) -> B(c2, rev), B(c2) -> D(c0, rev), D(c0) -> F(c0), F(c0) -> U(c0)
+//           setCol(B, 2, rev(U0));
+//           setCol(D, 0, rev(B2));
+//           setCol(F, 0, D0);
+//           setCol(U, 0, F0);
+//         } else {
+//           // U(c0) -> F(c0), F(c0) -> D(c0), D(c0) -> B(c2, rev), B(c2) -> U(c0, rev)
+//           setCol(F, 0, U0);
+//           setCol(D, 0, F0);
+//           setCol(B, 2, rev(D0));
+//           setCol(U, 0, rev(B2));
+//         }
+//         break;
+//       }
+//     }
+//     return s;
+// }
 
+// put this near your other types in cube.ts
+type Dirs = { Back: number; Top: number; Face: number; Bottom: number; Left: number; Right: number };
+
+// place below FACE_INDEX / FACE_ORDER
+const HELPER_DIRS: Dirs = {
+    Back: FACE_INDEX.B,
+    Top: FACE_INDEX.U,
+    Face: FACE_INDEX.F,
+    Bottom: FACE_INDEX.D,
+    Left: FACE_INDEX.L,
+    Right: FACE_INDEX.R,
+};
+
+  const cubeHelper = new CubeHelper(HELPER_DIRS);
+  
+// --- Move application via CubeHelper ---
 export function applyMove(state: CubeState, move: Move): CubeState {
-  const s = cloneState(state);
-  const { face, clockwise } = move;
-
-  const U = FACE_INDEX.U, R = FACE_INDEX.R, F = FACE_INDEX.F,
-        D = FACE_INDEX.D, L = FACE_INDEX.L, B = FACE_INDEX.B;
-
-  const rotCW = (idx: number) => { s[idx] = rotateFaceCW(s[idx]); };
-  const rotCCW = (idx: number) => { s[idx] = rotateFaceCCW(s[idx]); };
-
-  // Utility to get/set rows/cols
-  const row = (f: number, r: number) => s[f][r].slice();
-  const setRow = (f: number, r: number, vals: number[]) => { s[f][r] = vals.slice(); };
-  const col = (f: number, c: number) => [s[f][0][c], s[f][1][c], s[f][2][c]];
-  const setCol = (f: number, c: number, vals: number[]) => {
-    s[f][0][c] = vals[0]; s[f][1][c] = vals[1]; s[f][2][c] = vals[2];
-  };
-
-  switch (face) {
-    case "U": {
-      clockwise ? rotCW(U) : rotCCW(U);
-      // Cycle top rows of F, R, B, L
-      if (clockwise) {
-        const F0 = row(F, 0), R0 = row(R, 0), B0 = row(B, 0), L0 = row(L, 0);
-        setRow(R, 0, F0);
-        setRow(B, 0, R0);
-        setRow(L, 0, B0);
-        setRow(F, 0, L0);
-      } else {
-        const F0 = row(F, 0), R0 = row(R, 0), B0 = row(B, 0), L0 = row(L, 0);
-        setRow(L, 0, F0);
-        setRow(B, 0, L0);
-        setRow(R, 0, B0);
-        setRow(F, 0, R0);
-      }
-      break;
+    // CubeHelper mutates in-place; keep copy semantics the same as before.
+    const s = cloneState(state);
+    const { face, clockwise } = move;
+  
+    switch (face) {
+      case "U":
+        // CubeHelper.rotateY(..., row=0) -> "U" / "U'"
+        cubeHelper.rotateY(s, clockwise ? -1 : 1, 0);
+        break;
+      case "D":
+        // bottom row index = 2
+        cubeHelper.rotateY(s, clockwise ? -1 : 1, 2);
+        break;
+      case "F":
+        // rotateZ(..., row=2) -> "F" / "F'"
+        cubeHelper.rotateZ(s, clockwise ? 1 : -1, 2);
+        break;
+      case "B":
+        // rotateZ(..., row=0) -> "B" / "B'"
+        cubeHelper.rotateZ(s, clockwise ? 1 : -1, 0);
+        break;
+      case "L":
+        // rotateX(..., col=0) -> "L" / "L'"
+        cubeHelper.rotateX(s, clockwise ? 1 : -1, 0);
+        break;
+      case "R":
+        // rotateX(..., col=2) -> "R" / "R'"
+        cubeHelper.rotateX(s, clockwise ? 1 : -1, 2);
+        break;
     }
-    case "D": {
-      clockwise ? rotCW(D) : rotCCW(D);
-      // Cycle bottom rows of F, L, B, R (note orientation)
-      if (clockwise) {
-        const F2 = row(F, 2), R2 = row(R, 2), B2 = row(B, 2), L2 = row(L, 2);
-        setRow(L, 2, F2);
-        setRow(B, 2, L2);
-        setRow(R, 2, B2);
-        setRow(F, 2, R2);
-      } else {
-        const F2 = row(F, 2), R2 = row(R, 2), B2 = row(B, 2), L2 = row(L, 2);
-        setRow(R, 2, F2);
-        setRow(B, 2, R2);
-        setRow(L, 2, B2);
-        setRow(F, 2, L2);
-      }
-      break;
-    }
-    case "F": {
-      clockwise ? rotCW(F) : rotCCW(F);
-      // Affect U row 2, R col 0, D row 0, L col 2
-      if (clockwise) {
-        const U2 = row(U, 2);
-        const R0 = col(R, 0);
-        const D0 = row(D, 0);
-        const L2 = col(L, 2);
-
-        // U2 -> R0, R0 -> D0 (reversed), D0 -> L2, L2 -> U2 (reversed)
-        setCol(R, 0, [U2[2], U2[1], U2[0]]);
-        setRow(D, 0, [R0[0], R0[1], R0[2]].reverse());
-        setCol(L, 2, [D0[0], D0[1], D0[2]]);
-        setRow(U, 2, [L2[2], L2[1], L2[0]]);
-      } else {
-        const U2 = row(U, 2);
-        const R0 = col(R, 0);
-        const D0 = row(D, 0);
-        const L2 = col(L, 2);
-
-        setCol(L, 2, [U2[0], U2[1], U2[2]].reverse());
-        setRow(D, 0, [L2[0], L2[1], L2[2]]);
-        setCol(R, 0, [D0[2], D0[1], D0[0]]);
-        setRow(U, 2, [R0[0], R0[1], R0[2]]);
-      }
-      break;
-    }
-    case "B": {
-      clockwise ? rotCW(B) : rotCCW(B);
-      // Affect U row 0, L col 0, D row 2, R col 2
-      if (clockwise) {
-        const U0 = row(U, 0);
-        const L0 = col(L, 0);
-        const D2 = row(D, 2);
-        const R2 = col(R, 2);
-
-        setCol(L, 0, [U0[0], U0[1], U0[2]].reverse());
-        setRow(D, 2, [L0[0], L0[1], L0[2]]);
-        setCol(R, 2, [D2[2], D2[1], D2[0]]);
-        setRow(U, 0, [R2[0], R2[1], R2[2]]);
-      } else {
-        const U0 = row(U, 0);
-        const L0 = col(L, 0);
-        const D2 = row(D, 2);
-        const R2 = col(R, 2);
-
-        setCol(R, 2, [U0[0], U0[1], U0[2]]);
-        setRow(D, 2, [R2[2], R2[1], R2[0]]);
-        setCol(L, 0, [D2[0], D2[1], D2[2]]);
-        setRow(U, 0, [L0[2], L0[1], L0[0]]);
-      }
-      break;
-    }
-    case "R": {
-      clockwise ? rotCW(R) : rotCCW(R);
-      // Affect U col 2, F col 2, D col 2, B col 0
-      if (clockwise) {
-        const U2 = col(U, 2);
-        const F2 = col(F, 2);
-        const D2 = col(D, 2);
-        const B0 = col(B, 0);
-
-        setCol(F, 2, U2);
-        setCol(D, 2, F2);
-        setCol(B, 0, [D2[2], D2[1], D2[0]]); // reversed
-        setCol(U, 2, [B0[2], B0[1], B0[0]]); // reversed
-      } else {
-        const U2 = col(U, 2);
-        const F2 = col(F, 2);
-        const D2 = col(D, 2);
-        const B0 = col(B, 0);
-
-        setCol(B, 0, [U2[2], U2[1], U2[0]]); // reversed
-        setCol(D, 2, [B0[2], B0[1], B0[0]]); // reversed
-        setCol(F, 2, D2);
-        setCol(U, 2, F2);
-      }
-      break;
-    }
-    case "L": {
-      clockwise ? rotCW(L) : rotCCW(L);
-      // Affect U col 0, B col 2, D col 0, F col 0
-      if (clockwise) {
-        const U0 = col(U, 0);
-        const B2 = col(B, 2);
-        const D0 = col(D, 0);
-        const F0 = col(F, 0);
-
-        setCol(B, 2, [D0[2], D0[1], D0[0]]); // reversed
-        setCol(D, 0, F0);
-        setCol(F, 0, U0);
-        setCol(U, 0, [B2[2], B2[1], B2[0]]); // reversed
-      } else {
-        const U0 = col(U, 0);
-        const B2 = col(B, 2);
-        const D0 = col(D, 0);
-        const F0 = col(F, 0);
-
-        setCol(F, 0, D0);
-        setCol(D, 0, [B2[2], B2[1], B2[0]]); // reversed
-        setCol(B, 2, [U0[2], U0[1], U0[0]]); // reversed
-        setCol(U, 0, F0);
-      }
-      break;
-    }
-  }
-
-  return s;
+  
+    return s;
 }
+  
 
 // Random scramble generation with axis constraint
 const FACES: FaceName[] = ["U", "R", "F", "D", "L", "B"];
