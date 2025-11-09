@@ -1,180 +1,49 @@
-type FaceName = "U" | "R" | "F" | "D" | "L" | "B";
-type Cube = number[][][];
-type Move = {face: FaceName, clockwise: boolean};
+import { Player } from "@/modals/player";
+import { Room } from "@/modals/room";
+import { SimpleCubeHelper } from "@/utils/cube_helper";
 
-class SimpleCubeHelper {
-  rotateFaceClockwise(face: number[][]) {
-    return [
-      [face[2][0], face[1][0], face[0][0]],
-      [face[2][1], face[1][1], face[0][1]],
-      [face[2][2], face[1][2], face[0][2]]
-    ];
-  }
+export type FaceName = "U" | "R" | "F" | "D" | "L" | "B";
+export type Cube = number[][][];
+export type Move = {face: FaceName, clockwise: boolean};
 
-  rotateFaceCounterClockwise(face: number[][]) {
-    return [
-      [face[0][2], face[1][2], face[2][2]],
-      [face[0][1], face[1][1], face[2][1]],
-      [face[0][0], face[1][0], face[2][0]]
-    ];
-  }
+export interface ColorMap {
+  [k: number]: string;
+}
 
-  rotateU(cube: Cube, clockwise: boolean): Cube {
-    const newCube = JSON.parse(JSON.stringify(cube));
-    
-    newCube[1] = clockwise 
-      ? this.rotateFaceClockwise(cube[1])
-      : this.rotateFaceCounterClockwise(cube[1]);
-    
-    if (clockwise) {
-      const temp = newCube[2][0];
-      newCube[2][0] = newCube[5][0]; 
-      newCube[5][0] = newCube[0][0]; 
-      newCube[0][0] = newCube[4][0]; 
-      newCube[4][0] = temp; 
-    } else {
-      const temp = newCube[2][0]; 
-      newCube[2][0] = newCube[4][0]; 
-      newCube[4][0] = newCube[0][0]; 
-      newCube[0][0] = newCube[5][0]; 
-      newCube[5][0] = temp; 
-    }
-    
-    return newCube;
-  }
-
-  rotateD(cube: Cube, clockwise: boolean): Cube {
-    const newCube = JSON.parse(JSON.stringify(cube));
-    
-    
-    newCube[3] = clockwise 
-      ? this.rotateFaceClockwise(cube[3])
-      : this.rotateFaceCounterClockwise(cube[3]);
-    
-    
-    if (clockwise) {
-      const temp = newCube[2][2]; 
-      newCube[2][2] = newCube[4][2]; 
-      newCube[4][2] = newCube[0][2]; 
-      newCube[0][2] = newCube[5][2]; 
-      newCube[5][2] = temp; 
-    } else {
-      const temp = newCube[2][2]; 
-      newCube[2][2] = newCube[5][2]; 
-      newCube[5][2] = newCube[0][2]; 
-      newCube[0][2] = newCube[4][2]; 
-      newCube[4][2] = temp; 
-    }
-    
-    return newCube;
-  }
-
-  rotateF(cube: Cube, clockwise: boolean): Cube {
-    const newCube = JSON.parse(JSON.stringify(cube));
-    
-    newCube[2] = clockwise 
-      ? this.rotateFaceClockwise(cube[2])
-      : this.rotateFaceCounterClockwise(cube[2]);
-    
-    if (clockwise) {
-      const temp = [newCube[1][2][0], newCube[1][2][1], newCube[1][2][2]]; //
-      newCube[1][2] = [newCube[4][2][2], newCube[4][1][2], newCube[4][0][2]]; 
-      [newCube[4][0][2], newCube[4][1][2], newCube[4][2][2]] = [newCube[3][0][0], newCube[3][0][1], newCube[3][0][2]]; 
-      newCube[3][0] = [newCube[5][2][0], newCube[5][1][0], newCube[5][0][0]]; 
-      [newCube[5][0][0], newCube[5][1][0], newCube[5][2][0]] = temp; 
-    } else {
-      const temp = [newCube[1][2][0], newCube[1][2][1], newCube[1][2][2]]; 
-      newCube[1][2] = [newCube[5][0][0], newCube[5][1][0], newCube[5][2][0]]; 
-      [newCube[5][0][0], newCube[5][1][0], newCube[5][2][0]] = [newCube[3][0][2], newCube[3][0][1], newCube[3][0][0]]; 
-      newCube[3][0] = [newCube[4][0][2], newCube[4][1][2], newCube[4][2][2]]; 
-      [newCube[4][0][2], newCube[4][1][2], newCube[4][2][2]] = [temp[2], temp[1], temp[0]]; 
-    }
-    
-    return newCube;
-  }
-
-  rotateB(cube: Cube, clockwise: boolean): Cube {
-    const newCube = JSON.parse(JSON.stringify(cube));
-    
-    
-    newCube[0] = clockwise 
-      ? this.rotateFaceClockwise(cube[0])
-      : this.rotateFaceCounterClockwise(cube[0]);
-    
-    if (clockwise) {
-      const temp = [newCube[1][0][0], newCube[1][0][1], newCube[1][0][2]]; 
-      newCube[1][0] = [newCube[5][0][2], newCube[5][1][2], newCube[5][2][2]]; 
-      [newCube[5][0][2], newCube[5][1][2], newCube[5][2][2]] = [newCube[3][2][2], newCube[3][2][1], newCube[3][2][0]]; 
-      newCube[3][2] = [newCube[4][0][0], newCube[4][1][0], newCube[4][2][0]]; 
-      [newCube[4][0][0], newCube[4][1][0], newCube[4][2][0]] = [temp[2], temp[1], temp[0]]; 
-    } else {
-      const temp = [newCube[1][0][0], newCube[1][0][1], newCube[1][0][2]]; 
-      newCube[1][0] = [newCube[4][2][0], newCube[4][1][0], newCube[4][0][0]]; 
-      [newCube[4][0][0], newCube[4][1][0], newCube[4][2][0]] = [newCube[3][2][0], newCube[3][2][1], newCube[3][2][2]]; 
-      newCube[3][2] = [newCube[5][2][2], newCube[5][1][2], newCube[5][0][2]]; 
-      [newCube[5][0][2], newCube[5][1][2], newCube[5][2][2]] = temp; 
-    }
-    
-    return newCube;
-  }
-
-  rotateL(cube: Cube, clockwise: boolean): Cube {
-    const newCube = JSON.parse(JSON.stringify(cube));
-    
-    
-    newCube[4] = clockwise 
-      ? this.rotateFaceClockwise(cube[4])
-      : this.rotateFaceCounterClockwise(cube[4]);
-    
-    if (clockwise) {
-      const temp = [newCube[1][0][0], newCube[1][1][0], newCube[1][2][0]]; 
-      [newCube[1][0][0], newCube[1][1][0], newCube[1][2][0]] = [newCube[0][2][2], newCube[0][1][2], newCube[0][0][2]]; 
-      [newCube[0][0][2], newCube[0][1][2], newCube[0][2][2]] = [newCube[3][2][0], newCube[3][1][0], newCube[3][0][0]]; 
-      [newCube[3][0][0], newCube[3][1][0], newCube[3][2][0]] = [newCube[2][0][0], newCube[2][1][0], newCube[2][2][0]]; 
-      [newCube[2][0][0], newCube[2][1][0], newCube[2][2][0]] = temp; 
-    } else {
-      const temp = [newCube[1][0][0], newCube[1][1][0], newCube[1][2][0]]; 
-      [newCube[1][0][0], newCube[1][1][0], newCube[1][2][0]] = [newCube[2][0][0], newCube[2][1][0], newCube[2][2][0]]; 
-      [newCube[2][0][0], newCube[2][1][0], newCube[2][2][0]] = [newCube[3][0][0], newCube[3][1][0], newCube[3][2][0]]; 
-      [newCube[3][0][0], newCube[3][1][0], newCube[3][2][0]] = [newCube[0][2][2], newCube[0][1][2], newCube[0][0][2]]; 
-      [newCube[0][0][2], newCube[0][1][2], newCube[0][2][2]] = [temp[2], temp[1], temp[0]]; 
-    }
-    
-    return newCube;
-  }
-
-  rotateR(cube: Cube, clockwise: boolean): Cube {
-    const newCube = JSON.parse(JSON.stringify(cube));
-    
-    
-    newCube[5] = clockwise 
-      ? this.rotateFaceClockwise(cube[5])
-      : this.rotateFaceCounterClockwise(cube[5]);
-    
-    if (clockwise) {
-      const temp = [newCube[1][0][2], newCube[1][1][2], newCube[1][2][2]]; 
-      [newCube[1][0][2], newCube[1][1][2], newCube[1][2][2]] = [newCube[2][0][2], newCube[2][1][2], newCube[2][2][2]]; 
-      [newCube[2][0][2], newCube[2][1][2], newCube[2][2][2]] = [newCube[3][0][2], newCube[3][1][2], newCube[3][2][2]]; 
-      [newCube[3][0][2], newCube[3][1][2], newCube[3][2][2]] = [newCube[0][2][0], newCube[0][1][0], newCube[0][0][0]]; 
-      [newCube[0][0][0], newCube[0][1][0], newCube[0][2][0]] = [temp[2], temp[1], temp[0]]; 
-    } else {
-      const temp = [newCube[1][0][2], newCube[1][1][2], newCube[1][2][2]]; 
-      [newCube[1][0][2], newCube[1][1][2], newCube[1][2][2]] = [newCube[0][2][0], newCube[0][1][0], newCube[0][0][0]]; 
-      [newCube[0][0][0], newCube[0][1][0], newCube[0][2][0]] = [newCube[3][2][2], newCube[3][1][2], newCube[3][0][2]]; 
-      [newCube[3][0][2], newCube[3][1][2], newCube[3][2][2]] = [newCube[2][0][2], newCube[2][1][2], newCube[2][2][2]]; 
-      [newCube[2][0][2], newCube[2][1][2], newCube[2][2][2]] = temp; 
-    }
-    
-    return newCube;
-  }
+export interface CubeOptions {
+  controlsEnabled?: boolean;
 }
 
 export class RubikCube {
   private cube: Cube;
   private helper = new SimpleCubeHelper();
+  container: HTMLElement;
+  cube_options: CubeOptions;
+  wsRef: WebSocket | null;
+  player: Player|undefined;
+  room: Room | null;
+  participants: Array<Player | undefined>;
 
-  constructor(cube?: Cube) {
-    this.cube = cube || this.createSolvedCube();
+  constructor(container: HTMLElement, cube_options: CubeOptions, wsRef: WebSocket | null, player: Player | undefined, room: Room | null, participants: Array<Player | undefined>, cube: Cube) {
+    this.cube = cube;
+    this.cube_options = cube_options;
+    this.container = container;
+    this.wsRef = wsRef;
+    this.player = player;
+    this.room = room;
+    this.participants = participants;
+  }
+
+  get_cube() {
+    return this.cube;
+  }
+
+  get_cube_helper() {
+    return this.helper
+  }
+
+  set_cube(new_cube_state: Cube) {
+    this.cube = new_cube_state
   }
 
   private createSolvedCube(): Cube {
@@ -195,7 +64,7 @@ export class RubikCube {
   applyMove(move: Move): Cube {
     switch(move.face) {
       case "U":
-        this.cube = this.helper.rotateU(this.cube, move.clockwise);
+        this.cube = this.helper.rotateU(this.cube, move.clockwise)
         break;
       case "D":
         this.cube = this.helper.rotateD(this.cube, move.clockwise);
@@ -213,15 +82,22 @@ export class RubikCube {
         this.cube = this.helper.rotateR(this.cube, move.clockwise);
         break;
     }
-    return this.getCubeState();
+    return JSON.parse(JSON.stringify(this.cube));
   }
 
-  scramble(numMoves: number = 20): Cube {
-    const faces: FaceName[] = ["U", "D", "F", "B", "L", "R"];
-    for (let i = 0; i < numMoves; i++) {
-      const face = faces[Math.floor(Math.random() * faces.length)];
-      const clockwise = Math.random() > 0.5;
-      this.applyMove({ face, clockwise });
+  generateScrambledCube(number_of_moves: number) {
+    const faces: Array<"U" | "D" | "F" | "B" | "L" | "R"> = ["U", "D", "F", "B", "L", "R"];
+    let prevFace: string | null = null;
+
+    for (let i = 0; i < number_of_moves; i++) {
+      let face: string;
+      do {
+        face = faces[Math.floor(Math.random() * faces.length)];
+      } while (face === prevFace);
+
+      prevFace = face;
+      const clockwise = Math.random() < 0.5;
+      this.applyMove({ face: face as FaceName, clockwise });
     }
     return this.getCubeState();
   }
@@ -230,4 +106,34 @@ export class RubikCube {
     this.cube = this.createSolvedCube();
     return this.getCubeState();
   }
+}
+
+/**
+ * Extended cube initializer, now accepts an extra options param.
+ * 
+ * @param container - The DOM element container for the cube
+ * @param state - The cube state (6x3x3 array)
+ * @param colorMap - The color map (number: colorHex)
+ * @param options - { controlsEnabled?: boolean }
+ */
+export function initRubiksCube(
+  container: HTMLElement,
+  state: number[][][],
+  wsRef: WebSocket | null,
+  player: Player|undefined,
+  room: Room | null,
+  participants: Array<Player | undefined>,
+  options: CubeOptions = {}
+) {
+    if (player === undefined) {
+        throw Error("Cannot start the game the player is undefined....")
+    }
+  const cube = new RubikCube(container, options, wsRef, player, room, participants, state);
+  // return {
+  //   turn: (face: FaceName, cw = true) => cube.turn(face, cw),
+  //   dispose: () => cube.dispose(),
+  //   // You may wish to expose controlsEnabled externally if needed:
+  //   controlsEnabled: cube.controlsEnabled,
+  // };
+  return cube;
 }

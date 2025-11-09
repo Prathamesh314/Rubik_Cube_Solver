@@ -7,19 +7,33 @@ import { Player } from "@/modals/player";
 import { Env } from "@/lib/env_config";
 import { Room } from "@/modals/room";
 import { GameEventTypes } from "@/types/game-events";
-import { generateScrambledCube, initRubiksCube } from "@/components/cube";
+import RubiksCubeViewer from "@/components/RubiksCubeViewer";
 
 const WS_URL = Env.NEXT_PUBLIC_WEBSOCKET_URL;
 
-const COLOR_MAP = {
-  1: "#C41E3A", // Red
-  2: "#009B48", // Green
-  3: "#0051BA", // Blue
-  4: "#FFD500", // Yellow
-  5: "#FF5800", // Orange
-  6: "#FFFFFF", // White
-};
+function generateScrambledCube(number_of_moves: number) {
+  const flat: number[] = [];
+  for (let i = 1; i <= 6; i++) {
+    for (let j = 0; j < 9; j++) {
+      flat.push(i);
+    }
+  }
 
+  for (let i = flat.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [flat[i], flat[j]] = [flat[j], flat[i]];
+  }
+
+  const result: number[][][] = [];
+  for (let face = 0; face < 6; face++) {
+    const faceArray: number[][] = [];
+    for (let row = 0; row < 3; row++) {
+      faceArray.push(flat.slice(face * 9 + row * 3, face * 9 + row * 3 + 3));
+    }
+    result.push(faceArray);
+  }
+  return result;
+}
 
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
@@ -53,16 +67,14 @@ export default function RoomPage() {
   const [playerB, setPlayerB] = useState<Player | undefined>();
   const [roomSize, setRoomSize] = useState<number>(0);
   const [showCube, setShowCube] = useState<boolean>(false);
+  const leftRef = useRef<HTMLDivElement | null>(null);
+  const rightRef = useRef<HTMLDivElement | null>(null);
 
   const [wsReady, setWsReady] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const leftRef = useRef<HTMLDivElement | null>(null);
-  const rightRef = useRef<HTMLDivElement | null>(null);
 
   const [startState, setStartState] = useState<number[][][] | null>(null);
-  const [selfCubeState, setSelfCubeState] = useState<number[][][] | null>(null);
-  const [opponentCubeState, setOpponentCubeState] = useState<number[][][] | null>(null);
 
   const selfPlayerId = useMemo(() => {
     if (typeof window === "undefined") return null;
@@ -98,25 +110,6 @@ export default function RoomPage() {
   }
 
   useEffect(() => {
-    if (!showCube || !startState) return;
-
-    let leftApi: any = null;
-    let rightApi: any = null;
-
-    if (leftRef.current && wsRef.current) {
-      leftApi = initRubiksCube(leftRef.current, startState, COLOR_MAP, wsRef.current, playerA, room,  {playerA, playerB}, { controlsEnabled: true });
-    }
-    if (rightRef.current && wsRef.current) {
-      rightApi = initRubiksCube(rightRef.current, startState, COLOR_MAP, wsRef.current, playerB, room, {playerA, playerB}, { controlsEnabled: false });
-    }
-
-    return () => {
-      if (leftApi) leftApi.dispose();
-      if (rightApi) rightApi.dispose();
-    };
-  }, [showCube, startState]);
-
-  useEffect(() => {
     let mounted = true;
 
     const fetchRoomData = async () => {
@@ -136,7 +129,7 @@ export default function RoomPage() {
         } else if (data.players.length === 2) {
           setRoomSize(2);
           // same scramble for both
-          const scrambled_cube = generateScrambledCube(20).state;
+          const scrambled_cube = generateScrambledCube(20);
           setStartState(scrambled_cube);
           data.players[0].scrambledCube = scrambled_cube;
           data.players[1].scrambledCube = scrambled_cube;
@@ -335,19 +328,45 @@ export default function RoomPage() {
 
         {/* Rubik's Cubes area */}
         <div className="flex flex-col md:flex-row items-stretch justify-center gap-4 mt-8 mb-16">
-          <div
-            ref={leftRef}
-            tabIndex={0}
-            className="flex-1 min-w-[250px] min-h-[400px] md:min-h-[480px] bg-[#2222] flex items-start justify-start ring-2 ring-indigo-700/30 outline-none focus:ring-4 transition"
-            style={{ maxWidth: "100%", height: "calc(45vh + 80px)" }}
-            title="Click to enable keyboard controls"
-          />
-          <div
-            ref={rightRef}
-            className="flex-1 min-w-[250px] min-h-[400px] md:min-h-[480px] bg-[#2222] flex items-end justify-end"
-            style={{ maxWidth: "100%", height: "calc(45vh + 80px)" }}
-            title="Opponent's view"
-          />
+          {/* Show two RubiksCubeViewer components, one for each player, passing correct player and control props */}
+          <div className="flex-1 flex flex-col items-center">
+            <div className="mb-2 font-semibold text-slate-200">
+              {playerA?.username || "Player A"}
+              {playerA && playerA.player_id === selfPlayerId ? " (You)" : ""}
+            </div>
+            <div ref={leftRef} className="w-full">
+              <RubiksCubeViewer
+              container={leftRef.current}
+                cube={startState ?? generateScrambledCube(20)}
+                cube_options={{
+                  controlsEnabled: Boolean(playerA && playerA.player_id === selfPlayerId),
+                }}
+                wsRef={wsRef.current}
+                player={playerA}
+                room={room}
+                participants={[playerA, playerB]}
+              />
+            </div>
+          </div>
+          <div className="flex-1 flex flex-col items-center">
+            <div className="mb-2 font-semibold text-slate-200">
+              {playerB?.username || "Player B"}
+              {playerB && playerB.player_id === selfPlayerId ? " (You)" : ""}
+            </div>
+            <div ref={rightRef} className="w-full">
+              <RubiksCubeViewer
+              container={rightRef.current}
+                cube={startState ?? generateScrambledCube(20)}
+                cube_options={{
+                  controlsEnabled: Boolean(playerB && playerB.player_id === selfPlayerId),
+                }}
+                wsRef={wsRef.current}
+                player={playerB}
+                room={room}
+                participants={[playerA, playerB]}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

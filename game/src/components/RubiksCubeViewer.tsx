@@ -1,13 +1,14 @@
-
 "use client"
-import React, { useEffect, useRef, useState, MutableRefObject } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/Addons.js';
-import { RubikCube } from './cube';
+import { CubeOptions, RubikCube } from './cube';
+import { Player } from '@/modals/player';
+import { Room } from '@/modals/room';
 
 type FaceName = "U" | "R" | "F" | "D" | "L" | "B";
 
-const COLOR_MAP: Record<number, string> = {
+export const COLOR_MAP: Record<number, string> = {
   1: "#C41E3A", 
   2: "#009B48", 
   3: "#0051BA", 
@@ -26,24 +27,52 @@ type CubeletColors = {
 };
 
 type Cube = number[][][];
-
 type MoveHistory = string[];
 
-interface InitialState {
-    cube?: Cube
+interface RubiksCubeViewerProps {
+  container: HTMLElement | null;
+  cube_options: CubeOptions;
+  wsRef: WebSocket | null;
+  player: Player | undefined;
+  room: Room | null;
+  participants: Array<Player | undefined>;
+  cube: Cube;
 }
 
-const RubiksCubeViewer: React.FC = ({cube}: InitialState) => {
-  
+const RubiksCubeViewer: React.FC<RubiksCubeViewerProps> = (props) => {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const cubeGroupRef = useRef<THREE.Group | null>(null);
-  const rubikCubeRef = useRef<RubikCube>(new RubikCube(cube));
+  const rubikCubeRef = useRef<RubikCube | null>(null);
+  
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
-  const [cubeState, setCubeState] = useState<Cube>(rubikCubeRef.current.getCubeState());
+  const [cubeState, setCubeState] = useState<Cube>(props.cube);
   const [moveHistory, setMoveHistory] = useState<MoveHistory>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Initialize RubikCube instance
+  useEffect(() => {
+    if (!mountRef.current || !props.player) return;
+    
+    rubikCubeRef.current = new RubikCube(
+      mountRef.current,
+      props.cube_options,
+      props.wsRef,
+      props.player,
+      props.room,
+      props.participants,
+      props.cube
+    );
+    
+    setIsInitialized(true);
+  }, []);
+
+  // Update cube state when props.cube changes (for opponent's cube)
+  useEffect(() => {
+    setCubeState(props.cube);
+  }, [props.cube]);
 
   const createCubelet = (
     x: number,
@@ -136,27 +165,37 @@ const RubiksCubeViewer: React.FC = ({cube}: InitialState) => {
   };
   
   const applyMove = (face: FaceName, clockwise: boolean): void => {
-    if (isAnimating) return;
+    if (isAnimating || !rubikCubeRef.current) return;
 
     setIsAnimating(true);
     const newState = rubikCubeRef.current.applyMove({ face, clockwise });
     setCubeState(newState);
     setMoveHistory((prev: MoveHistory) => [...prev, `${face}${clockwise ? '' : "'"}`]);
 
+    // Send move to WebSocket if available
+    if (props.wsRef && props.wsRef.readyState === WebSocket.OPEN) {
+      props.wsRef.send(JSON.stringify({
+        type: 'cube_update',
+        playerId: props.player?.player_id,
+        cubeState: newState,
+        move: { face, clockwise }
+      }));
+    }
+
     setTimeout(() => setIsAnimating(false), 300);
   };
   
   const handleScramble = (): void => {
-    if (isAnimating) return;
+    if (isAnimating || !rubikCubeRef.current) return;
     setIsAnimating(true);
-    const newState = rubikCubeRef.current.scramble(20);
+    const newState = rubikCubeRef.current.generateScrambledCube(20);
     setCubeState(newState);
     setMoveHistory([]);
     setTimeout(() => setIsAnimating(false), 500);
   };
   
   const handleReset = (): void => {
-    if (isAnimating) return;
+    if (isAnimating || !rubikCubeRef.current) return;
     setIsAnimating(true);
     const newState = rubikCubeRef.current.reset();
     setCubeState(newState);
@@ -164,8 +203,9 @@ const RubiksCubeViewer: React.FC = ({cube}: InitialState) => {
     setTimeout(() => setIsAnimating(false), 300);
   };
   
+  // Initialize Three.js scene
   useEffect(() => {
-    if (!mountRef.current) return;
+    if (!mountRef.current || !isInitialized) return;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a1a1a);
@@ -173,7 +213,7 @@ const RubiksCubeViewer: React.FC = ({cube}: InitialState) => {
 
     const camera = new THREE.PerspectiveCamera(
       75,
-      (mountRef.current.clientWidth as number) / (mountRef.current.clientHeight as number),
+      mountRef.current.clientWidth / mountRef.current.clientHeight,
       0.1,
       1000
     );
@@ -183,8 +223,8 @@ const RubiksCubeViewer: React.FC = ({cube}: InitialState) => {
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(
-      mountRef.current.clientWidth as number,
-      mountRef.current.clientHeight as number
+      mountRef.current.clientWidth,
+      mountRef.current.clientHeight
     );
     mountRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
@@ -216,13 +256,11 @@ const RubiksCubeViewer: React.FC = ({cube}: InitialState) => {
 
     const handleResize = () => {
       if (!mountRef.current) return;
-      camera.aspect =
-        (mountRef.current.clientWidth as number) /
-        (mountRef.current.clientHeight as number);
+      camera.aspect = mountRef.current.clientWidth / mountRef.current.clientHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(
-        mountRef.current.clientWidth as number,
-        mountRef.current.clientHeight as number
+        mountRef.current.clientWidth,
+        mountRef.current.clientHeight
       );
     };
     window.addEventListener('resize', handleResize);
@@ -231,20 +269,24 @@ const RubiksCubeViewer: React.FC = ({cube}: InitialState) => {
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationId);
       controls.dispose();
-      if (mountRef.current) {
+      if (mountRef.current && renderer.domElement.parentNode === mountRef.current) {
         mountRef.current.removeChild(renderer.domElement);
       }
       renderer.dispose();
     };
-  }, []);
+  }, [isInitialized]);
   
+  // Update scene when cube state changes
   useEffect(() => {
     if (sceneRef.current) {
       renderCube(sceneRef.current, cubeState);
     }
   }, [cubeState]);
   
+  // Keyboard controls (only if controls are enabled)
   useEffect(() => {
+    if (!props.cube_options.controlsEnabled) return;
+
     const handleKeyPress = (e: KeyboardEvent): void => {
       if (isAnimating) return;
 
@@ -269,60 +311,51 @@ const RubiksCubeViewer: React.FC = ({cube}: InitialState) => {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isAnimating]);
+  }, [isAnimating, props.cube_options.controlsEnabled]);
+
+  if (!props.player) {
+    return (
+      <div className="w-full h-[500px] flex items-center justify-center bg-gray-800/50 rounded-xl">
+        <p className="text-white">Loading...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex flex-col items-center justify-center p-4">
-      <div className="text-white mb-6 text-center max-w-2xl">
-        <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-          Interactive Rubik&apos;s Cube
-        </h1>
-        <div className="text-sm space-y-2 bg-gray-800/50 p-4 rounded-lg backdrop-blur">
-          <p className="font-semibold text-blue-300">Keyboard Controls:</p>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div>
-              <kbd className="px-2 py-1 bg-gray-700 rounded">U/D/F/B/L/R</kbd>{" "}
-              Rotate clockwise
-            </div>
-            <div>
-              <kbd className="px-2 py-1 bg-gray-700 rounded">Shift+Key</kbd> Rotate counter-clockwise
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <div className="w-full flex flex-col items-center">
+      {/* 3D Cube Viewer */}
       <div
         ref={mountRef}
-        className="w-full max-w-3xl h-[500px] border-4 border-gray-700 rounded-xl shadow-2xl bg-gray-900"
+        className="w-full max-w-2xl h-[400px] border-4 border-gray-700 rounded-xl shadow-2xl bg-gray-900"
       />
 
-      <div className="mt-6 flex gap-4">
-        <button
-          onClick={handleScramble}
-          disabled={isAnimating}
-          className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg shadow-lg transition-all transform hover:scale-105"
-        >
-          Scramble
-        </button>
-        <button
-          onClick={handleReset}
-          disabled={isAnimating}
-          className="px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg shadow-lg transition-all transform hover:scale-105"
-        >
-          Reset
-        </button>
-      </div>
-
-      {moveHistory.length > 0 && (
-        <div className="mt-4 text-white text-center bg-gray-800/50 p-3 rounded-lg backdrop-blur max-w-3xl">
-          <p className="text-sm font-semibold text-blue-300 mb-1">Move History:</p>
-          <p className="text-xs font-mono">{moveHistory.join(' ')}</p>
+      {/* Control Buttons (only show for controllable cube) */}
+      {props.cube_options.controlsEnabled && (
+        <div className="mt-4 flex gap-4">
+          <button
+            onClick={handleScramble}
+            disabled={isAnimating}
+            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg shadow-lg transition-all transform hover:scale-105"
+          >
+            Scramble
+          </button>
+          <button
+            onClick={handleReset}
+            disabled={isAnimating}
+            className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg shadow-lg transition-all transform hover:scale-105"
+          >
+            Reset
+          </button>
         </div>
       )}
 
-      <div className="text-white mt-4 text-xs opacity-75">
-        <p>Auto-rotating for better view • Press keys to interact</p>
-      </div>
+      {/* Move History (only show for controllable cube) */}
+      {props.cube_options.controlsEnabled && moveHistory.length > 0 && (
+        <div className="mt-4 bg-gray-800/50 p-3 rounded-lg backdrop-blur max-w-2xl">
+          <p className="text-sm font-semibold text-blue-300 mb-1">Move History:</p>
+          <p className="text-xs font-mono text-white">{moveHistory.join(' ')}</p>
+        </div>
+      )}
     </div>
   );
 };
