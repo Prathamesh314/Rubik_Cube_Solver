@@ -10,6 +10,7 @@
     "ws:build": "tsc",
     "ws:dev": "tsx watch  src/server/websocket-server.ts",
     "test": "jest",
+    "test:redis": "npx tsx src/testing/testing_redis.ts ",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ws": "jest src/services/websocket.test.ts"

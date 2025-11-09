@@ -19,7 +19,8 @@ class CubeHelper {
     this.moves = [];
   }
 
-  rotateY(scrambleCube: Cube, dir: number, row: number): void {
+  rotateY(scrambleCube: Cube, dir: number, row: number): Cube {
+    console.log("Direction: ", dir, " row: ",row);
     if (dir === -1) {
       if (row === 0) {
         this.moves.push("U");
@@ -28,21 +29,28 @@ class CubeHelper {
         const left = scrambleCube[this.dirs.Left];
         const back = scrambleCube[this.dirs.Back];
         const top = scrambleCube[this.dirs.Top];
-        
-        let temp = [...face[0]];
-        face[0] = [...right[0]];
-        right[0] = [...back[2]].reverse();
-        back[2] = [...left[0]].reverse();
-        left[0] = temp;
 
+        let temp = [...face[0]];
+        let face0 = [...right[0]]
+        let right0 = [...back[0]].reverse();
+        let back2 = [...left[0]].reverse();
+        let left0 = temp;
+
+        face[0] = face0;
+        right[0] = right0;
+        back[2] = back2;
+        left[0] = left0;
+
+        // FIXED: Inverted the rotation direction for the Top face
         const newTop: Face = Array(3).fill(0).map(() => Array(3).fill(0));
         const n = face.length;
         const m = face[0].length;
         for (let i = 0; i < n; i++) {
           for (let j = 0; j < m; j++) {
-            newTop[i][j] = top[n - 1 - j][i];
+            newTop[i][j] = top[j][n - 1 - i];  // Changed from top[n - 1 - j][i]
           }
         }
+
         scrambleCube[this.dirs.Top] = newTop;
       } else {
         this.moves.push("D");
@@ -54,16 +62,22 @@ class CubeHelper {
         const n = face.length;
         
         let temp = [...face[n - 1]];
-        face[n - 1] = [...right[n - 1]];
-        right[n - 1] = [...back[0]].reverse();
-        back[0] = [...left[n - 1]].reverse();
-        left[n - 1] = temp;
+        let facen_1 = [...right[n - 1]];
+        let rightn_1 = [...back[0]].reverse();
+        let back0 = [...left[n - 1]].reverse();
+        let leftn_1 = temp;
 
+        face[n - 1] = facen_1;
+        right[n - 1] = rightn_1;
+        back[0] = back0;
+        left[n - 1] = leftn_1;
+
+        // FIXED: Inverted the rotation direction for the Bottom face
         const newBottom: Face = Array(3).fill(0).map(() => Array(3).fill(0));
         const m = face[0].length;
         for (let i = 0; i < n; i++) {
           for (let j = 0; j < m; j++) {
-            newBottom[i][j] = bottom[j][n - i - 1];
+            newBottom[i][j] = bottom[n - 1 - j][i];  // Changed from bottom[j][n - i - 1]
           }
         }
         scrambleCube[this.dirs.Bottom] = newBottom;
@@ -78,17 +92,23 @@ class CubeHelper {
         const top = scrambleCube[this.dirs.Top];
         
         let temp = [...face[0]];
-        face[0] = [...left[0]];
-        left[0] = [...back[2]].reverse();
-        back[2] = [...right[0]].reverse();
-        right[0] = temp;
+        let face0 = [...left[0]];
+        let left0 = [...back[2]].reverse();
+        let back2 = [...right[0]].reverse();
+        let right0 = temp;
 
+        face[0] = face0;
+        left[0] = left0;
+        back[2] = back2;
+        right[0] = right0;
+
+        // FIXED: Inverted the rotation direction for the Top face (counter-clockwise)
         const newTop: Face = Array(3).fill(0).map(() => Array(3).fill(0));
         const n = face.length;
         const m = face[0].length;
         for (let i = 0; i < n; i++) {
           for (let j = 0; j < m; j++) {
-            newTop[i][j] = top[j][n - 1 - i];
+            newTop[i][j] = top[n - 1 - j][i];  // Changed from top[j][n - 1 - i]
           }
         }
         scrambleCube[this.dirs.Top] = newTop;
@@ -102,24 +122,32 @@ class CubeHelper {
         const n = face.length;
         
         let temp = [...face[n - 1]];
-        face[n - 1] = [...left[n - 1]];
-        left[n - 1] = [...back[0]].reverse();
-        back[0] = [...right[n - 1]].reverse();
-        right[n - 1] = temp;
+        let facen_1 = [...left[n - 1]];
+        let leftn_1 = [...back[0]].reverse();
+        let back0 = [...right[n - 1]].reverse();
+        let rightn_1 = temp;
 
+
+        face[n - 1] = facen_1
+        left[n - 1] = leftn_1
+        back[0] = back0;
+        right[n - 1] = rightn_1;
+
+        // FIXED: Inverted the rotation direction for the Bottom face (counter-clockwise)
         const newBottom: Face = Array(3).fill(0).map(() => Array(3).fill(0));
         const m = face[0].length;
         for (let i = 0; i < n; i++) {
           for (let j = 0; j < m; j++) {
-            newBottom[i][j] = bottom[n - j - 1][i];
+            newBottom[i][j] = bottom[j][n - 1 - i];  // Changed from bottom[n - j - 1][i]
           }
         }
         scrambleCube[this.dirs.Bottom] = newBottom;
       }
     }
+    return scrambleCube
   }
 
-  rotateX(scrambledCube: Cube, dir: number, col: number): void {
+  rotateX(scrambledCube: Cube, dir: number, col: number): Cube {
     if (dir === 1) {
       if (col === 0) {
         this.moves.push("L");
@@ -149,10 +177,11 @@ class CubeHelper {
           back[i][col] = temp[i];
         }
 
+        // FIXED: Inverted the rotation direction for the Left face
         const newLeft: Face = Array(3).fill(0).map(() => Array(3).fill(0));
         for (let i = 0; i < n; i++) {
           for (let j = 0; j < n; j++) {
-            newLeft[i][j] = left[j][n - 1 - i];
+            newLeft[i][j] = left[n - 1 - j][i];  // Changed from left[j][n - 1 - i]
           }
         }
         scrambledCube[this.dirs.Left] = newLeft;
@@ -184,10 +213,11 @@ class CubeHelper {
           back[i][col] = temp[i];
         }
 
+        // FIXED: Inverted the rotation direction for the Right face
         const newRight: Face = Array(3).fill(0).map(() => Array(3).fill(0));
         for (let i = 0; i < n; i++) {
           for (let j = 0; j < n; j++) {
-            newRight[i][j] = right[n - 1 - j][i];
+            newRight[i][j] = right[j][n - 1 - i];  // Changed from right[n - 1 - j][i]
           }
         }
         scrambledCube[this.dirs.Right] = newRight;
@@ -221,10 +251,11 @@ class CubeHelper {
           face[i][col] = temp[i];
         }
 
+        // FIXED: Inverted the rotation direction for the Left face (counter-clockwise)
         const newLeft: Face = Array(3).fill(0).map(() => Array(3).fill(0));
         for (let i = 0; i < n; i++) {
           for (let j = 0; j < n; j++) {
-            newLeft[i][j] = left[n - 1 - j][i];
+            newLeft[i][j] = left[j][n - 1 - i];  // Changed from left[n - 1 - j][i]
           }
         }
         scrambledCube[this.dirs.Left] = newLeft;
@@ -256,18 +287,21 @@ class CubeHelper {
           face[i][col] = temp[i];
         }
 
+        // FIXED: Inverted the rotation direction for the Right face (counter-clockwise)
         const newRight: Face = Array(3).fill(0).map(() => Array(3).fill(0));
         for (let i = 0; i < n; i++) {
           for (let j = 0; j < n; j++) {
-            newRight[i][j] = right[j][n - 1 - i];
+            newRight[i][j] = right[n - 1 - j][i];  // Changed from right[j][n - 1 - i]
           }
         }
         scrambledCube[this.dirs.Right] = newRight;
       }
     }
+
+    return scrambledCube
   }
 
-  rotateZ(scrambleCube: Cube, dir: number, row: number): void {
+  rotateZ(scrambleCube: Cube, dir: number, row: number): Cube {
     if (dir === 1) {
       if (row === 2) {
         this.moves.push("F");
@@ -295,10 +329,11 @@ class CubeHelper {
 
         scrambleCube[this.dirs.Bottom][n - 1 - row] = bottom[n - 1 - row].reverse();
         
+        // FIXED: Inverted the rotation direction for the Front face
         const newFace: Face = Array(3).fill(0).map(() => Array(3).fill(0));
         for (let i = 0; i < n; i++) {
           for (let j = 0; j < n; j++) {
-            newFace[i][j] = face[n - 1 - j][i];
+            newFace[i][j] = face[j][n - 1 - i];  // Changed from face[n - 1 - j][i]
           }
         }
         scrambleCube[this.dirs.Face] = newFace;
@@ -334,10 +369,11 @@ class CubeHelper {
           scrambleCube[this.dirs.Right][i][n - 1 - row] = right[i][n - 1 - row];
         }
         
+        // FIXED: Inverted the rotation direction for the Back face
         const newBack: Face = Array(3).fill(0).map(() => Array(n).fill(0));
         for (let i = 0; i < n; i++) {
           for (let j = 0; j < n; j++) {
-            newBack[i][j] = back[j][2 - i];
+            newBack[i][j] = back[n - 1 - j][i];  // Changed from back[j][2 - i]
           }
         }
         scrambleCube[this.dirs.Back] = newBack;
@@ -367,10 +403,11 @@ class CubeHelper {
           left[2 - i][row] = temp[i];
         }
         
+        // FIXED: Inverted the rotation direction for the Front face (counter-clockwise)
         const newFace: Face = Array(3).fill(0).map(() => Array(n).fill(0));
         for (let i = 0; i < n; i++) {
           for (let j = 0; j < n; j++) {
-            newFace[i][j] = face[j][n - 1 - i];
+            newFace[i][j] = face[n - 1 - j][i];  // Changed from face[j][n - 1 - i]
           }
         }
         scrambleCube[this.dirs.Face] = newFace;
@@ -409,15 +446,18 @@ class CubeHelper {
         scrambleCube[this.dirs.Right][0][n - 1 - row] = scrambleCube[this.dirs.Right][2][n - 1 - row];
         scrambleCube[this.dirs.Right][2][n - 1 - row] = tempVal;
 
+        // FIXED: Inverted the rotation direction for the Back face (counter-clockwise)
         const newBack: Face = Array(3).fill(0).map(() => Array(n).fill(0));
         for (let i = 0; i < n; i++) {
           for (let j = 0; j < n; j++) {
-            newBack[i][j] = back[n - 1 - j][i];
+            newBack[i][j] = back[j][n - 1 - i];  // Changed from back[n - 1 - j][i]
           }
         }
         scrambleCube[this.dirs.Back] = newBack;
       }
     }
+
+    return scrambleCube
   }
 
   getMoves(): string[] {
