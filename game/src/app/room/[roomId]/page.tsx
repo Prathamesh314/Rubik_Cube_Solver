@@ -8,32 +8,64 @@ import { Env } from "@/lib/env_config";
 import { Room } from "@/modals/room";
 import { GameEventTypes } from "@/types/game-events";
 import RubiksCubeViewer from "@/components/RubiksCubeViewer";
+import { Cube, FaceName } from "@/components/cube";
+import { SimpleCubeHelper } from "@/utils/cube_helper";
 
 const WS_URL = Env.NEXT_PUBLIC_WEBSOCKET_URL;
 
-function generateScrambledCube(number_of_moves: number) {
-  const flat: number[] = [];
-  for (let i = 1; i <= 6; i++) {
-    for (let j = 0; j < 9; j++) {
-      flat.push(i);
+export function generateScrambledCube(number_of_moves: number): { state: Cube; moves: string[] } {
+  let cube = [
+    [[1,1,1],[1,1,1],[1,1,1]], // Back - Red
+    [[4,4,4],[4,4,4],[4,4,4]], // Up - Yellow
+    [[5,5,5],[5,5,5],[5,5,5]], // Front - Orange
+    [[6,6,6],[6,6,6],[6,6,6]], // Down - White
+    [[2,2,2],[2,2,2],[2,2,2]], // Left - Green
+    [[3,3,3],[3,3,3],[3,3,3]], // Right - Blue
+  ];
+  const helper = new SimpleCubeHelper();
+  const faces: FaceName[] = ["U", "D", "F", "B", "L", "R"];
+  const moves: string[] = [];
+  let prevFace: FaceName | null = null;
+
+  for (let i = 0; i < number_of_moves; i++) {
+    // Choose a random face, but avoid repeating the same face consecutively
+    let face: FaceName;
+    do {
+      face = faces[Math.floor(Math.random() * faces.length)];
+    } while (face === prevFace);
+
+    prevFace = face;
+    const clockwise = Math.random() < 0.5;
+
+    // Apply the move
+    switch (face) {
+      case "U":
+        cube = helper.rotateU(cube, clockwise);
+        break;
+      case "D":
+        cube = helper.rotateD(cube, clockwise);
+        break;
+      case "F":
+        cube = helper.rotateF(cube, clockwise);
+        break;
+      case "B":
+        cube = helper.rotateB(cube, clockwise);
+        break;
+      case "L":
+        cube = helper.rotateL(cube, clockwise);
+        break;
+      case "R":
+        cube = helper.rotateR(cube, clockwise);
+        break;
     }
+
+    // Record the move in standard notation
+    moves.push(`${face}${clockwise ? '' : "'"}`);
   }
 
-  for (let i = flat.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [flat[i], flat[j]] = [flat[j], flat[i]];
-  }
-
-  const result: number[][][] = [];
-  for (let face = 0; face < 6; face++) {
-    const faceArray: number[][] = [];
-    for (let row = 0; row < 3; row++) {
-      faceArray.push(flat.slice(face * 9 + row * 3, face * 9 + row * 3 + 3));
-    }
-    result.push(faceArray);
-  }
-  return result;
+  return { state: cube, moves };
 }
+
 
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
@@ -129,7 +161,7 @@ export default function RoomPage() {
         } else if (data.players.length === 2) {
           setRoomSize(2);
           // same scramble for both
-          const scrambled_cube = generateScrambledCube(20);
+          const scrambled_cube = generateScrambledCube(20).state;
           setStartState(scrambled_cube);
           data.players[0].scrambledCube = scrambled_cube;
           data.players[1].scrambledCube = scrambled_cube;
@@ -337,7 +369,7 @@ export default function RoomPage() {
             <div ref={leftRef} className="w-full">
               <RubiksCubeViewer
               container={leftRef.current}
-                cube={startState ?? generateScrambledCube(20)}
+                cube={startState ?? generateScrambledCube(20).state}
                 cube_options={{
                   controlsEnabled: Boolean(playerA && playerA.player_id === selfPlayerId),
                 }}
@@ -356,7 +388,7 @@ export default function RoomPage() {
             <div ref={rightRef} className="w-full">
               <RubiksCubeViewer
               container={rightRef.current}
-                cube={startState ?? generateScrambledCube(20)}
+                cube={startState ?? generateScrambledCube(20).state}
                 cube_options={{
                   controlsEnabled: Boolean(playerB && playerB.player_id === selfPlayerId),
                 }}

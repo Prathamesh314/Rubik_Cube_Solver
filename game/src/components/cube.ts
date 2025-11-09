@@ -102,6 +102,21 @@ export class RubikCube {
     return this.getCubeState();
   }
 
+  isRubikCubeSolved() {
+    // Check if each face (3x3 array) is filled with the same value
+    for (let face = 0; face < 6; face++) {
+      const value = this.cube[face][0][0];
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+          if (this.cube[face][row][col] !== value) {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
+  }
+
   reset(): Cube {
     this.cube = this.createSolvedCube();
     return this.getCubeState();

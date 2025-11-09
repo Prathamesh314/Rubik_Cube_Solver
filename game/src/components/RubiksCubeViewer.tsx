@@ -170,6 +170,9 @@ const RubiksCubeViewer: React.FC<RubiksCubeViewerProps> = (props) => {
     setIsAnimating(true);
     const newState = rubikCubeRef.current.applyMove({ face, clockwise });
     setCubeState(newState);
+    if (rubikCubeRef.current.isRubikCubeSolved()) {
+      console.log("Cube solved....");
+    }
     setMoveHistory((prev: MoveHistory) => [...prev, `${face}${clockwise ? '' : "'"}`]);
 
     // Send move to WebSocket if available
