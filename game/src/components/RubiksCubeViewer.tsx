@@ -46,11 +46,13 @@ const RubiksCubeViewer: React.FC<RubiksCubeViewerProps> = (props) => {
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const cubeGroupRef = useRef<THREE.Group | null>(null);
   const rubikCubeRef = useRef<RubikCube | null>(null);
+  const faceLabelsRef = useRef<THREE.Group | null>(null);
   
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
   const [cubeState, setCubeState] = useState<Cube>(props.cube);
   const [moveHistory, setMoveHistory] = useState<MoveHistory>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showLabels, setShowLabels] = useState<boolean>(true);
 
   // Initialize RubikCube instance
   useEffect(() => {
@@ -73,6 +75,78 @@ const RubiksCubeViewer: React.FC<RubiksCubeViewerProps> = (props) => {
   useEffect(() => {
     setCubeState(props.cube);
   }, [props.cube]);
+
+  // Create text sprite for face labels
+  const createTextSprite = (
+    text: string,
+    color: string = '#ffffff'
+  ): THREE.Sprite => {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d')!;
+    canvas.width = 256;
+    canvas.height = 256;
+
+    // Draw background circle
+    context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    context.beginPath();
+    context.arc(128, 128, 100, 0, 2 * Math.PI);
+    context.fill();
+
+    // Draw border
+    context.strokeStyle = color;
+    context.lineWidth = 8;
+    context.beginPath();
+    context.arc(128, 128, 100, 0, 2 * Math.PI);
+    context.stroke();
+
+    // Draw text
+    context.fillStyle = color;
+    context.font = 'bold 120px Arial';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(text, 128, 128);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const spriteMaterial = new THREE.SpriteMaterial({ 
+      map: texture,
+      transparent: true,
+      depthTest: false,
+      depthWrite: false
+    });
+    const sprite = new THREE.Sprite(spriteMaterial);
+    sprite.scale.set(1.5, 1.5, 1);
+
+    return sprite;
+  };
+
+  // Create face labels
+  const createFaceLabels = (scene: THREE.Scene): THREE.Group => {
+    if (faceLabelsRef.current) {
+      scene.remove(faceLabelsRef.current);
+    }
+
+    const labelsGroup = new THREE.Group();
+
+    const faceConfigs = [
+      { name: 'U', position: new THREE.Vector3(0, 3.5, 0), color: '#FFD500' },      // Up - Yellow
+      { name: 'D', position: new THREE.Vector3(0, -3.5, 0), color: '#FFFFFF' },     // Down - White
+      { name: 'F', position: new THREE.Vector3(0, 0, 3.5), color: '#0051BA' },      // Front - Blue
+      { name: 'B', position: new THREE.Vector3(0, 0, -3.5), color: '#009B48' },     // Back - Green
+      { name: 'L', position: new THREE.Vector3(-3.5, 0, 0), color: '#FF5800' },     // Left - Orange
+      { name: 'R', position: new THREE.Vector3(3.5, 0, 0), color: '#C41E3A' },      // Right - Red
+    ];
+
+    faceConfigs.forEach(config => {
+      const sprite = createTextSprite(config.name, config.color);
+      sprite.position.copy(config.position);
+      labelsGroup.add(sprite);
+    });
+
+    scene.add(labelsGroup);
+    faceLabelsRef.current = labelsGroup;
+
+    return labelsGroup;
+  };
 
   const createCubelet = (
     x: number,
@@ -205,6 +279,10 @@ const RubiksCubeViewer: React.FC<RubiksCubeViewerProps> = (props) => {
     setMoveHistory([]);
     setTimeout(() => setIsAnimating(false), 300);
   };
+
+  const toggleLabels = (): void => {
+    setShowLabels(prev => !prev);
+  };
   
   // Initialize Three.js scene
   useEffect(() => {
@@ -248,11 +326,45 @@ const RubiksCubeViewer: React.FC<RubiksCubeViewerProps> = (props) => {
     scene.add(directionalLight);
 
     renderCube(scene, cubeState);
+    createFaceLabels(scene);
 
     let animationId: number;
     const animate = () => {
       animationId = requestAnimationFrame(animate);
       controls.update();
+      
+      
+      if (faceLabelsRef.current) {
+        faceLabelsRef.current.visible = showLabels;
+      }
+      
+      if (faceLabelsRef.current && cameraRef.current && showLabels) {
+        const camera = cameraRef.current;
+        const labelsGroup = faceLabelsRef.current;
+
+        const minFadeDistance = 6.0;
+        const maxFadeDistance = 10.0;
+        const minOpacity = 0.0;
+
+        labelsGroup.children.forEach(sprite => {
+          if (sprite instanceof THREE.Sprite) {
+            const spriteMaterial = sprite.material as THREE.SpriteMaterial;
+            
+            const distance = camera.position.distanceTo(sprite.position);
+
+            const opacity = THREE.MathUtils.mapLinear(
+              distance,
+              minFadeDistance,
+              maxFadeDistance,
+              1.0,        // Full opacity
+              minOpacity  // Faded opacity
+            );
+            
+            spriteMaterial.opacity = THREE.MathUtils.clamp(opacity, minOpacity, 1.0);
+          }
+        });
+      }
+      
       renderer.render(scene, camera);
     };
     animate();
@@ -279,6 +391,13 @@ const RubiksCubeViewer: React.FC<RubiksCubeViewerProps> = (props) => {
     };
   }, [isInitialized]);
   
+  // Update label visibility when showLabels changes
+  useEffect(() => {
+    if (faceLabelsRef.current) {
+      faceLabelsRef.current.visible = showLabels;
+    }
+  }, [showLabels]);
+  
   // Update scene when cube state changes
   useEffect(() => {
     if (sceneRef.current) {
@@ -295,6 +414,12 @@ const RubiksCubeViewer: React.FC<RubiksCubeViewerProps> = (props) => {
 
       const key = e.key.toLowerCase();
       const shift = e.shiftKey;
+
+      // Toggle labels with 'T' key
+      if (key === 't') {
+        toggleLabels();
+        return;
+      }
 
       const moveMap: {
         [key: string]: { face: FaceName; clockwise: boolean }
@@ -334,7 +459,7 @@ const RubiksCubeViewer: React.FC<RubiksCubeViewerProps> = (props) => {
 
       {/* Control Buttons (only show for controllable cube) */}
       {props.cube_options.controlsEnabled && (
-        <div className="mt-4 flex gap-4">
+        <div className="mt-4 flex gap-4 flex-wrap justify-center">
           <button
             onClick={handleScramble}
             disabled={isAnimating}
@@ -349,6 +474,23 @@ const RubiksCubeViewer: React.FC<RubiksCubeViewerProps> = (props) => {
           >
             Reset
           </button>
+          <button
+            onClick={toggleLabels}
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-lg transition-all transform hover:scale-105"
+          >
+            {showLabels ? 'Hide Labels' : 'Show Labels'}
+          </button>
+        </div>
+      )}
+
+      {/* Keyboard Hints */}
+      {props.cube_options.controlsEnabled && (
+        <div className="mt-3 bg-gray-800/50 p-3 rounded-lg backdrop-blur max-w-2xl">
+          <p className="text-xs text-gray-300 text-center">
+            Press <span className="font-bold text-blue-300">T</span> to toggle labels | 
+            Use <span className="font-bold text-blue-300">U, D, F, B, L, R</span> keys to rotate faces | 
+            Hold <span className="font-bold text-blue-300">Shift</span> for counter-clockwise
+          </p>
         </div>
       )}
 
