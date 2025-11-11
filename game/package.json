@@ -8,12 +8,12 @@
     "start": "next start",
     "lint": "next lint",
     "ws:build": "tsc",
-    "ws:dev": "tsx watch  src/server/websocket-server.ts",
+    "ws:dev": "tsx watch  src/server/ws_main.ts",
     "test": "jest",
     "test:redis": "npx tsx src/testing/testing_redis.ts ",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:ws": "jest src/services/websocket.test.ts"
+    "ws:test": "jest src/server/websocket.test.ts"
   },
   "dependencies": {
     "@react-spring/three": "^10.0.3",

@@ -12,6 +12,7 @@ import { Cube, FaceName } from "@/components/cube";
 import { SimpleCubeHelper } from "@/utils/cube_helper";
 
 const WS_URL = Env.NEXT_PUBLIC_WEBSOCKET_URL;
+const WS_PORT = 8002;
 
 export function generateScrambledCube(number_of_moves: number): { state: Cube; moves: string[] } {
   let cube = [
@@ -161,10 +162,12 @@ export default function RoomPage() {
         } else if (data.players.length === 2) {
           setRoomSize(2);
           // same scramble for both
-          const scrambled_cube = generateScrambledCube(20).state;
-          setStartState(scrambled_cube);
-          data.players[0].scrambledCube = scrambled_cube;
-          data.players[1].scrambledCube = scrambled_cube;
+          if (data.players[0].scrambledCube === undefined || data.players[0].scrambledCube.length === 0 || data.players[1].scrambledCube === undefined || data.players[1].scrambledCube.length === 0) {
+            const scrambled_cube = generateScrambledCube(20).state;
+            setStartState(scrambled_cube);
+            data.players[0].scrambledCube = scrambled_cube;
+            data.players[1].scrambledCube = scrambled_cube;
+          }
           setShowCube(true);
         }
 
@@ -193,8 +196,28 @@ export default function RoomPage() {
     };
   }, [roomId, selfPlayerId]);
 
+  const handleKeyDown = (e: KeyboardEvent) => {
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+    const message = {
+      type: "KeyBoardButtonPressed",
+      value: {
+        room: { id: roomId, ...room },
+        player: selfPlayerId === playerA?.player_id ? playerA : playerB,
+        keyboardButton: e.key,
+      },
+    };
+
+    try {
+      ws.send(JSON.stringify(message));
+    } catch (err) {
+      console.error("Failed to send keyboard event:", err);
+    }
+  };
+
   useEffect(() => {
-    if (typeof window === "undefined" || !roomId || !selfPlayerId) return;
+    if (typeof window === "undefined" || roomSize !== 2) return;
 
     if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) {
       return;
@@ -205,7 +228,16 @@ export default function RoomPage() {
 
     ws.onopen = () => {
       setWsReady(true);
-      ws.send(JSON.stringify({ type: "JOIN_ROOM", room_id: roomId, player_id: selfPlayerId }));
+      ws.send(JSON.stringify({
+        type: GameEventTypes.GameStarted,
+        value: {
+          base_values: {
+            room: { id: roomId, ...room },
+            participants: [playerA, playerB]
+          },
+          start_time: new Date()
+        }
+      }));
     };
 
     ws.onclose = () => {
@@ -218,18 +250,18 @@ export default function RoomPage() {
     ws.onerror = () => setWsReady(false);
 
     ws.onmessage = (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        switch (data.type) {
-          case GameEventTypes.GameStarted:
-            window.location.reload();
-            break;
-          case GameEventTypes.KeyBoardButtonPressed:
-            // handle as needed
-            break;
-        }
-      } catch (err) {
-        console.error("Failed to parse WebSocket message:", err);
+      console.log(`Message received on client end:`, e.data);
+      const message = e.data;
+      if (message.type === GameEventTypes.GameFinished) {
+        // export interface GameEndEventMessageValues {
+        //   base_values: BaseMessageValues;
+        //   player_id_who_won: string;
+        //   end_time: string;
+        // }
+
+        console.log("Player: ", message.value.player_id_who_won, " has won the game.")
+        // Remove the window keydown event listener by referencing the same handler
+        window.removeEventListener("keydown", handleKeyDown);
       }
     };
 
@@ -237,31 +269,11 @@ export default function RoomPage() {
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
       if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) ws.close();
     };
-  }, [roomId, selfPlayerId]);
+  }, [roomSize]);
 
   // Keyboard -> send to WS
   useEffect(() => {
     if (!wsReady || !roomId || !selfPlayerId) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const ws = wsRef.current;
-      if (!ws || ws.readyState !== WebSocket.OPEN) return;
-
-      const message = {
-        type: "KeyBoardButtonPressed",
-        value: {
-          room: { id: roomId, ...room },
-          player: selfPlayerId === playerA?.player_id ? playerA : playerB,
-          keyboardButton: e.key,
-        },
-      };
-
-      try {
-        ws.send(JSON.stringify(message));
-      } catch (err) {
-        console.error("Failed to send keyboard event:", err);
-      }
-    };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);

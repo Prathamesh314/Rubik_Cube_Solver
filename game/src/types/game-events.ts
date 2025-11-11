@@ -21,14 +21,14 @@ export interface BaseMessageValues {
 
 export interface GameStartEventMessageValues {
   base_values: BaseMessageValues;
-  scrambled_cube: number[][][];
-  start_time: string;
+  start_time: Date
 }
 
 export interface GameEndEventMessageValues {
-    base_values: BaseMessageValues;
-    end_time: string;
-  }
+  base_values: BaseMessageValues;
+  player_id_who_won: string;
+  end_time: string;
+}
   
 export interface CubeMovedEventMessageValues {
   base_values: BaseMessageValues;
@@ -67,6 +67,6 @@ export type GameEvents =
   | { type: GameEventTypes.GameFinished; value: GameEndEventMessageValues }
   | { type: GameEventTypes.CubeMoved; value: CubeMovedEventMessageValues }
   | { type: GameEventTypes.KeyBoardButtonPressed; value: KeyboardButtonPressedMessageValues }
-  | JoinRoomMessage
-  | LeaveRoomMessage
-  | PlayerMoveMessage;
+  | { type: GameEventTypes.JoinRoom; value: JoinRoomMessage}
+  | { type: GameEventTypes.LeaveRoom; value: LeaveRoomMessage}
+  | { type: GameEventTypes.PlayerMove; value: PlayerMoveMessage};

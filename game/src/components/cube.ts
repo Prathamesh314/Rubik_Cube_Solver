@@ -1,5 +1,6 @@
 import { Player } from "@/modals/player";
 import { Room } from "@/modals/room";
+import { GameEventTypes } from "@/types/game-events";
 import { SimpleCubeHelper } from "@/utils/cube_helper";
 
 export type FaceName = "U" | "R" | "F" | "D" | "L" | "B";
@@ -114,6 +115,17 @@ export class RubikCube {
         }
       }
     }
+    this.wsRef?.send(JSON.stringify({
+      type: GameEventTypes.GameFinished,
+      value: {
+        base_values:{
+          room: this.room,
+          participants: this.participants,
+        },
+        player_id_who_won: this.player?.player_id,
+        end_time: new Date()
+      }
+    }))
     return true;
   }
 
