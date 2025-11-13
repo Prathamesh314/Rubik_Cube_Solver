@@ -39,6 +39,7 @@ export interface KeyboardButtonPressedMessageValues {
   room: Room | undefined;
   player: Player;
   keyboardButton: string;
+  direction: string;
 }
 
 export interface JoinRoomMessage {

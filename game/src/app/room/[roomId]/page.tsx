@@ -7,7 +7,7 @@ import { Player } from "@/modals/player";
 import { Env } from "@/lib/env_config";
 import { Room } from "@/modals/room";
 import { GameEventTypes } from "@/types/game-events";
-import RubiksCubeViewer from "@/components/RubiksCubeViewer";
+import RubiksCubeViewer, { RubiksCubeViewerHandle } from "@/components/RubiksCubeViewer";
 import { Cube, FaceName } from "@/components/cube";
 import { SimpleCubeHelper } from "@/utils/cube_helper";
 
@@ -100,6 +100,8 @@ export default function RoomPage() {
   const [playerB, setPlayerB] = useState<Player | undefined>();
   const [roomSize, setRoomSize] = useState<number>(0);
   const [showCube, setShowCube] = useState<boolean>(false);
+  const playerCubeRef = useRef<RubiksCubeViewerHandle>(null);
+  const opponentCubeRef = useRef<RubiksCubeViewerHandle>(null);
   const leftRef = useRef<HTMLDivElement | null>(null);
   const rightRef = useRef<HTMLDivElement | null>(null);
 
@@ -206,10 +208,12 @@ export default function RoomPage() {
         room: { id: roomId, ...room },
         player: selfPlayerId === playerA?.player_id ? playerA : playerB,
         keyboardButton: e.key,
+        clockwise: e.shiftKey ? "anticlockwise" : "clockwise"
       },
     };
 
     try {
+      console.log("Sending message: ", message);
       ws.send(JSON.stringify(message));
     } catch (err) {
       console.error("Failed to send keyboard event:", err);
@@ -251,7 +255,8 @@ export default function RoomPage() {
 
     ws.onmessage = (e) => {
       console.log(`Message received on client end:`, e.data);
-      const message = e.data;
+      const message = JSON.parse(e.data);
+      console.log("Message type: ", message.type)
       if (message.type === GameEventTypes.GameFinished) {
         // export interface GameEndEventMessageValues {
         //   base_values: BaseMessageValues;
@@ -261,7 +266,19 @@ export default function RoomPage() {
 
         console.log("Player: ", message.value.player_id_who_won, " has won the game.")
         // Remove the window keydown event listener by referencing the same handler
-        window.removeEventListener("keydown", handleKeyDown);
+        // window.removeEventListener("keydown", handleKeyDown);
+      }
+      else if (message.type === GameEventTypes.KeyBoardButtonPressed) {
+        const player = message.value.player as Player;
+        const keybutton_pressed = message.value.keybutton_pressed;
+        const clockwise = message.value.clockwise;
+
+        console.log("Received keybutton pressed event: ", player, " keybutton pressed: ", keybutton_pressed, " clockwise: ", clockwise);
+
+        if (player.player_id !== selfPlayerId) {
+          console.log("Opponent has played the move....")
+        }
+
       }
     };
 
@@ -379,8 +396,9 @@ export default function RoomPage() {
               {playerA && playerA.player_id === selfPlayerId ? " (You)" : ""}
             </div>
             <div ref={leftRef} className="w-full">
-              <RubiksCubeViewer
-              container={leftRef.current}
+            <RubiksCubeViewer
+                ref={playerCubeRef}
+                container={leftRef.current}
                 cube={startState ?? generateScrambledCube(20).state}
                 cube_options={{
                   controlsEnabled: Boolean(playerA && playerA.player_id === selfPlayerId),
@@ -399,6 +417,7 @@ export default function RoomPage() {
             </div>
             <div ref={rightRef} className="w-full">
               <RubiksCubeViewer
+              ref={opponentCubeRef}
               container={rightRef.current}
                 cube={startState ?? generateScrambledCube(20).state}
                 cube_options={{

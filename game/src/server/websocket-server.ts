@@ -57,13 +57,6 @@ export class GameServer {
         return GameServer.instance;
     }
 
-    public static registerNewRoom(ws_conn: any, roomId: string): void {
-        const instance = GameServer.getInstance();
-        instance.createRoom(roomId);
-        console.log("registering room. ws: ", ws_conn, " roomid: ", roomId);
-        instance.room_conn_map.set(roomId, ws_conn);
-    }
-
     private createRoom(roomId: string): boolean {
         if (this.rooms.has(roomId)) {
             console.warn(`Attempted to create a room that already exists: ${roomId}`);
@@ -188,14 +181,19 @@ export class GameServer {
               //   keyboardButton: string;
               // }
               console.log("Keyboard buttons pressed.")
-              const valid_keypresses = ["U", "F", "B", "D", "L", "R"]
+              const valid_keypresses = ["u", "f", "b", "d", "l", "r"]
               const keybutton_pressed = message.value.keyboardButton
+              const clockwise = message.value.clockwise
+
+              console.log("Websocket server: ", keybutton_pressed, " clockwise: ", clockwise)
 
               if (valid_keypresses.includes(keybutton_pressed)) {
                 ws.send(JSON.stringify({
                   type: GameEventTypes.KeyBoardButtonPressed,
                   value: {
                     player: message.value.player,
+                    keybutton_pressed,
+                    clockwise
                   }
                 }));
               } else{

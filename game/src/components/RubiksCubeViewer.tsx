@@ -1,10 +1,12 @@
 "use client"
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/Addons.js';
 import { CubeOptions, RubikCube } from './cube';
 import { Player } from '@/modals/player';
 import { Room } from '@/modals/room';
+import { GameEventTypes } from '@/types/game-events';
+
 
 type FaceName = "U" | "R" | "F" | "D" | "L" | "B";
 
@@ -29,6 +31,15 @@ type CubeletColors = {
 type Cube = number[][][];
 type MoveHistory = string[];
 
+// Define the methods you want to expose
+export interface RubiksCubeViewerHandle {
+  applyMove: (face: FaceName, clockwise: boolean) => void;
+  handleScramble: () => void;
+  handleReset: () => void;
+  getCubeState: () => Cube;
+  getMoveHistory: () => string[];
+}
+
 interface RubiksCubeViewerProps {
   container: HTMLElement | null;
   cube_options: CubeOptions;
@@ -39,7 +50,8 @@ interface RubiksCubeViewerProps {
   cube: Cube;
 }
 
-const RubiksCubeViewer: React.FC<RubiksCubeViewerProps> = (props) => {
+const RubiksCubeViewer = forwardRef<RubiksCubeViewerHandle, RubiksCubeViewerProps>(
+  (props, ref) => {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -441,6 +453,15 @@ const RubiksCubeViewer: React.FC<RubiksCubeViewerProps> = (props) => {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [isAnimating, props.cube_options.controlsEnabled]);
 
+  // Expose methods to parent component
+  useImperativeHandle(ref, () => ({
+    applyMove,
+    handleScramble,
+    handleReset,
+    getCubeState: () => cubeState,
+    getMoveHistory: () => moveHistory
+  }));
+
   if (!props.player) {
     return (
       <div className="w-full h-[500px] flex items-center justify-center bg-gray-800/50 rounded-xl">
@@ -503,6 +524,8 @@ const RubiksCubeViewer: React.FC<RubiksCubeViewerProps> = (props) => {
       )}
     </div>
   );
-};
+});
+
+RubiksCubeViewer.displayName = 'RubiksCubeViewer';
 
 export default RubiksCubeViewer;
