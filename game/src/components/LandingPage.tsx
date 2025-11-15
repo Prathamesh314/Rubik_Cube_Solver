@@ -38,12 +38,45 @@ function setAuth(data: AuthStorage) {
   }
 }
 
-// ✅ FIX: Add SSR guard
+
 function ensureAuth(): AuthStorage {
   const existing = getAuth();
   if (existing?.player?.player_id) return existing;
 
-  // create a lightweight guest identity
+  const currentPlayerId = sessionStorage.getItem("userId")
+  if (!currentPlayerId) {
+    throw new Error("User is not logged in..")
+  }
+
+  try {
+    fetch(`/api/get_user?id=${encodeURIComponent(currentPlayerId)}`).then(async res => {
+      if (!res.ok) return;
+      const user = await res.json();
+      console.log("User from ensure auth: ", user);
+      if (user && user._id) {
+        const auth: AuthStorage = {
+          token: null,
+          player: {
+            player_id: user._id,
+            username: user.username || `user-${user._id.slice(-6)}`,
+            player_state: user.player_state,
+            rating: user.rating ?? 1000,
+            total_wins: user.total_wins ?? 0,
+            win_percentage: user.win_percentage ?? 0,
+            top_speed_to_solve_cube: user.top_speed_to_solve_cube ?? {},
+          },
+        };
+        setAuth(auth);
+      }
+    }).catch(() => {});
+  } catch (e) {
+    // On failure, fallback to guest
+    if (e instanceof Error) {
+      console.error(`Error in EnsureAuth function: ${e.message}`);
+    } else {
+      console.error("Error in EnsureAuth function:", e);
+    }
+  }
   const id = crypto.randomUUID();
   const guestNum = id.split("-")[0].slice(0, 6);
   const auth: AuthStorage = {

@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { ObjectId } from 'mongodb';
 import dbConnect from '@/utils/db';
-
-const USER_COLLECTION = 'User';
+import User from '@/modals/user'; 
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -20,14 +18,8 @@ export async function GET(request: Request) {
 
 async function getAllUsers() {
     try {
-        // dbConnect now returns a Mongoose instance
-        const mongoose = await dbConnect();
-        // Ensure mongoose.connection.db is defined before accessing the collection
-        if (!mongoose.connection.db) {
-            return NextResponse.json({ error: 'Database connection error' }, { status: 500 });
-        }
-        // Access the native MongoDB collection through the Mongoose connection
-        const users = await mongoose.connection.db.collection(USER_COLLECTION).find({}).toArray();
+        await dbConnect();
+        const users = await User.find({}, "-password -__v").lean();
         return NextResponse.json(users, { status: 200 });
     } catch (error: any) {
         return NextResponse.json({ error: error?.toString() }, { status: 500 });
@@ -36,13 +28,8 @@ async function getAllUsers() {
 
 async function getUserByUsername(username: string) {
     try {
-        const mongoose = await dbConnect();
-        // Ensure mongoose.connection.db is defined before accessing the collection
-        if (!mongoose.connection.db) {
-            return NextResponse.json({ error: 'Database connection error' }, { status: 500 });
-        }
-        const user = await mongoose.connection.db.collection(USER_COLLECTION).findOne({ username });
-        
+        await dbConnect();
+        const user = await User.findOne({ username }).select("-password -__v").lean();
         if (!user) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
@@ -54,20 +41,12 @@ async function getUserByUsername(username: string) {
 
 async function getUserById(id: string) {
     try {
-        const mongoose = await dbConnect();
-        let _id: ObjectId;
+        await dbConnect();
 
-        // Validate the ObjectId format
-        if (!ObjectId.isValid(id)) {
+        if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
             return NextResponse.json({ error: 'Invalid user id format' }, { status: 400 });
-        }
-        _id = new ObjectId(id);
-
-        // Ensure mongoose.connection.db is defined before accessing the collection
-        if (!mongoose.connection.db) {
-            return NextResponse.json({ error: 'Database connection error' }, { status: 500 });
-        }
-        const user = await mongoose.connection.db.collection(USER_COLLECTION).findOne({ _id });
+        }        
+        const user = await User.findById(id).select("-password -__v").lean();
 
         if (!user) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });

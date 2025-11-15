@@ -7,10 +7,8 @@ import {PlayerState} from '@/modals/player'
 
 export async function POST(req: NextRequest) {
   try {
-    // Connect to database following your pattern
     const mongoose = await dbConnect();
     
-    // Ensure mongoose.connection.db is defined before accessing the collection
     if (!mongoose.connection.db) {
       return NextResponse.json(
         { 
@@ -24,7 +22,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { email, password, username } = body;
 
-    // Validate input
     if (!email || !password || !username) {
       return NextResponse.json(
         {
@@ -35,7 +32,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check password length
     if (password.length < 6) {
       return NextResponse.json(
         {
@@ -46,7 +42,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return NextResponse.json(
@@ -58,7 +53,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if username is taken
     const existingUsername = await User.findOne({ username });
     if (existingUsername) {
       return NextResponse.json(
@@ -70,33 +64,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new user
     const newUser = new User({
       email,
       username,
       password: hashedPassword,
-      player_state: PlayerState.NotPlaying, // Default value from reference
-      rating: 0,
+      rating: 1000,
       total_wins: 0,
       win_percentage: 0,
       top_speed_to_solve_cube: null,
-      createdAt: new Date(),
+      createdAt: new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" })),
     });
 
     await newUser.save();
 
-    // Generate JWT token
     const token = generateToken(newUser._id.toString());
 
-    // Return user data (without password)
     const userData = {
-      _id: newUser._id.toString(), // Convert ObjectId to string
       email: newUser.email,
       username: newUser.username,
-      player_state: newUser.player_state,
+      player_state: newUser.player_state ?? PlayerState.NotPlaying,
       rating: newUser.rating,
       total_wins: newUser.total_wins,
       win_percentage: newUser.win_percentage,
@@ -104,12 +92,10 @@ export async function POST(req: NextRequest) {
       createdAt: newUser.createdAt,
     };
 
-    // Set HTTP-only cookie
     const response = NextResponse.json(
       {
         success: true,
         user: userData,
-        token: token, // Optional: include token in response body as well
       },
       { status: 201 }
     );

@@ -145,6 +145,25 @@ export default function RoomPage() {
   }
 
   useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // This fires when user tries to close tab, refresh, or navigate away
+      e.preventDefault();
+      // Chrome requires returnValue to be set
+      e.returnValue = '';
+      console.log("Hiii")
+      
+      // You can perform cleanup here
+      // Note: modern browsers ignore custom messages
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
+  useEffect(() => {
     let mounted = true;
 
     const fetchRoomData = async () => {

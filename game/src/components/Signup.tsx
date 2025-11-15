@@ -87,7 +87,6 @@ const Signup: React.FC<SignupProps> = ({ onSignup }) => {
       });
 
       const data = await response.json();
-      console.log('Data: ', data)
 
       if (!response.ok) {
         setErrors({ general: data.message || 'Signup failed. Please try again.' });
