@@ -159,19 +159,7 @@ export default function RoomPage() {
         if (!mounted) return;
 
         setRoom(data);
-        if (data.players.length === 1) {
-          setRoomSize(1);
-        } else if (data.players.length === 2) {
-          setRoomSize(2);
-          // same scramble for both
-          if (data.players[0].scrambledCube === undefined || data.players[0].scrambledCube.length === 0 || data.players[1].scrambledCube === undefined || data.players[1].scrambledCube.length === 0) {
-            const scrambled_cube = generateScrambledCube(20).state;
-            setStartState(scrambled_cube);
-            data.players[0].scrambledCube = scrambled_cube;
-            data.players[1].scrambledCube = scrambled_cube;
-          }
-          setShowCube(true);
-        }
+        setRoomSize(data.players.length);
 
         if (data?.players?.length) {
           const me = data.players.find((p: any) => p.player_id === selfPlayerId) as Player | undefined;
@@ -182,6 +170,25 @@ export default function RoomPage() {
           } else {
             setPlayerA(data.players[0] as Player);
             setPlayerB(data.players[1] as Player | undefined);
+          }
+
+          if (playerA && playerB) {
+            const scrambled_cube = generateScrambledCube(20).state;
+            setStartState(scrambled_cube);
+            playerA.scrambledCube = scrambled_cube;
+            playerB.scrambledCube = scrambled_cube;
+
+            // send a gamestarted event to server.
+            const game_started_msg = {
+              type: GameEventTypes.GameStarted,
+              value: {
+                roomId: roomId,
+                current_player: selfPlayerId === playerA.player_id ? playerA : playerB
+              }
+            }
+            if(wsRef.current){
+              wsRef.current.send(JSON.stringify(game_started_msg))
+            }
           }
         }
       } catch (e: any) {
@@ -232,16 +239,25 @@ export default function RoomPage() {
 
     ws.onopen = () => {
       setWsReady(true);
-      ws.send(JSON.stringify({
+      const game_started_msg = {
         type: GameEventTypes.GameStarted,
         value: {
-          base_values: {
-            room: { id: roomId, ...room },
-            participants: [playerA, playerB]
-          },
-          start_time: new Date()
+          roomId: roomId,
+          current_player: selfPlayerId === playerA?.player_id ? playerA : playerB
         }
-      }));
+      }
+
+      ws.send(JSON.stringify(game_started_msg))
+      // ws.send(JSON.stringify({
+      //   type: GameEventTypes.GameStarted,
+      //   value: {
+      //     base_values: {
+      //       room: { id: roomId, ...room },
+      //       participants: [playerA, playerB]
+      //     },
+      //     start_time: new Date()
+      //   }
+      // }));
     };
 
     ws.onclose = () => {

@@ -16,7 +16,7 @@ const websocket_url = NEXT_PUBLIC_WEBSOCKET_URL ?? 'ws://localhost:8002';
 interface PlayerConnection {
   ws: WebSocket;
   player_id: string;
-  player?: Player;
+  player: Player;
 }
 
 interface RoomConnections {
@@ -37,7 +37,7 @@ export class GameServer {
     private server: http.Server;
     private wss: WebSocketServer;
 
-    private rooms: Map<string, RoomConnections> = new Map();
+    private rooms: Map<string, PlayerConnection[]> = new Map();
     private wsInfoMap: Map<WebSocket, WebSocketInfo> = new Map();
     room_conn_map: Map<string, WebSocket>;
 
@@ -58,15 +58,7 @@ export class GameServer {
     }
 
     private createRoom(roomId: string): boolean {
-        if (this.rooms.has(roomId)) {
-            console.warn(`Attempted to create a room that already exists: ${roomId}`);
-            return false;
-        }
-        this.rooms.set(roomId, {
-            players: new Map(),
-        });
-        console.log(`Room created: ${roomId}`);
-        return true;
+        return true
     }
 
     public start(): void {
@@ -78,61 +70,20 @@ export class GameServer {
     }
 
     public registerPlayer(ws: WebSocket, roomId: string, player: Player): void {
-        const { player_id } = player;
-
-        // Ensure the room exists, or create it
-        if (!this.rooms.has(roomId)) {
-            this.createRoom(roomId);
-        }
-
-        const room = this.rooms.get(roomId)!;
-        const playerConn: PlayerConnection = { ws, player_id, player };
-
-        room.players.set(player_id, playerConn);
-        this.wsInfoMap.set(ws, { roomId, playerId: player_id });
-
-        console.log(`Player ${player_id} registered in room ${roomId}`);
-
-        // Notify other players in the room
-        this.broadcastToRoom(roomId, {
-            type: 'PLAYER_JOINED',
-            value: { player }
-        }, player_id); // Exclude self
+        
     }
 
     public broadcastToRoom(roomId: string, message: any, excludePlayerId?: string): void {
-        const room = this.rooms.get(roomId);
-        if (!room) return;
-
-        const messageStr = JSON.stringify(message);
-        room.players.forEach((playerConn, playerId) => {
-            if (excludePlayerId && playerId === excludePlayerId) return;
-            if (playerConn.ws.readyState === WebSocket.OPEN) {
-                playerConn.ws.send(messageStr);
-            }
-        });
+        
+      
     }
 
     public sendToPlayer(roomId: string, playerId: string, message: any): void {
-        const room = this.rooms.get(roomId);
-        if (!room) return;
-
-        const playerConn = room.players.get(playerId);
-        if (playerConn && playerConn.ws.readyState === WebSocket.OPEN) {
-            playerConn.ws.send(JSON.stringify(message));
-        }
+        
     }
 
     public broadcastToAllInRoom(roomId: string, message: any): void {
-        const room = this.rooms.get(roomId);
-        if (!room) return;
-
-        const messageStr = JSON.stringify(message);
-        room.players.forEach((playerConn) => {
-            if (playerConn.ws.readyState === WebSocket.OPEN) {
-                playerConn.ws.send(messageStr);
-            }
-        });
+        
     }
 
     private setupListeners(): void {
@@ -161,25 +112,40 @@ export class GameServer {
 
             if (message.type === GameEventTypes.GameStarted) {
                 console.log("Message Received game started: ", message.value)
-                const roomId = message.value.base_values.room.id;
-                const ws_conn = this.room_conn_map.get(roomId);
-                if (ws_conn === undefined) {
-                  console.error("room is not registered properly")
+                const roomId = message.value.roomId
+                const player = message.value.current_player as Player
 
+                if (this.rooms.has(roomId)) {
+                  let playerConn: PlayerConnection = {
+                    ws: ws,
+                    player_id: player.player_id,
+                    player: player
+                  }
+
+                  let playerconnArr = this.rooms.get(roomId)
+                  if (playerconnArr === undefined) {
+                    playerconnArr = []
+                  }
+
+                  playerconnArr.push(playerConn)
+                  this.rooms.set(roomId, playerconnArr);
+                } else {
+                  let playerConn: PlayerConnection = {
+                    ws: ws,
+                    player_id: player.player_id,
+                    player: player
+                  }
+
+                  const playerconnArr = [playerConn]
+                  this.rooms.set(roomId, playerconnArr);
                 }
 
-                ws.send(JSON.stringify({
-                  "message": "Game started event recieved"
-                }))
+                console.log("Logging the room: ", this.rooms.get(roomId))
                 return;
             }
 
             if (message.type === GameEventTypes.KeyBoardButtonPressed) {
-              // export interface KeyboardButtonPressedMessageValues {
-              //   room: Room | undefined;
-              //   player: Player;
-              //   keyboardButton: string;
-              // }
+              
               console.log("Keyboard buttons pressed.")
               const valid_keypresses = ["u", "f", "b", "d", "l", "r"]
               const keybutton_pressed = message.value.keyboardButton
@@ -203,12 +169,6 @@ export class GameServer {
             }
 
             if (message.type === GameEventTypes.GameFinished) {
-              // export interface GameEndEventMessageValues {
-              //   base_values: BaseMessageValues;
-              //   player_id_who_won: string;
-              //   end_time: string;
-              // }
-
               ws.send(JSON.stringify({
                 type: GameEventTypes.GameFinished,
                 value: message.value
@@ -244,32 +204,7 @@ export class GameServer {
     }
 
     private handleDisconnect(ws: WebSocket): void {
-        console.log('Client disconnected');
-        const info = this.wsInfoMap.get(ws);
-
-        if (!info) {
-            return;
-        }
-
-        const { roomId, playerId } = info;
-        const room = this.rooms.get(roomId);
-
-        if (room) {
-            room.players.delete(playerId);
-            
-            this.broadcastToAllInRoom(roomId, {
-                type: 'PLAYER_LEFT',
-                value: { playerId }
-            });
-
-            if (room.players.size === 0) {
-                this.rooms.delete(roomId);
-                console.log(`Room ${roomId} is empty and was deleted.`);
-            }
-        }
         
-        this.wsInfoMap.delete(ws);
-        console.log(`Cleaned up disconnected player ${playerId} from room ${roomId}`);
     }
 
     private setupGracefulShutdown(): void {

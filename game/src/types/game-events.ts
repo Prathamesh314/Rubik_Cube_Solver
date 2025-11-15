@@ -20,7 +20,9 @@ export interface BaseMessageValues {
 }
 
 export interface GameStartEventMessageValues {
-  base_values: BaseMessageValues;
+  // base_values: BaseMessageValues;
+  roomId: string
+  player: Player
   start_time: Date
 }
 
