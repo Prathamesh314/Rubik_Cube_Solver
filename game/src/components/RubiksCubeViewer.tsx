@@ -279,7 +279,7 @@ const RubiksCubeViewer = forwardRef<RubiksCubeViewerHandle, RubiksCubeViewerProp
     if (isAnimating || !rubikCubeRef.current) return;
     setIsAnimating(true);
     const newState = rubikCubeRef.current.generateScrambledCube(20);
-    setCubeState(newState);
+    setCubeState(newState.state);
     setMoveHistory([]);
     setTimeout(() => setIsAnimating(false), 500);
   };

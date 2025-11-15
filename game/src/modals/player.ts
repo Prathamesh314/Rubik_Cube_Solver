@@ -99,4 +99,12 @@ export class Player {
         }
         return p;
     }
+
+    updateCube(cube: number[][][]) {
+        this.scrambledCube = cube;
+    }
+
+    getCube() {
+        return this.scrambledCube
+    }
 }

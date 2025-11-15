@@ -4,9 +4,8 @@ import 'dotenv/config';
 import http from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { WEBSOCKET_PORT, NEXT_PUBLIC_WEBSOCKET_URL } from '@/lib/env_config';
-import type { Room } from '@/modals/room';
 import type { Player } from '@/modals/player';
-import { GameEvents, GameEventTypes } from '@/types/game-events';
+import { GameEventTypes } from '@/types/game-events';
 
 const websocket_port = WEBSOCKET_PORT ?? 8002;
 const websocket_url = NEXT_PUBLIC_WEBSOCKET_URL ?? 'ws://localhost:8002';
@@ -17,12 +16,6 @@ interface PlayerConnection {
   ws: WebSocket;
   player_id: string;
   player: Player;
-}
-
-interface RoomConnections {
-  players: Map<string, PlayerConnection>; // player_id -> PlayerConnection
-  scrambledMoves?: number[][][];
-  startTime?: string;
 }
 
 interface WebSocketInfo {
@@ -45,8 +38,6 @@ export class GameServer {
         this.server = http.createServer();
         this.wss = new WebSocketServer({ server: this.server });
         this.room_conn_map = new Map();
-        
-        console.log("GameServer instance created.");
         this.setupListeners();
     }
 
@@ -55,10 +46,6 @@ export class GameServer {
             GameServer.instance = new GameServer();
         }
         return GameServer.instance;
-    }
-
-    private createRoom(roomId: string): boolean {
-        return true
     }
 
     public start(): void {
@@ -114,10 +101,8 @@ export class GameServer {
     private handleMessage(ws: WebSocket, rawMessage: string | Buffer): void {
         try {
             const message: any = JSON.parse(rawMessage.toString());
-            console.log('Received message:', message.type);
 
             if (message.type === GameEventTypes.GameStarted) {
-                console.log("Message Received game started: ", message.value)
                 const roomId = message.value.roomId
                 const player = message.value.current_player as Player
 
@@ -146,9 +131,7 @@ export class GameServer {
                   this.rooms.set(roomId, playerconnArr);
                 }
 
-                console.log("Logging the room: ", this.rooms.get(roomId))
                 if (this.rooms.get(roomId) !== undefined && this.rooms.get(roomId)?.length === 2) {
-                  console.log("Both players joined so sending players joined message")
                   const message = {
                     type: GameEventTypes.GameStarted,
                     value: this.rooms.get(roomId)
@@ -160,21 +143,9 @@ export class GameServer {
 
             if (message.type === GameEventTypes.KeyBoardButtonPressed) {
               
-              console.log("Keyboard buttons pressed.")
               const valid_keypresses = ["u", "f", "b", "d", "l", "r", "U", "F", "B", "D", "L", "R"];
               const keybutton_pressed = message.value.keyboardButton
               const clockwise = message.value.clockwise
-
-              console.log("Websocket server: ", keybutton_pressed, " clockwise: ", clockwise)
-              // const message = {
-              //   type: "KeyBoardButtonPressed",
-              //   value: {
-              //     roomId: roomId,
-              //     player: selfPlayerId === playerA?.player_id ? playerA : playerB,
-              //     keyboardButton: e.key,
-              //     clockwise: e.shiftKey ? "anticlockwise" : "clockwise"
-              //   },
-              // };
 
               if (valid_keypresses.includes(keybutton_pressed)) {
                 const kb_event_msg = {
@@ -186,7 +157,6 @@ export class GameServer {
                   }
                 }
                 const roomId = message.value.roomId
-                console.log("Sending keyboard event to all the messages....")
                 this.broadcastToAllInRoom(roomId, kb_event_msg)
               } else{
                 console.log("Ignoring these buttons..")
@@ -206,20 +176,6 @@ export class GameServer {
                 console.warn("Message from unregistered client. Ignoring.");
                 return;
             }
-
-            // switch(message.type) {
-            //     case GameEventTypes.GameStarted:
-            //         console.log("GameStarted event received...");
-            //         this.broadcastToAllInRoom(info.roomId, message);
-            //         break;
-                
-            //     case 'CUBE_UPDATE':
-            //         console.log(`Cube update from ${info.playerId} in room ${info.roomId}`);
-            //         // Broadcast to other players
-            //         this.broadcastToRoom(info.roomId, message, info.playerId);
-            //         break;
-                
-            // }
         } catch (error) {
             if (error instanceof Error) {
                 console.error(`Error processing message: ${error.message}`);

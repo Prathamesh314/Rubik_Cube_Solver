@@ -7,12 +7,10 @@ import { SimpleCubeHelper } from "@/utils/cube_helper";
 const REDIS_URL = process.env.REDIS_URL as string;
 const REDIS_PORT = process.env.REDIS_PORT as string;
 
-// We store all players under this single Hash key
 const PLAYERS_HASH_KEY = "players";
 const ROOMS_HASH_KEY = "rooms";
-const PLAYER_ROOMS_HASH_KEY = "player:room"; // field = player_id, value = roomId
+const PLAYER_ROOMS_HASH_KEY = "player:room"; 
 
-// waiting pool per variant: mm:<variant>:waiting | mm: stands for matchmaking.
 const waitingKey = (variant: CubeCategories) => `mm:${variant}:waiting`;
 export function generateScrambledCube(number_of_moves: number): { state: Cube; moves: string[] } {
     let cube = [
@@ -66,16 +64,6 @@ export function generateScrambledCube(number_of_moves: number): { state: Cube; m
   
     return { state: cube, moves };
 }
-// Redis ==> {
-//     "namespace": {
-//         "players": {
-//             "player_id": Player
-//         },
-//         "room": {
-//             "roomId": "playerId"
-//         }
-//     }
-// }
 
 export class Redis {
     private static instance: Redis;
@@ -229,9 +217,6 @@ export class Redis {
         }
     }
 
-    /**
-     * This is the code for playerId -> roomId mapping
-     */
     async set_player_room(playerId: string, roomId: string): Promise<void> {
         this.ensureConnection();
         await this.redis_client!.hSet(PLAYER_ROOMS_HASH_KEY, playerId, roomId);
@@ -241,9 +226,7 @@ export class Redis {
         this.ensureConnection();
         const currentRoom = await this.redis_client!.hGet(PLAYER_ROOMS_HASH_KEY, playerId);
         if (currentRoom === roomId) {
-            // Remove player-to-room mapping
             await this.redis_client!.hDel(PLAYER_ROOMS_HASH_KEY, playerId);
-            // Remove player from main players hash
             await this.redis_client!.hDel(PLAYERS_HASH_KEY, playerId);
             return true;
         }
@@ -263,20 +246,17 @@ export class Redis {
 
     async delete_all_rooms(): Promise<boolean> {
         this.ensureConnection();
-        // Delete the entire hash of players by deleting the PLAYERS_HASH_KEY
         const result = await this.redis_client!.del(ROOMS_HASH_KEY);
         return result > 0;
     }
 
     async upsert_room(room_id: string, room: Room) {
         this.ensureConnection();
-        // Upsert: overwrite the room with same id if exists, or insert if not
         await this.redis_client!.hSet(ROOMS_HASH_KEY, room_id, JSON.stringify(room));
     }
 
     async insert_room(room: Room) {
         this.ensureConnection();
-        // The value must be a string (because Redis hashes store string values). Store serialized Room:
         if (room.initialState.length === 0) {
             room.initialState = generateScrambledCube(20).state
         }
@@ -291,14 +271,6 @@ export class Redis {
         return JSON.parse(roomStr) as Room;
     }
 
-    // ---------- Matchmaking MVP ----------
-    /**
-     * Try to match the given player in a waiting pool for the variant.
-     * If the waiting pool is empty: enqueue player (Waiting), return {queued:true}
-     * If not empty: pop one opponent, create a room, set both to Playing, return room.
-     * NOTE: MVP assumes single server instance; fine for your first version.
-     */
-
     async tryMatchOrEnqueue(
         player: Player,
         roomId: string,
@@ -307,11 +279,11 @@ export class Redis {
         | { queued: true | false; room: Room; }
     > {
         const has_players = await this.has_players();
-        console.log("Has players: ", has_players);
         if (has_players) {
             const players = await this.get_all_players();
             // fetch which room the player1 is waiting inside??
             const opponent_player = players[0]
+            player.updateCube(opponent_player.getCube())
 
             const roomID = await this.get_player_room(opponent_player.player_id);
             if (roomID === null){
@@ -329,20 +301,19 @@ export class Redis {
             await this.upsert_player(opponent_player.player_id, opponent_player)
             
             await this.set_player_room(player.player_id, roomId)
-            // delete the player from the cache and also room as well
-            // await this.delete_player(opponent_player.player_id);
-            // await this.clear_player_room(opponent_player.player_id);
 
             return {queued: false, room: room}
 
         }
         // i think we should store room as well, because we have list of player id saved there.
+        const initialCubeState = generateScrambledCube(20).state
+        player.updateCube(initialCubeState)
         const room: Room = {
             id: roomId,
             players: [player],
             maxPlayers: 2,
             gameState: { status: "init", variant },
-            initialState: generateScrambledCube(20).state,
+            initialState: initialCubeState,
             variant,
             createdAt: Date.now(),
         };
@@ -352,69 +323,4 @@ export class Redis {
 
         return {queued: true, room: room}
     }
-
-    // async tryMatchOrEnqueue(
-    //     player: Player,
-    //     variant: CubeCategories
-    // ): Promise<
-    //     | { queued: true; player_id: string }
-    //     | { queued: false; room: Room; opponent: Player }
-    // > {
-    //     this.ensureConnection();
-
-    //     return {queued: true, player_id: ""}
-
-    //     // Ensure player record exists/up-to-date
-    //     // await this.upsert_player(player);
-
-    //     // const wKey = waitingKey(variant);
-
-    //     // // 1) Is someone already waiting?
-    //     // const waitingCount = await this.redis_client!.hLen(wKey);
-    //     // console.log("Waiting count: ", waitingCount)
-        
-    //     // // If no one is waiting in the queue then 
-    //     // if (waitingCount === 0) {
-    //     //     // No one waiting -> enqueue this player
-    //     //     // await this.redis_client!.hSet(wKey, player.player_id, JSON.stringify(Player.toPlain(player)));
-    //     //     player.player_state = PlayerState.Waiting;
-    //     //     await this.insert_player(player);
-    //     //     return { queued: true, player_id: player.player_id };
-    //     // }
-
-    //     // // 2) Someone is waiting -> fetch ONE opponent (hash is unordered; OK for MVP)
-    //     // const keys = await this.redis_client!.hKeys(wKey);
-    //     // const opponentId = keys.find((k) => k !== player.player_id) ?? keys[0]; // avoid self
-    //     // const opponentRaw = await this.redis_client!.hGet(wKey, opponentId);
-    //     // if (!opponentRaw) {
-    //     // // rare race; just enqueue current player as fallback
-    //     // await this.redis_client!.hSet(wKey, player.player_id, JSON.stringify(Player.toPlain(player)));
-    //     // await this.setPlayerState(player.player_id, PlayerState.Waiting);
-    //     // return { queued: true, player_id: player.player_id };
-    //     // }
-
-    //     // // Remove opponent from waiting
-    //     // await this.redis_client!.hDel(wKey, opponentId);
-
-    //     // const opponent = Player.fromPlain(JSON.parse(opponentRaw));
-
-    //     // // Create room
-    //     // const room: Room = {
-    //     //     id: randomUUID(),
-    //     //     players: [opponent.player_id, player.player_id],
-    //     //     maxPlayers: 2,
-    //     //     gameState: { status: "init", variant },
-    //     //     variant,
-    //     //     createdAt: Date.now(),
-    //     // };
-
-    //     // // Persist room (simple: one hash of rooms)
-    //     // await this.redis_client!.hSet(ROOMS_HASH_KEY, room.id, JSON.stringify(room));
-
-    //     // // Update both players to Playing
-    //     // await this.setPlayerState(opponent.player_id, PlayerState.Playing);
-    //     // await this.setPlayerState(player.player_id, PlayerState.Playing);
-
-    //     // return { queued: false, room, opponent };
-    // }
 }
