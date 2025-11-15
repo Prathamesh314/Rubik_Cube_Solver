@@ -25,8 +25,9 @@ export class RubikCube {
   room: Room | null;
   participants: Array<Player | undefined>;
 
-  constructor(container: HTMLElement, cube_options: CubeOptions, wsRef: WebSocket | null, player: Player | undefined, room: Room | null, participants: Array<Player | undefined>, cube: Cube) {
-    this.cube = cube;
+  constructor(container: HTMLElement, cube_options: CubeOptions, wsRef: WebSocket | null, player: Player | undefined, room: Room | null, participants: Array<Player | undefined>) {
+    // this.cube = cube;
+    this.cube = room?.initialState ?? this.generateScrambledCube(20)
     this.cube_options = cube_options;
     this.container = container;
     this.wsRef = wsRef;
@@ -145,7 +146,6 @@ export class RubikCube {
  */
 export function initRubiksCube(
   container: HTMLElement,
-  state: number[][][],
   wsRef: WebSocket | null,
   player: Player|undefined,
   room: Room | null,
@@ -155,7 +155,7 @@ export function initRubiksCube(
     if (player === undefined) {
         throw Error("Cannot start the game the player is undefined....")
     }
-  const cube = new RubikCube(container, options, wsRef, player, room, participants, state);
+  const cube = new RubikCube(container, options, wsRef, player, room, participants);
   // return {
   //   turn: (face: FaceName, cw = true) => cube.turn(face, cw),
   //   dispose: () => cube.dispose(),

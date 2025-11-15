@@ -172,24 +172,12 @@ export default function RoomPage() {
             setPlayerB(data.players[1] as Player | undefined);
           }
 
-          if (playerA && playerB) {
-            const scrambled_cube = generateScrambledCube(20).state;
-            setStartState(scrambled_cube);
-            playerA.scrambledCube = scrambled_cube;
-            playerB.scrambledCube = scrambled_cube;
-
-            // send a gamestarted event to server.
-            const game_started_msg = {
-              type: GameEventTypes.GameStarted,
-              value: {
-                roomId: roomId,
-                current_player: selfPlayerId === playerA.player_id ? playerA : playerB
-              }
-            }
-            if(wsRef.current){
-              wsRef.current.send(JSON.stringify(game_started_msg))
-            }
-          }
+          // if (playerA && playerB) {
+          //   const scrambled_cube = generateScrambledCube(20).state;
+          //   setStartState(scrambled_cube);
+          //   playerA.scrambledCube = scrambled_cube;
+          //   playerB.scrambledCube = scrambled_cube;
+          // }
         }
       } catch (e: any) {
         if (!mounted) return;
@@ -279,6 +267,8 @@ export default function RoomPage() {
 
         if (player.player_id !== selfPlayerId) {
           console.log("Opponent has played the move....")
+          const faceName = keybutton_pressed.toUpperCase()
+          opponentCubeRef.current?.applyMove(faceName, clockwise)
         }
 
       }
@@ -401,7 +391,6 @@ export default function RoomPage() {
             <RubiksCubeViewer
                 ref={playerCubeRef}
                 container={leftRef.current}
-                cube={startState ?? generateScrambledCube(20).state}
                 cube_options={{
                   controlsEnabled: Boolean(playerA && playerA.player_id === selfPlayerId),
                 }}
@@ -421,7 +410,6 @@ export default function RoomPage() {
               <RubiksCubeViewer
               ref={opponentCubeRef}
               container={rightRef.current}
-                cube={startState ?? generateScrambledCube(20).state}
                 cube_options={{
                   controlsEnabled: Boolean(playerB && playerB.player_id === selfPlayerId),
                 }}

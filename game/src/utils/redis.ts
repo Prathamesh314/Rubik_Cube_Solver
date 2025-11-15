@@ -1,6 +1,8 @@
 import { Player, CubeCategories, PlayerState } from '@/modals/player';
 import { createClient, RedisClientType } from 'redis';
 import { Room } from '@/modals/room';
+import { Cube, FaceName } from "@/components/cube";
+import { SimpleCubeHelper } from "@/utils/cube_helper";
 
 const REDIS_URL = process.env.REDIS_URL as string;
 const REDIS_PORT = process.env.REDIS_PORT as string;
@@ -12,7 +14,58 @@ const PLAYER_ROOMS_HASH_KEY = "player:room"; // field = player_id, value = roomI
 
 // waiting pool per variant: mm:<variant>:waiting | mm: stands for matchmaking.
 const waitingKey = (variant: CubeCategories) => `mm:${variant}:waiting`;
-
+export function generateScrambledCube(number_of_moves: number): { state: Cube; moves: string[] } {
+    let cube = [
+      [[1,1,1],[1,1,1],[1,1,1]], // Back - Red
+      [[4,4,4],[4,4,4],[4,4,4]], // Up - Yellow
+      [[5,5,5],[5,5,5],[5,5,5]], // Front - Orange
+      [[6,6,6],[6,6,6],[6,6,6]], // Down - White
+      [[2,2,2],[2,2,2],[2,2,2]], // Left - Green
+      [[3,3,3],[3,3,3],[3,3,3]], // Right - Blue
+    ];
+    const helper = new SimpleCubeHelper();
+    const faces: FaceName[] = ["U", "D", "F", "B", "L", "R"];
+    const moves: string[] = [];
+    let prevFace: FaceName | null = null;
+  
+    for (let i = 0; i < number_of_moves; i++) {
+      // Choose a random face, but avoid repeating the same face consecutively
+      let face: FaceName;
+      do {
+        face = faces[Math.floor(Math.random() * faces.length)];
+      } while (face === prevFace);
+  
+      prevFace = face;
+      const clockwise = Math.random() < 0.5;
+  
+      // Apply the move
+      switch (face) {
+        case "U":
+          cube = helper.rotateU(cube, clockwise);
+          break;
+        case "D":
+          cube = helper.rotateD(cube, clockwise);
+          break;
+        case "F":
+          cube = helper.rotateF(cube, clockwise);
+          break;
+        case "B":
+          cube = helper.rotateB(cube, clockwise);
+          break;
+        case "L":
+          cube = helper.rotateL(cube, clockwise);
+          break;
+        case "R":
+          cube = helper.rotateR(cube, clockwise);
+          break;
+      }
+  
+      // Record the move in standard notation
+      moves.push(`${face}${clockwise ? '' : "'"}`);
+    }
+  
+    return { state: cube, moves };
+}
 // Redis ==> {
 //     "namespace": {
 //         "players": {
@@ -224,6 +277,9 @@ export class Redis {
     async insert_room(room: Room) {
         this.ensureConnection();
         // The value must be a string (because Redis hashes store string values). Store serialized Room:
+        if (room.initialState.length === 0) {
+            room.initialState = generateScrambledCube(20).state
+        }
         await this.redis_client!.hSet(ROOMS_HASH_KEY, room.id, JSON.stringify(room));
     }
 
@@ -286,6 +342,7 @@ export class Redis {
             players: [player],
             maxPlayers: 2,
             gameState: { status: "init", variant },
+            initialState: generateScrambledCube(20).state,
             variant,
             createdAt: Date.now(),
         };

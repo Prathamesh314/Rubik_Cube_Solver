@@ -6,6 +6,7 @@ import { CubeOptions, RubikCube } from './cube';
 import { Player } from '@/modals/player';
 import { Room } from '@/modals/room';
 import { GameEventTypes } from '@/types/game-events';
+import { generateScrambledCube } from '@/app/room/[roomId]/page';
 
 
 type FaceName = "U" | "R" | "F" | "D" | "L" | "B";
@@ -47,7 +48,7 @@ interface RubiksCubeViewerProps {
   player: Player | undefined;
   room: Room | null;
   participants: Array<Player | undefined>;
-  cube: Cube;
+  // cube: Cube;
 }
 
 const RubiksCubeViewer = forwardRef<RubiksCubeViewerHandle, RubiksCubeViewerProps>(
@@ -61,7 +62,7 @@ const RubiksCubeViewer = forwardRef<RubiksCubeViewerHandle, RubiksCubeViewerProp
   const faceLabelsRef = useRef<THREE.Group | null>(null);
   
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
-  const [cubeState, setCubeState] = useState<Cube>(props.cube);
+  const [cubeState, setCubeState] = useState<Cube>(props.room?.initialState ?? generateScrambledCube(20).state);
   const [moveHistory, setMoveHistory] = useState<MoveHistory>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [showLabels, setShowLabels] = useState<boolean>(true);
@@ -77,16 +78,16 @@ const RubiksCubeViewer = forwardRef<RubiksCubeViewerHandle, RubiksCubeViewerProp
       props.player,
       props.room,
       props.participants,
-      props.cube
+      // props.cube
     );
     
     setIsInitialized(true);
   }, []);
 
   // Update cube state when props.cube changes (for opponent's cube)
-  useEffect(() => {
-    setCubeState(props.cube);
-  }, [props.cube]);
+  // useEffect(() => {
+  //   setCubeState(props.room?.initialState);
+  // }, [props.cube]);
 
   // Create text sprite for face labels
   const createTextSprite = (

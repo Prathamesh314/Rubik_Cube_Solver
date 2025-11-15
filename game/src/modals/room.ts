@@ -6,6 +6,7 @@ export interface Room {
     players: Player[]; // [p1, p2]
     maxPlayers: number;
     gameState: any;
+    initialState: number[][][];
     variant: CubeCategories;
     createdAt: number;
 }
