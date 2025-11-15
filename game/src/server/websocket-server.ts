@@ -80,8 +80,12 @@ export class GameServer {
     }
 
     private updatePlayerInDb(player: Player | undefined) {
-      if (player === undefined) return
-      fetch(`/api/update_user`, {
+      if (player === undefined) return;
+      // Use absolute URL since this is running on the server and does not have access to Next.js relative API routes
+      // Adjust base URL as needed for your backend server setup
+      const apiUrl = `http://localhost:3000/api/update_user`;
+
+      fetch(apiUrl, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
@@ -91,19 +95,19 @@ export class GameServer {
           ratingIncrement: 8
         })
       })
-      .then(async res => {
-        if (!res.ok) {
-          console.error('Failed to update user rating for winner');
-          return;
-        }
-        const result = await res.json();
-        if (!result.success) {
-          console.error('API responded with failure for winner:', result.message);
-        }
-      })
-      .catch(err => {
-        console.error('Error updating user rating for winner:', err);
-      });
+        .then(async res => {
+          if (!res.ok) {
+            console.error('Failed to update user rating for winner');
+            return;
+          }
+          const result = await res.json();
+          if (!result.success) {
+            console.error('API responded with failure for winner:', result.message);
+          }
+        })
+        .catch(err => {
+          console.error('Error updating user rating for winner:', err);
+        });
     }
 
     private setupListeners(): void {
@@ -212,7 +216,9 @@ export class GameServer {
 
                 playerConn.ws.send(JSON.stringify({
                   type: GameEventTypes.GameFinished,
-                  playerIdWhoWon: player_won?.player_id
+                  value: {
+                    player_id_who_won: player_won?.player_id,
+                  }
                 }))
               }
 

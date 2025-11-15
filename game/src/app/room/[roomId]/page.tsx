@@ -115,6 +115,7 @@ export default function RoomPage() {
   const [showPopUp, setShowPopUp] = useState<boolean>(false)
 
   const [wsReady, setWsReady] = useState(false);
+
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -145,6 +146,20 @@ export default function RoomPage() {
           playerId: selfPlayerId
         })
       });
+
+      if(wsRef.current) {
+        const game_finished_msg = {
+          type: GameEventTypes.GameFinished,
+          value: {
+            roomId: roomId,
+            player_id_who_won: playerA?.player_id === selfPlayerId ? playerB?.player_id : playerA?.player_id,
+            end_time: new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
+          }
+        }
+
+        wsRef.current.send(JSON.stringify(game_finished_msg))
+      }
+
       router.push("/");
       return await res.json();
     } catch (e) {
@@ -346,9 +361,19 @@ export default function RoomPage() {
   }
 
   if (showPopUp && winnerPropsData) {
+    const onclose = () => {
+      setShowPopUp(false);
+      router.push("/")
+    }
     return (
       <div>
-        <WinnerPopup winner={winnerPropsData.winner} loser={winnerPropsData.loser} />
+        {/* <WinnerPopup winner={winnerPropsData.winner} loser={winnerPropsData.loser} /> */}
+        <WinnerPopup
+        isOpen={showPopUp}
+        onClose={() => onclose()}
+        winner={winnerPropsData.winner}
+        loser={winnerPropsData.loser}
+      />
       </div>
     );
   }
