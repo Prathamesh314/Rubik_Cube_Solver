@@ -161,7 +161,7 @@ export class GameServer {
             if (message.type === GameEventTypes.KeyBoardButtonPressed) {
               
               console.log("Keyboard buttons pressed.")
-              const valid_keypresses = ["u", "f", "b", "d", "l", "r"]
+              const valid_keypresses = ["u", "f", "b", "d", "l", "r", "U", "F", "B", "D", "L", "R"];
               const keybutton_pressed = message.value.keyboardButton
               const clockwise = message.value.clockwise
 
