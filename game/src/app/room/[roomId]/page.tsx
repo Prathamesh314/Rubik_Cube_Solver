@@ -212,7 +212,7 @@ export default function RoomPage() {
     const message = {
       type: "KeyBoardButtonPressed",
       value: {
-        room: { id: roomId, ...room },
+        roomId: roomId,
         player: selfPlayerId === playerA?.player_id ? playerA : playerB,
         keyboardButton: e.key,
         clockwise: e.shiftKey ? "anticlockwise" : "clockwise"
@@ -248,16 +248,6 @@ export default function RoomPage() {
       }
 
       ws.send(JSON.stringify(game_started_msg))
-      // ws.send(JSON.stringify({
-      //   type: GameEventTypes.GameStarted,
-      //   value: {
-      //     base_values: {
-      //       room: { id: roomId, ...room },
-      //       participants: [playerA, playerB]
-      //     },
-      //     start_time: new Date()
-      //   }
-      // }));
     };
 
     ws.onclose = () => {
@@ -278,15 +268,7 @@ export default function RoomPage() {
       }
 
       else if (message.type === GameEventTypes.GameFinished) {
-        // export interface GameEndEventMessageValues {
-        //   base_values: BaseMessageValues;
-        //   player_id_who_won: string;
-        //   end_time: string;
-        // }
-
         console.log("Player: ", message.value.player_id_who_won, " has won the game.")
-        // Remove the window keydown event listener by referencing the same handler
-        // window.removeEventListener("keydown", handleKeyDown);
       }
       else if (message.type === GameEventTypes.KeyBoardButtonPressed) {
         const player = message.value.player as Player;

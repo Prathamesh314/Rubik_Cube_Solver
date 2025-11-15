@@ -166,16 +166,28 @@ export class GameServer {
               const clockwise = message.value.clockwise
 
               console.log("Websocket server: ", keybutton_pressed, " clockwise: ", clockwise)
+              // const message = {
+              //   type: "KeyBoardButtonPressed",
+              //   value: {
+              //     roomId: roomId,
+              //     player: selfPlayerId === playerA?.player_id ? playerA : playerB,
+              //     keyboardButton: e.key,
+              //     clockwise: e.shiftKey ? "anticlockwise" : "clockwise"
+              //   },
+              // };
 
               if (valid_keypresses.includes(keybutton_pressed)) {
-                ws.send(JSON.stringify({
+                const kb_event_msg = {
                   type: GameEventTypes.KeyBoardButtonPressed,
                   value: {
-                    player: message.value.player,
+                    player: message.value.player as Player,
                     keybutton_pressed,
                     clockwise
                   }
-                }));
+                }
+                const roomId = message.value.roomId
+                console.log("Sending keyboard event to all the messages....")
+                this.broadcastToAllInRoom(roomId, kb_event_msg)
               } else{
                 console.log("Ignoring these buttons..")
               }
