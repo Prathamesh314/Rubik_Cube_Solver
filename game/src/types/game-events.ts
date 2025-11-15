@@ -27,7 +27,8 @@ export interface GameStartEventMessageValues {
 }
 
 export interface GameEndEventMessageValues {
-  base_values: BaseMessageValues;
+  // base_values: BaseMessageValues;
+  roomId: string
   player_id_who_won: string;
   end_time: string;
 }

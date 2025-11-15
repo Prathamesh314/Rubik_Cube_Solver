@@ -79,6 +79,33 @@ export class GameServer {
         }
     }
 
+    private updatePlayerInDb(player: Player | undefined) {
+      if (player === undefined) return
+      fetch(`/api/update_user`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          playerId: player.player_id,
+          ratingIncrement: 8
+        })
+      })
+      .then(async res => {
+        if (!res.ok) {
+          console.error('Failed to update user rating for winner');
+          return;
+        }
+        const result = await res.json();
+        if (!result.success) {
+          console.error('API responded with failure for winner:', result.message);
+        }
+      })
+      .catch(err => {
+        console.error('Error updating user rating for winner:', err);
+      });
+    }
+
     private setupListeners(): void {
         this.wss.on('connection', (ws: WebSocket) => {
             console.log('🔌 Client connected');
@@ -141,7 +168,7 @@ export class GameServer {
                 return;
             }
 
-            if (message.type === GameEventTypes.KeyBoardButtonPressed) {
+            else if (message.type === GameEventTypes.KeyBoardButtonPressed) {
               
               const valid_keypresses = ["u", "f", "b", "d", "l", "r", "U", "F", "B", "D", "L", "R"];
               const keybutton_pressed = message.value.keyboardButton
@@ -165,16 +192,32 @@ export class GameServer {
             }
 
             if (message.type === GameEventTypes.GameFinished) {
-              ws.send(JSON.stringify({
-                type: GameEventTypes.GameFinished,
-                value: message.value
-              }))
-            }
-            
-            const info = this.wsInfoMap.get(ws);
-            if (!info) {
-                console.warn("Message from unregistered client. Ignoring.");
-                return;
+              const playerConns = this.rooms.get(message.value.roomId)
+              if (playerConns === undefined || playerConns.length === 0) {
+                ws.send(JSON.stringify({
+                  type: GameEventTypes.Error,
+                  value: "game finished but players map are empty.."
+                }))
+                return
+              }
+              
+              let player_won, player_lost;
+
+              for (const playerConn of playerConns) {
+                if (playerConn.player.player_id === message.value.player_id_who_won) {
+                  player_won = playerConn.player as Player
+                } else {
+                  player_lost = playerConn.player as Player
+                }
+
+                playerConn.ws.send(JSON.stringify({
+                  type: GameEventTypes.GameFinished,
+                  playerIdWhoWon: player_won?.player_id
+                }))
+              }
+
+              this.updatePlayerInDb(player_won)
+              this.updatePlayerInDb(player_lost)
             }
         } catch (error) {
             if (error instanceof Error) {

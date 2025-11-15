@@ -35,6 +35,7 @@ type MoveHistory = string[];
 // Define the methods you want to expose
 export interface RubiksCubeViewerHandle {
   applyMove: (face: FaceName, clockwise: boolean) => void;
+  IsRubikCubeSolved: () => boolean;
   handleScramble: () => void;
   handleReset: () => void;
   getCubeState: () => Cube;
@@ -250,6 +251,13 @@ const RubiksCubeViewer = forwardRef<RubiksCubeViewerHandle, RubiksCubeViewerProp
 
     return cubeGroup;
   };
+
+  const IsRubikCubeSolved = (): boolean => {
+    if (rubikCubeRef === null || rubikCubeRef.current === null) {
+      return false
+    }
+    return rubikCubeRef.current.isRubikCubeSolved();
+  }
   
   const applyMove = (face: FaceName, clockwise: boolean): void => {
     if (isAnimating || !rubikCubeRef.current) return;
@@ -457,6 +465,7 @@ const RubiksCubeViewer = forwardRef<RubiksCubeViewerHandle, RubiksCubeViewerProp
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
     applyMove,
+    IsRubikCubeSolved,
     handleScramble,
     handleReset,
     getCubeState: () => cubeState,

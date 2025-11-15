@@ -10,6 +10,7 @@ import { GameEventTypes } from "@/types/game-events";
 import RubiksCubeViewer, { RubiksCubeViewerHandle } from "@/components/RubiksCubeViewer";
 import { Cube, FaceName } from "@/components/cube";
 import { SimpleCubeHelper } from "@/utils/cube_helper";
+import WinnerPopup from "@/components/WinnerPopup";
 
 const WS_URL = Env.NEXT_PUBLIC_WEBSOCKET_URL;
 const WS_PORT = 8002;
@@ -88,6 +89,12 @@ function CopyButton({ value }: { value: string }) {
   );
 }
 
+interface PopUpProps {
+  winner: Player;
+  loser: Player
+}
+
+
 export default function RoomPage() {
   const { roomId } = useParams<{ roomId: string }>();
   const router = useRouter();
@@ -104,6 +111,8 @@ export default function RoomPage() {
   const opponentCubeRef = useRef<RubiksCubeViewerHandle>(null);
   const leftRef = useRef<HTMLDivElement | null>(null);
   const rightRef = useRef<HTMLDivElement | null>(null);
+  const [winnerPropsData, setWinnerPopupData] = useState<PopUpProps>()
+  const [showPopUp, setShowPopUp] = useState<boolean>(false)
 
   const [wsReady, setWsReady] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
@@ -216,6 +225,20 @@ export default function RoomPage() {
     const ws = wsRef.current;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
+    if (playerCubeRef.current?.IsRubikCubeSolved()) {
+  
+      const game_finished_msg = {
+        type: GameEventTypes.GameFinished,
+        value: {
+          roomId: roomId,
+          player_id_who_won: selfPlayerId,
+          end_time: new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
+        }
+      }
+
+      ws.send(JSON.stringify(game_finished_msg))
+    }
+
     const message = {
       type: "KeyBoardButtonPressed",
       value: {
@@ -275,17 +298,24 @@ export default function RoomPage() {
       }
 
       else if (message.type === GameEventTypes.GameFinished) {
-        console.log("Player: ", message.value.player_id_who_won, " has won the game.")
+        console.log("Player: ", message.value.player_id_who_won, " has won the game.");
+        // The message contains the winner's player_id, but we need the full player objects for WinnerPopup.
+        if (playerA && playerB) {
+          const winner = playerA.player_id === message.value.player_id_who_won ? playerA : playerB;
+          const loser = playerA.player_id === message.value.player_id_who_won ? playerB : playerA;
+          winner.rating += 8
+          loser.rating -= 8
+          setWinnerPopupData({ winner, loser });
+          setShowPopUp(true)
+        }
+        return;
       }
       else if (message.type === GameEventTypes.KeyBoardButtonPressed) {
         const player = message.value.player as Player;
         const keybutton_pressed = message.value.keybutton_pressed;
         const clockwise = message.value.clockwise;
 
-        console.log("Received keybutton pressed event: ", player, " keybutton pressed: ", keybutton_pressed, " clockwise: ", clockwise);
-
         if (player.player_id !== selfPlayerId) {
-          console.log("Opponent has played the move....")
           const faceName = keybutton_pressed.toUpperCase()
           opponentCubeRef.current?.applyMove(faceName, clockwise)
         }
@@ -311,6 +341,14 @@ export default function RoomPage() {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
         <div className="animate-pulse text-xl">Loading room…</div>
+      </div>
+    );
+  }
+
+  if (showPopUp && winnerPropsData) {
+    return (
+      <div>
+        <WinnerPopup winner={winnerPropsData.winner} loser={winnerPropsData.loser} />
       </div>
     );
   }
