@@ -83,7 +83,13 @@ export class GameServer {
     }
 
     public broadcastToAllInRoom(roomId: string, message: any): void {
-        
+        const player_conn_in_room = this.rooms.get(roomId);
+        if (player_conn_in_room) {
+            for (const playerConn of player_conn_in_room) {
+                // do something with playerConn
+                playerConn.ws.send(JSON.stringify(message))
+            }
+        }
     }
 
     private setupListeners(): void {
@@ -141,6 +147,14 @@ export class GameServer {
                 }
 
                 console.log("Logging the room: ", this.rooms.get(roomId))
+                if (this.rooms.get(roomId) !== undefined && this.rooms.get(roomId)?.length === 2) {
+                  console.log("Both players joined so sending players joined message")
+                  const message = {
+                    type: GameEventTypes.GameStarted,
+                    value: this.rooms.get(roomId)
+                  }
+                  this.broadcastToAllInRoom(roomId,message)
+                }
                 return;
             }
 

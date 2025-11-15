@@ -270,10 +270,14 @@ export default function RoomPage() {
     ws.onerror = () => setWsReady(false);
 
     ws.onmessage = (e) => {
-      console.log(`Message received on client end:`, e.data);
       const message = JSON.parse(e.data);
       console.log("Message type: ", message.type)
-      if (message.type === GameEventTypes.GameFinished) {
+      if (message.type === GameEventTypes.GameStarted) {
+        console.log("Game has started between two players....")
+        console.log("Message: ", message)
+      }
+
+      else if (message.type === GameEventTypes.GameFinished) {
         // export interface GameEndEventMessageValues {
         //   base_values: BaseMessageValues;
         //   player_id_who_won: string;
