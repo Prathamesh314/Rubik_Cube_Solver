@@ -176,6 +176,16 @@ export class Redis {
         return Player.fromPlain(JSON.parse(raw));
     }
 
+    async get_all_waiting_players(): Promise<Player[]> {
+        this.ensureConnection();
+        const all = await this.redis_client!.hGetAll(PLAYERS_HASH_KEY);
+        if (!all || Object.keys(all).length === 0) return [];
+        // Parse all and filter to only waiting players
+        return Object.values(all)
+            .map((v) => Player.fromPlain(JSON.parse(v)))
+            .filter((p) => p.player_state === PlayerState.Waiting);
+    }
+
     async get_all_players(variant?: CubeCategories): Promise<Player[]> {
         this.ensureConnection();
         let wKey: string | undefined = undefined;
@@ -286,7 +296,7 @@ export class Redis {
     ): Promise<{ queued: true | false; room: Room; }> {
 
         // check whether we have players in waiting queue
-        const waiting_players = await this.get_all_players();
+        const waiting_players = await this.get_all_waiting_players();
 
         if (waiting_players.length === 0) {
             // no players in the waiting queue
@@ -319,9 +329,16 @@ export class Redis {
 
         // we have players in waiting queue
         const opponent_player = waiting_players[0]
-        
+
+        // update the player's state from waiting -> playing
+        opponent_player.player_state = PlayerState.Playing
+        await this.upsert_player(opponent_player.player_id, opponent_player)
+
         player.updateCube(opponent_player.getCube())
         await this.insert_player(player)
+        
+        player.player_state = PlayerState.Playing
+        await this.upsert_player(player.player_id, player)
 
         // fetch room for this player
         const roomId = await this.get_player_room(opponent_player.player_id)

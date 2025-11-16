@@ -46,7 +46,7 @@ async function main() {
 
     const p1 = new Player(
         "player 1",
-        PlayerState.NotPlaying,
+        PlayerState.Playing,
         1200,
         0,
         0,
@@ -55,53 +55,24 @@ async function main() {
 
     const p2 = new Player(
         "player 2",
-        PlayerState.NotPlaying,
+        PlayerState.Playing,
         1300,
         0,
         0,
         {}
     );
-
-    // async tryMatchOrEnqueue1(
-    //     player: Player,
-    //     roomId: string,
-    //     variant: CubeCategories
-    // )
-
     // const response = await redis.tryMatchOrEnqueue(p1, CubeCategories.ThreeCube);
-    // const response = await redis.tryMatchOrEnqueue1(p2, CubeCategories.ThreeCube);
-    // console.log("Response: ", response);
+    // const response = await redis.tryMatchOrEnqueue(p2, CubeCategories.ThreeCube);
+    const response_all = await redis.get_all_players()
+    console.log("All players: ", response_all)
+    const response = await redis.get_all_waiting_players()
+    console.log("Response: ", response);
 
-    // const has_players = await redis.has_players();
-    // if (has_players) {
-    //     const players = await redis.get_all_players()
-    //     const player1 = players[0]
-    //     console.log("All players: ", player1);
-    //     // fetch which room the player1 is waiting inside??
-
-        // const roomID = await redis.get_player_room(player1.player_id);
-        // console.log("Roomid: ", roomID);
-    //     // delete the player from the cache and also room as well
-    //     await redis.delete_player(player1.player_id);
-    //     await redis.clear_player_room(player1.player_id);
-
-    //     console.log("Playe 1 removed....")
-    // }
-    // } else {
-    //     await redis.insert_player(p1)
-    //     const roomID: string = randomUUID()
-    //     console.log("Room ID: ", roomID, "Player ID: ", p1.player_id);
-    //     await redis.set_player_room(p1.player_id, roomID)
-    // }
-
-    // const insert_res = await redis.insert_player(p1)
-    // console.log("Inserted res: ", insert_res)
-    // const has_players = await redis.has_players();
-    // console.log("Has players: ", has_players)
-    await redis.delete_all_players();
-    await redis.delete_all_rooms();
+   
+    // await redis.delete_all_players();
+    // await redis.delete_all_rooms();
     
-    await redis.clear_player_room();
+    // await redis.clear_player_room();
 
     // Display all keys and their values in Redis (assuming you have access to redis_client)
     // await show_keys(redis)
