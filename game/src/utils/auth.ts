@@ -1,7 +1,7 @@
 
 import { NextApiRequest, NextApiResponse } from 'next';
 import { verifyToken } from './jwt';
-import dbConnect from './db';
+import dbConnect from '../db/db';
 import User from '@/modals/user';
 
 export interface AuthenticatedRequest extends NextApiRequest {
