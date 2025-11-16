@@ -12,19 +12,35 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
+        // Hash the password before storing
+        // bcryptjs is assumed available (like in login route)
+        const bcrypt = require('bcryptjs');
+        const hashedPassword = await bcrypt.hash(password, 10);
+        // We'll use hashedPassword instead of plain password below
+
         // Connect to postgres
         const postgresDb = await dbConnect();
+
+        const exists = await sql`
+            SELECT 1 FROM ${sql.table(tables.user)}
+            WHERE email = ${email} OR username = ${username}
+            LIMIT 1
+        `.execute(postgresDb.connection());
+
+        if (exists.rows.length > 0) {
+            return NextResponse.json("Email or Username already exists!", { status: 500 });
+        }
 
         await postgresDb.transaction(async (txn) => {
             await sql`
                 INSERT INTO ${sql.table(tables.user)} (
-                    username,
-                    email,
-                    password
+                  username,
+                  email,
+                  password
                 ) VALUES (
-                    ${username},
-                    ${email},
-                    ${password}
+                  ${username},
+                  ${email},
+                  ${hashedPassword}
                 )
             `.execute(txn)
         });

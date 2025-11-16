@@ -29,6 +29,7 @@ import {
     private db: Kysely<DB>;
     private pool: Pool;
     private isConnected = false;
+    private isInitialized = false;
   
     private constructor() {
       this.pool = new Pool(dbConfig);
@@ -68,6 +69,7 @@ import {
     }
   
     public async init(): Promise<void> {
+        if (this.isInitialized) return;
       console.log('Initializing database schema...');
       try {
         // app_user
@@ -115,6 +117,8 @@ import {
       } catch (e) {
         console.error("Error in initializing tables: ", e)
       }
+
+      this.isInitialized = true;
     }
   
     public async transaction<T>(callback: (trx: Transaction<DB>) => Promise<T>): Promise<T> {

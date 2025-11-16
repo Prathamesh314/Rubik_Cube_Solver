@@ -1,58 +1,70 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/db/db';
-import User from '@/modals/user'; 
+import dbConnect, { tables } from '@/db/postgres';
+import { sql } from 'kysely';
+
+// Helper for sending a structured API response
+function sendResult(res: any) {
+    if (!res || !res.rows || res.rows.length === 0) {
+        return NextResponse.json(
+            { success: false, message: 'User not found' }, 
+            { status: 404 }
+        );
+    }
+    return NextResponse.json(
+        { success: true, user: res.rows.length === 1 ? res.rows[0] : res.rows }, 
+        { status: 200 }
+    );
+}
 
 export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-    const username = searchParams.get('username');
-    const id = searchParams.get('id');
+    try {
+        const { searchParams } = new URL(request.url);
+        const username = searchParams.get('username');
+        const id = searchParams.get('id');
 
-    if (username) {
-        return await getUserByUsername(username);
+        if (username) {
+            return await getUserByUsername(username);
+        }
+        if (id) {
+            return await getUserById(id);
+        }
+        return await getAllUsers();
+    } catch (error) {
+        return NextResponse.json(
+            { success: false, message: 'Internal server error', error: String(error) }, 
+            { status: 500 }
+        );
     }
-    if (id) {
-        return await getUserById(id);
-    }
-    return await getAllUsers();
 }
 
 async function getAllUsers() {
-    try {
-        await dbConnect();
-        const users = await User.find({}, "-password -__v").lean();
-        return NextResponse.json(users, { status: 200 });
-    } catch (error: any) {
-        return NextResponse.json({ error: error?.toString() }, { status: 500 });
-    }
+    const postgresDb = await dbConnect();
+
+    const exists = await sql`
+        SELECT * FROM ${sql.table(tables.user)}
+    `.execute(postgresDb.connection());
+
+    return sendResult(exists)
 }
 
 async function getUserByUsername(username: string) {
-    try {
-        await dbConnect();
-        const user = await User.findOne({ username }).select("-password -__v").lean();
-        if (!user) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 });
-        }
-        return NextResponse.json(user, { status: 200 });
-    } catch (error: any) {
-        return NextResponse.json({ error: error?.toString() }, { status: 500 });
-    }
+    const postgresDb = await dbConnect();
+
+    const exists = await sql`
+        SELECT * FROM ${sql.table(tables.user)}
+        WHERE username = ${username}
+    `.execute(postgresDb.connection());
+
+    return sendResult(exists)
 }
 
 async function getUserById(id: string) {
-    try {
-        await dbConnect();
+    const postgresDb = await dbConnect();
 
-        if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
-            return NextResponse.json({ error: 'Invalid user id format' }, { status: 400 });
-        }        
-        const user = await User.findById(id).select("-password -__v").lean();
+    const exists = await sql`
+        SELECT * FROM ${sql.table(tables.user)}
+        WHERE id = ${id}
+    `.execute(postgresDb.connection());
 
-        if (!user) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 });
-        }
-        return NextResponse.json(user, { status: 200 });
-    } catch (error: any) {
-        return NextResponse.json({ error: error?.toString() }, { status: 500 });
-    }
+    return sendResult(exists)
 }

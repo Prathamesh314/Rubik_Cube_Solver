@@ -51,13 +51,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         // Store user data in memory (React state) - optional since token is in httpOnly cookie
         const userData = {
           token: data.token,
-          userId: data.user._id,
+          userId: data.user.id,
           username: data.user.username,
           email: data.user.email,
         };
 
-        // Optional: Store in sessionStorage for client-side access
-        // Note: The httpOnly cookie is already set by the API
         if (typeof window !== 'undefined') {
           sessionStorage.setItem('userId', userData.userId);
           sessionStorage.setItem('username', userData.username);
@@ -65,12 +63,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           sessionStorage.setItem('token', userData.token)
         }
 
-        // Call onLogin callback if provided
         if (onLogin) {
           onLogin({ email: data.user.email });
         }
 
-        // Redirect to home page
         router.push('/');
         router.refresh(); // Refresh to update middleware state
       }

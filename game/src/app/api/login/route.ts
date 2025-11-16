@@ -1,25 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { generateToken } from '@/utils/jwt';
-import dbConnect from '@/db/db';
-import User from '@/modals/user';
+import dbConnect, { tables } from '@/db/postgres';
+import { sql } from 'kysely';
 
 export async function POST(request: NextRequest) {
   try {
-    // Connect to database
-    const mongoose = await dbConnect();
-    
-    // Ensure mongoose.connection.db is defined before accessing the collection
-    if (!mongoose.connection.db) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Database connection error' 
-        },
-        { status: 500 }
-      );
-    }
-
     // Parse request body
     const body = await request.json();
     const { email, password } = body;
@@ -35,9 +21,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find user by email using Mongoose model
-    const user = await User.findOne({ email }).select('+password');
+    // Connect to postgres
+    const postgresDb = await dbConnect();
+
+    // Find user by email
+    interface User {
+      id: string;
+      username: string;
+      email: string;
+      password: string;
+      rating: number;
+      total_games_played: number;
+      fastest_time_to_solve_cube: number;
+      created_at: Date
+    }
     
+    const result = await sql<User>`
+      SELECT * FROM ${sql.table(tables.user)}
+      WHERE email = ${email}
+      LIMIT 1
+    `.execute(postgresDb.connection());
+
+    const user = result.rows[0];
+
     if (!user) {
       return NextResponse.json(
         {
@@ -48,7 +54,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check password
+    // Check password (use bcrypt to compare stored hash and provided password)
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return NextResponse.json(
@@ -60,20 +66,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate JWT token
-    const token = generateToken(user._id.toString());
+    // Generate JWT token (using user id from postgres)
+    const token = generateToken(user.id);
 
-    // Return user data (without password)
+    // Prepare user data (exclude password)
     const userData = {
-      _id: user._id.toString(),
+      id: user.id,
       email: user.email,
       username: user.username,
-      player_state: user.player_state,
       rating: user.rating,
-      total_wins: user.total_wins,
-      win_percentage: user.win_percentage,
-      top_speed_to_solve_cube: user.top_speed_to_solve_cube,
-      createdAt: user.createdAt,
+      total_games_played: user.total_games_played,
+      fastest_time_to_solve_cube: user.fastest_time_to_solve_cube,
+      created_at: user.created_at,
     };
 
     // Create response with user data
@@ -98,7 +102,7 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-    
+
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(
