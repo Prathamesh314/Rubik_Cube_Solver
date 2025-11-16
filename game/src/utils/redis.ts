@@ -294,21 +294,30 @@ export class Redis {
         player: Player,
         variant: CubeCategories
     ): Promise<{ queued: true | false; room: Room; }> {
-
+    
         // check whether we have players in waiting queue
         const waiting_players = await this.get_all_waiting_players();
-
+    
         if (waiting_players.length === 0) {
             // no players in the waiting queue
-
-            // insert player into players queue and set status = waiting
-            player.player_state = PlayerState.Waiting
-            await this.insert_player(player)
-
-            // create a new room and map player id to room id
+    
+            // Generate scrambled cube FIRST
             const roomId = crypto.randomUUID()
             const scrambled_cube = generateScrambledCube(20).state
+            console.log("Scrmabled cube: ", scrambled_cube)
+            await this.insert_player(player)
+            
+            // Update player with scrambled cube BEFORE inserting into Redis
+            console.log("Player before: ", Player.toPlain(player))
+            console.log("Player cube before: ", player.scrambledCube)
             player.updateCube(scrambled_cube)
+            player.player_state = PlayerState.Waiting
+            console.log("Player after: ", Player.toPlain(player))
+            console.log("Cube after: ", player.scrambledCube)
+            
+            // Now insert player with scrambled cube already set
+            await this.upsert_player(player.player_id, player)
+            // create room
             const room: Room = {
                 id: roomId,
                 players: [player],
@@ -318,44 +327,47 @@ export class Redis {
                 variant,
                 createdAt: Date.now(),
             };
-
-            // inserted room
+    
+            // insert room
             await this.insert_room(room);
-
+    
             // map playerid to roomid
             await this.set_player_room(player.player_id, roomId)
             return {queued: true, room}
         }
-
+    
         // we have players in waiting queue
         const opponent_player = waiting_players[0]
-
-        // update the player's state from waiting -> playing
+    
+        // Update the current player with opponent's scrambled cube BEFORE inserting
+        player.updateCube(opponent_player.scrambledCube) 
+        player.player_state = PlayerState.Playing
+        
+        // Now insert player with all data set
+        await this.insert_player(player)
+    
+        // update the opponent player's state from waiting -> playing
         opponent_player.player_state = PlayerState.Playing
         await this.upsert_player(opponent_player.player_id, opponent_player)
-
-        player.updateCube(opponent_player.getCube())
-        await this.insert_player(player)
-        
-        player.player_state = PlayerState.Playing
-        await this.upsert_player(player.player_id, player)
-
+    
         // fetch room for this player
         const roomId = await this.get_player_room(opponent_player.player_id)
         if (roomId === null) {
             throw new Error(`room id is null for player id: ${opponent_player.player_id}`);
         }
-
+    
         await this.set_player_room(player.player_id, roomId)
         const player_room = await this.get_room(roomId)
-
+    
         if (player_room === null) {
             throw new Error("We are bad programmers, room is not present in queue")
         }
-
-        player_room.players.push(player)
+    
+        if (player_room.players.length < 2){
+            player_room.players.push(player)
+        }
         await this.upsert_room(roomId, player_room)
-
+    
         return {queued: false, room: player_room}
     }
 }

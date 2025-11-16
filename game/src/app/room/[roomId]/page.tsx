@@ -172,16 +172,6 @@ export default function RoomPage() {
   async function handleLeaveRoom() {
     if (!roomId || !selfPlayerId) return;
     try {
-      const res = await fetch("/api/remove_player", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          roomId,
-          playerId: selfPlayerId
-        })
-      });
 
       if(wsRef.current) {
         let elapsedTime = 0;
@@ -206,7 +196,6 @@ export default function RoomPage() {
 
       localStorage.removeItem("player")
       router.push("/");
-      return await res.json();
     } catch (e) {
       console.error("Failed to leave room:", e);
       return null;

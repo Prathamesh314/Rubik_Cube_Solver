@@ -1,5 +1,6 @@
 import { CubeCategories, Player, PlayerState } from "@/modals/player";
 import { Redis } from "@/utils/redis";
+import {generateScrambledCube} from '@/utils/redis'
 // import { randomUUID } from "crypto";
 
 async function show_keys(redis: Redis){
@@ -44,6 +45,8 @@ async function main() {
     const redis = Redis.getInstance();
     await redis.connect();
 
+    const cube = generateScrambledCube(20).state
+
     const p1 = new Player(
         "player 1",
         PlayerState.Playing,
@@ -61,12 +64,12 @@ async function main() {
         0,
         {}
     );
-    // const response = await redis.tryMatchOrEnqueue(p1, CubeCategories.ThreeCube);
+    const response = await redis.tryMatchOrEnqueue(p1, CubeCategories.ThreeCube);
     // const response = await redis.tryMatchOrEnqueue(p2, CubeCategories.ThreeCube);
     const response_all = await redis.get_all_players()
     console.log("All players: ", response_all)
-    const response = await redis.get_all_waiting_players()
-    console.log("Response: ", response);
+    // const response = await redis.get_all_waiting_players()
+    // console.log("Response: ", response);
 
    
     // await redis.delete_all_players();
