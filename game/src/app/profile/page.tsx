@@ -35,11 +35,11 @@ export default function ProfilePage() {
 
   // Mock game history - replace with actual API call
   const [gameHistory] = useState<GameHistory[]>([
-    { id: "1", opponent: "SpeedCuber99", result: "win", rating_change: 8, time: "2:34.12", date: "2 hours ago", email: "speedcuber99@example.com" },
-    { id: "2", opponent: "CubeMaster", result: "loss", rating_change: -8, time: "3:45.89", date: "5 hours ago", email: "cubemaster@example.com" },
-    { id: "3", opponent: "QuickSolver", result: "win", rating_change: 8, time: "1:56.34", date: "1 day ago", email: "quicksolver@example.com" },
-    { id: "4", opponent: "PuzzlePro", result: "win", rating_change: 8, time: "2:12.67", date: "1 day ago", email: "puzzlepro@example.com" },
-    { id: "5", opponent: "CubeChamp", result: "loss", rating_change: -8, time: "4:23.45", date: "2 days ago", email: "cubechamp@example.com" },
+    { id: "1", opponent: "SpeedCuber99", result: "win", rating_change: 8, time: "2:34", date: "2 hours ago", email: "speedcuber99@example.com" },
+    { id: "2", opponent: "CubeMaster", result: "loss", rating_change: -8, time: "3:45", date: "5 hours ago", email: "cubemaster@example.com" },
+    { id: "3", opponent: "QuickSolver", result: "win", rating_change: 8, time: "1:56", date: "1 day ago", email: "quicksolver@example.com" },
+    { id: "4", opponent: "PuzzlePro", result: "win", rating_change: 8, time: "2:12", date: "1 day ago", email: "puzzlepro@example.com" },
+    { id: "5", opponent: "CubeChamp", result: "loss", rating_change: -8, time: "4:23", date: "2 days ago", email: "cubechamp@example.com" },
   ]);
 
   useEffect(() => {

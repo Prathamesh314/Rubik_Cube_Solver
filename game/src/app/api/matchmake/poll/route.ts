@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ status: "matched", room }, { status: 200 });
   } catch (e: any) {
+    console.error("error in matchmake pooll api: ", e)
     return NextResponse.json({ error: e?.message ?? "poll failed" }, { status: 500 });
   }
 }
