@@ -134,6 +134,7 @@ export class GameServer {
             const message: any = JSON.parse(rawMessage.toString());
 
             if (message.type === GameEventTypes.GameStarted) {
+              console.log("Game started event received on ws server...", message)
                 const roomId = message.value.roomId
                 const player = message.value.current_player as Player
 
