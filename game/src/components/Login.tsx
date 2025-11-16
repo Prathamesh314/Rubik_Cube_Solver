@@ -59,9 +59,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         // Optional: Store in sessionStorage for client-side access
         // Note: The httpOnly cookie is already set by the API
         if (typeof window !== 'undefined') {
-          sessionStorage.setItem('userId', data.user._id);
-          sessionStorage.setItem('username', data.user.username);
-          sessionStorage.setItem('userEmail', data.user.email);
+          sessionStorage.setItem('userId', userData.userId);
+          sessionStorage.setItem('username', userData.username);
+          sessionStorage.setItem('userEmail', userData.email);
+          sessionStorage.setItem('token', userData.token)
         }
 
         // Call onLogin callback if provided

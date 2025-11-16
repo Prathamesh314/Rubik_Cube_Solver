@@ -205,6 +205,7 @@ export default function RoomPage() {
         wsRef.current.send(JSON.stringify(game_finished_msg))
       }
 
+      localStorage.removeItem("player")
       router.push("/");
       return await res.json();
     } catch (e) {

@@ -45,12 +45,13 @@ function ensureAuth(): AuthStorage {
 
   const currentPlayerId = sessionStorage.getItem("userId")
   const username = sessionStorage.getItem("username")
+  const token = sessionStorage.getItem("token")
   if (!currentPlayerId || !username) {
     throw new Error("User is not logged in..")
   }
 
   const auth: AuthStorage = {
-    token: null,
+    token: token,
     player: {
       player_id: currentPlayerId,
       username: username,
@@ -98,7 +99,20 @@ export default function LandingPage() {
 
       // make sure we have a player object saved
       const auth = ensureAuth();
+      console.log("Auth: ", auth)
       const player = auth.player;
+      const userRes = await fetch(`/api/get_user?id=${player.player_id}`)
+      if (userRes.ok) {
+
+        const userData = await userRes.json();
+        player.username = userData.username;
+        player.player_state = userData.player_state;
+        player.rating = userData.rating;
+        player.total_wins = userData.total_wins;
+        player.win_percentage = userData.win_percentage;
+        player.top_speed_to_solve_cube = userData.top_speed_to_solve_cube ?? {};
+        
+      }
 
       const res = await fetch("/api/matchmake/start", {
         method: "POST",
