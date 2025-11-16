@@ -15,6 +15,42 @@ import WinnerPopup from "@/components/WinnerPopup";
 const WS_URL = Env.NEXT_PUBLIC_WEBSOCKET_URL;
 const WS_PORT = 8002;
 
+function Timer({ startTime }: { startTime: number | null }) {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    if (!startTime) {
+      setElapsed(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setElapsed(Date.now() - startTime);
+    }, 100); // Update every 100ms for smooth display
+
+    return () => clearInterval(interval);
+  }, [startTime]);
+
+  const formatTime = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="flex items-center justify-center gap-3 py-4">
+      <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <div className="text-3xl font-mono font-bold text-slate-200 tabular-nums">
+        {formatTime(elapsed)}
+      </div>
+    </div>
+  );
+}
+
+
 export function generateScrambledCube(number_of_moves: number): { state: Cube; moves: string[] } {
   let cube = [
     [[1,1,1],[1,1,1],[1,1,1]], // Back - Red
@@ -120,6 +156,7 @@ export default function RoomPage() {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [startState, setStartState] = useState<number[][][] | null>(null);
+  const [gameStartTime, setGameStartTime] = useState<number | null>(null);
 
   const selfPlayerId = useMemo(() => {
     if (typeof window === "undefined") return null;
@@ -148,12 +185,20 @@ export default function RoomPage() {
       });
 
       if(wsRef.current) {
+        let elapsedTime = 0;
+        if (gameStartTime) {
+          const totalSeconds = Math.floor((Date.now() - gameStartTime) / 1000);
+          const minutes = Math.floor(totalSeconds / 60);
+          const seconds = totalSeconds % 60;
+          // Represent elapsed time as total seconds (minutes*60 + seconds)
+          elapsedTime = minutes * 60 + seconds;
+        }
         const game_finished_msg = {
           type: GameEventTypes.GameFinished,
           value: {
             roomId: roomId,
             player_id_who_won: playerA?.player_id === selfPlayerId ? playerB?.player_id : playerA?.player_id,
-            end_time: new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
+            end_time: elapsedTime
           }
         }
 
@@ -241,13 +286,21 @@ export default function RoomPage() {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
     if (playerCubeRef.current?.IsRubikCubeSolved()) {
-  
+      // Use minutes and seconds only, not milliseconds
+      let elapsedTime = 0;
+      if (gameStartTime) {
+        const totalSeconds = Math.floor((Date.now() - gameStartTime) / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        // Represent elapsed time as total seconds (minutes*60 + seconds)
+        elapsedTime = minutes * 60 + seconds;
+      }
       const game_finished_msg = {
         type: GameEventTypes.GameFinished,
         value: {
           roomId: roomId,
           player_id_who_won: selfPlayerId,
-          end_time: new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
+          end_time: elapsedTime
         }
       }
 
@@ -310,6 +363,8 @@ export default function RoomPage() {
       if (message.type === GameEventTypes.GameStarted) {
         console.log("Game has started between two players....")
         console.log("Message: ", message)
+        // Track the start time as rounded to the nearest previous second (minutes and seconds only)
+        setGameStartTime(Math.floor(Date.now() / 1000) * 1000);
       }
 
       else if (message.type === GameEventTypes.GameFinished) {
@@ -432,6 +487,13 @@ export default function RoomPage() {
           <p className="mt-2 text-slate-400 text-sm">
             Variant: <span className="text-slate-200 font-medium">{room?.variant ?? "—"}</span>
           </p>
+        </div>
+
+        {/* Timer Display */}
+        <div className="mt-6 flex justify-center">
+          <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 px-8 py-2">
+            <Timer startTime={gameStartTime} />
+          </div>
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">

@@ -10,7 +10,6 @@ interface PopUpProps {
 export default function WinnerPopup({ isOpen, onClose, winner, loser }: PopUpProps) {
     if (!isOpen) return null;
   
-    // Example data - replace with your actual props
     const winnerData = winner || {
       name: "guest-dec3c0",
       score: 1208,
@@ -25,104 +24,130 @@ export default function WinnerPopup({ isOpen, onClose, winner, loser }: PopUpPro
   
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        {/* Blurred backdrop */}
+        {/* Backdrop */}
         <div 
-          className="absolute inset-0 bg-black/60 backdrop-blur-md"
+          className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
           onClick={onClose}
         />
         
         {/* Popup content */}
-        <div className="relative bg-gradient-to-br from-lime-400 via-emerald-400 to-teal-400 rounded-3xl shadow-2xl p-8 max-w-md w-full transform animate-bounce-in">
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 text-white hover:text-white/80 transition-colors z-10"
-          >
-            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-  
-          {/* Chef hat icon */}
-          <div className="flex justify-center mb-6">
-            <div className="bg-white/30 rounded-full p-6 backdrop-blur-sm">
-              <svg className="w-16 h-16 text-white" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C9.243 2 7 4.243 7 7v1c-1.654 0-3 1.346-3 3v2c0 1.654 1.346 3 3 3v5c0 1.103.897 2 2 2h8c1.103 0 2-.897 2-2v-5c1.654 0 3-1.346 3-3v-2c0-1.654-1.346-3-3-3V7c0-2.757-2.243-5-5-5zm6 9v2c0 .551-.449 1-1 1h-1v7H8v-7H7c-.551 0-1-.449-1-1v-2c0-.551.449-1 1-1h1V7c0-1.654 1.346-3 3-3s3 1.346 3 3v2h1c.551 0 1 .449 1 1z"/>
-              </svg>
-            </div>
-          </div>
-  
-          {/* Winner text */}
-          <h2 className="text-4xl font-bold text-white text-center mb-8">
-            🎉 Winner! 🎉
-          </h2>
+        <div className="relative bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden animate-slide-up">
           
-          {/* Winner details */}
-          <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 mb-4">
-            <p className="text-white text-center text-2xl font-bold mb-4">
-              {winnerData.username}
-            </p>
-            
-            <div className="space-y-3">
-              <div className="text-center">
-                <p className="text-white/80 text-sm mb-1">Score</p>
-                <p className="text-white text-3xl font-bold">{winnerData.rating}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-white/80 text-sm mb-1">Time</p>
-                {/* <p className="text-white text-3xl font-bold">{winnerData.time}</p> */}
-              </div>
-            </div>
-          </div>
-  
-          {/* Loser details */}
-          <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 mb-6">
-            <p className="text-white text-center text-xl font-bold mb-4">
-              Loser: {loserData.username}
-            </p>
-            
-            <div className="space-y-3">
-              <div className="text-center">
-                <p className="text-white/80 text-sm mb-1">Score</p>
-                <p className="text-white text-3xl font-bold">{loserData.rating}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-white/80 text-sm mb-1">Time</p>
-                {/* <p className="text-white text-3xl font-bold">{loserData.time}</p> */}
+          {/* Gradient header */}
+          <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-8 py-10 relative">
+            {/* Close button */}
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
+              aria-label="Close"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Trophy icon */}
+            <div className="flex justify-center mb-4">
+              <div className="bg-white/20 backdrop-blur-sm rounded-full p-4">
+                <svg className="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/>
+                </svg>
               </div>
             </div>
-          </div>
   
-          {/* Action button */}
-          <button
-            onClick={onClose}
-            className="w-full bg-white text-emerald-600 font-bold py-4 px-6 rounded-2xl hover:bg-gray-100 transition-all transform hover:scale-[1.02] shadow-lg text-lg"
-          >
-            Play Again
-          </button>
+            {/* Winner title */}
+            <h2 className="text-3xl font-bold text-white text-center">
+              Victory!
+            </h2>
+          </div>
+
+          {/* Content */}
+          <div className="px-8 py-8">
+            
+            {/* Winner section */}
+            <div className="mb-6">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <span className="text-2xl">👑</span>
+                <h3 className="text-lg font-semibold text-gray-700">Winner</h3>
+              </div>
+              
+              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border-2 border-emerald-200">
+                <p className="text-2xl font-bold text-gray-900 text-center mb-4">
+                  {winnerData.username}
+                </p>
+                <div className="flex justify-center gap-8">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 mb-1">Score</p>
+                    <p className="text-3xl font-bold text-emerald-600">{winnerData.rating}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+  
+            {/* Divider */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-white px-4 text-sm text-gray-500">VS</span>
+              </div>
+            </div>
+
+            {/* Loser section */}
+            <div className="mb-6">
+              <div className="bg-gray-50 rounded-2xl p-6 border-2 border-gray-200">
+                <p className="text-xl font-semibold text-gray-700 text-center mb-4">
+                  {loserData.username}
+                </p>
+                <div className="flex justify-center gap-8">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 mb-1">Score</p>
+                    <p className="text-3xl font-bold text-gray-700">{loserData.rating}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+  
+            {/* Action button */}
+            <button
+              onClick={onClose}
+              className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold py-4 px-6 rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-md"
+            >
+              Play Again
+            </button>
+          </div>
         </div>
   
         <style jsx>{`
-          @keyframes bounce-in {
-            0% {
-              transform: scale(0.3);
+          @keyframes fade-in {
+            from {
               opacity: 0;
             }
-            50% {
-              transform: scale(1.05);
-            }
-            70% {
-              transform: scale(0.9);
-            }
-            100% {
-              transform: scale(1);
+            to {
               opacity: 1;
             }
           }
-          .animate-bounce-in {
-            animation: bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+          @keyframes slide-up {
+            from {
+              opacity: 0;
+              transform: translateY(20px) scale(0.95);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0) scale(1);
+            }
+          }
+
+          .animate-fade-in {
+            animation: fade-in 0.2s ease-out;
+          }
+
+          .animate-slide-up {
+            animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
           }
         `}</style>
       </div>
     );
-  }
+}
