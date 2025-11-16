@@ -4,6 +4,7 @@ import type { Player, THREE_SIDE_CUBE_MOVES } from '@/modals/player';
 
 export enum GameEventTypes {
   GameStarted = 'GameStarted',
+  GameStartedAI = 'GameStartedAI',
   GameFinished = 'GameFinished',
   CubeMoved = 'CubeMoved',
   KeyBoardButtonPressed = 'KeyBoardButtonPressed',
@@ -23,6 +24,13 @@ export interface GameStartEventMessageValues {
   // base_values: BaseMessageValues;
   roomId: string
   player: Player
+  start_time: Date
+}
+
+export interface GameStartAIEventMessageValues {
+  // base_values: BaseMessageValues;
+  roomId: string
+  players: Array<Player>
   start_time: Date
 }
 
@@ -68,6 +76,7 @@ export interface PlayerMoveMessage {
 
 export type GameEvents =
   | { type: GameEventTypes.GameStarted; value: GameStartEventMessageValues }
+  | { type: GameEventTypes.GameStartedAI; value: GameStartAIEventMessageValues }
   | { type: GameEventTypes.GameFinished; value: GameEndEventMessageValues }
   | { type: GameEventTypes.CubeMoved; value: CubeMovedEventMessageValues }
   | { type: GameEventTypes.KeyBoardButtonPressed; value: KeyboardButtonPressedMessageValues }

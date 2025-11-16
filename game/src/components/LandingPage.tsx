@@ -80,6 +80,7 @@ export default function LandingPage() {
   const [loading, setLoading] = React.useState(false);
   const [variant, setVariant] = React.useState<"3x3 cube" | "4x4 cube">("3x3 cube");
   const [authReady, setAuthReady] = React.useState(false);
+  const [aiLoading, setAiLoading] = React.useState(false);
 
   React.useEffect(() => {
     ensureAuth();
@@ -135,6 +136,17 @@ export default function LandingPage() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePlayAI = async () => {
+    setAiLoading(true);
+    try {
+      // You could generate a roomId here or call backend if you want a truly unique/central room id
+      const roomId = crypto.randomUUID();
+      router.push(`/ai_match_room/${roomId}`);
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -208,8 +220,8 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* CTA Button */}
-              <div className="pt-4">
+              {/* CTA Button and Play AI Button */}
+              <div className="pt-4 flex flex-col sm:flex-row gap-4 sm:items-center">
                 <button
                   onClick={handleStartGame}
                   disabled={loading}
@@ -232,7 +244,29 @@ export default function LandingPage() {
                     "Find Your Match"
                   )}
                 </button>
-                <p className="text-xs text-slate-500 mt-3">
+                {/* <button
+                  onClick={handlePlayAI}
+                  disabled={aiLoading}
+                  className={
+                    "w-full sm:w-auto px-8 py-4 text-lg font-bold rounded-lg transition-all duration-200 " +
+                    (aiLoading
+                      ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                      : "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-500/30 hover:shadow-green-500/50 hover:from-green-500 hover:to-emerald-500 hover:scale-105 hover:-translate-y-0.5")
+                  }
+                >
+                  {aiLoading ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Creating AI Match...
+                    </span>
+                  ) : (
+                    "Play AI"
+                  )}
+                </button> */}
+                <p className="text-xs text-slate-500 mt-3 sm:mt-0 sm:ml-3">
                   ⚡ Instant queue system • Fair rating-based matchmaking
                 </p>
               </div>

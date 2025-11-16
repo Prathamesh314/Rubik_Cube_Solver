@@ -173,6 +173,35 @@ export class GameServer {
                 return;
             }
 
+            else if (message.type === GameEventTypes.GameStartedAI){
+              
+              const roomId = message.value.roomId
+              const players = message.value.players
+              console.log("Message of ai game: ", message.value)
+              let playerConn: PlayerConnection = {
+                ws: ws,
+                player_id: players[0].player_id,
+                player: players[0]
+              }
+
+              let AiPlayerConn: PlayerConnection = {
+                ws: ws,
+                player_id: players[1].player_id,
+                player: players[1]
+              }
+              this.rooms.set(roomId, [playerConn, AiPlayerConn])
+
+              const aiGameStartedMsg = {
+                type: GameEventTypes.GameStartedAI,
+                value: {
+                  players: message.value.players
+                }
+              }
+
+              ws.send(JSON.stringify(aiGameStartedMsg))
+              return
+            }
+
             else if (message.type === GameEventTypes.KeyBoardButtonPressed) {
               
               const valid_keypresses = ["u", "f", "b", "d", "l", "r", "U", "F", "B", "D", "L", "R"];
@@ -196,7 +225,7 @@ export class GameServer {
               return;
             }
 
-            if (message.type === GameEventTypes.GameFinished) {
+            else if (message.type === GameEventTypes.GameFinished) {
               const playerConns = this.rooms.get(message.value.roomId)
               if (playerConns === undefined || playerConns.length === 0) {
                 ws.send(JSON.stringify({
@@ -225,6 +254,7 @@ export class GameServer {
 
               this.updatePlayerInDb(player_won)
               this.updatePlayerInDb(player_lost)
+              return
             }
         } catch (error) {
             if (error instanceof Error) {
