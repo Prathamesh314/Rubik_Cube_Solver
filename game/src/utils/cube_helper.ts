@@ -1,4 +1,4 @@
-import { Cube } from "@/components/cube";
+import { Cube } from "@/utils/cube";
 
 export class SimpleCubeHelper {
   rotateFaceClockwise(face: number[][]) {

@@ -1,4 +1,4 @@
-import { applyMove, generateScrambledCube } from "@/components/cube";
+import { applyMove, generateScrambledCube } from "@/utils/cube";
 
 type FaceName = "U" | "R" | "F" | "D" | "L" | "B";
 type Move = { face: FaceName; clockwise: boolean };

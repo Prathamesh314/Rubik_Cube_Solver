@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/Addons.js';
-import { CubeOptions, RubikCube } from './cube';
+import { CubeOptions, RubikCube } from '../utils/cube';
 import { Player } from '@/modals/player';
 import { Room } from '@/modals/room';
 import { GameEventTypes } from '@/types/game-events';

@@ -8,7 +8,7 @@ import { Env } from "@/lib/env_config";
 import { Room } from "@/modals/room";
 import { GameEventTypes } from "@/types/game-events";
 import RubiksCubeViewer, { RubiksCubeViewerHandle } from "@/components/RubiksCubeViewer";
-import { Cube, FaceName } from "@/components/cube";
+import { Cube, FaceName } from "@/utils/cube";
 import { SimpleCubeHelper } from "@/utils/cube_helper";
 import WinnerPopup from "@/components/WinnerPopup";
 

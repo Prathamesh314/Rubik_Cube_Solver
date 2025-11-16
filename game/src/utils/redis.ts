@@ -1,7 +1,7 @@
 import { Player, CubeCategories, PlayerState } from '@/modals/player';
 import { createClient, RedisClientType } from 'redis';
 import { Room } from '@/modals/room';
-import { Cube, FaceName } from "@/components/cube";
+import { Cube, FaceName } from "@/utils/cube";
 import { SimpleCubeHelper } from "@/utils/cube_helper";
 
 const REDIS_URL = process.env.REDIS_URL as string;
