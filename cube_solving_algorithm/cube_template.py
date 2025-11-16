@@ -1,6 +1,7 @@
 class CubeTemplate:
     def __init__(self, cube):
         self.Cube = cube
+        print(f"Cube: {self.Cube.scrambled_cube}")
     
     def handle_layer1(self):
         while self.Cube.solve_level_one("Green") == 0:

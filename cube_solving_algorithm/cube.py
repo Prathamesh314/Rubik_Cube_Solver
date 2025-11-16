@@ -1,5 +1,6 @@
 # print("Hello WHere's the code with corrected indentation:
 
+from typing import Optional
 from helper import CubeHelper
 import random as rd
 import sys
@@ -8,7 +9,7 @@ sys.setrecursionlimit(100)
 
 
 class Cube:
-    def __init__(self, number):
+    def __init__(self, scrambledCube: Optional[list]):
         self.cube = []
         self.colors = {
             "White": 4,
@@ -37,59 +38,30 @@ class Cube:
         ]
 
         self.orders = ["Back", "Top", "Front", "Bottom", "Left", "Right"]
-        self.scrambled_cube = [
-            # Back
-            [
-                [6, 2, 3],
-                [2, 5, 6],
-                [4, 3, 6],
-            ],
-            # Top
-            [[5, 2, 4], [2, 1, 3], [4, 5, 2]],
-            # Front
-            [[1, 4, 5], [1, 6, 3], [2, 6, 3]],
-            # Bottom
-            [[5, 1, 6], [1, 3, 5], [1, 1, 6]],
-            # Left
-            [[3, 5, 5], [6, 2, 5], [2, 4, 1]],
-            # Right
-            [[3, 4, 1], [6, 4, 4], [2, 3, 4]],
-        ]
+        self.scrambled_cube = []
 
-        # self.scrambled_cube = [
-        #     [[5, 5, 5],
-        #      [5, 5, 5],
-        #      [5, 5, 5]
-        #     ],
-        #     [
-        #         [1, 1, 1],
-        #         [1, 1, 1],
-        #         [1, 1, 1],
-        #     ],
-        #     [
-        #         [6, 6, 6],
-        #         [6, 6, 6],
-        #         [6, 6, 6],
-        #     ],
-        #     [
-        #         [3, 3, 3],
-        #         [3, 3, 3],
-        #         [3, 3, 3]
-        #     ],
-        #     [
-        #         [2, 2, 2],
-        #         [2, 2, 2],
-        #         [2, 2, 2],
-        #     ],
-        #     [
-        #         [4, 4, 4],
-        #         [4, 4, 4],
-        #         [4, 4, 4]
-        #     ]
-        # ]
-        # self.build_cube(number)
-        # self.build_scramble_cube()
-        # self.scrambled_cube = initial_cube
+        if scrambledCube:
+            self.scrambled_cube = scrambledCube
+        else:
+            self.scrambled_cube = [
+                # Back
+                [
+                    [6, 2, 3],
+                    [2, 5, 6],
+                    [4, 3, 6],
+                ],
+                # Top
+                [[5, 2, 4], [2, 1, 3], [4, 5, 2]],
+                # Front
+                [[1, 4, 5], [1, 6, 3], [2, 6, 3]],
+                # Bottom
+                [[5, 1, 6], [1, 3, 5], [1, 1, 6]],
+                # Left
+                [[3, 5, 5], [6, 2, 5], [2, 4, 1]],
+                # Right
+                [[3, 4, 1], [6, 4, 4], [2, 3, 4]],
+            ]
+
         self.cube_helper = CubeHelper(self.dirs)
         self.n = 3
         # self.scramble_moly_cube()
@@ -2218,97 +2190,97 @@ class Cube:
             # self.handle_top_layer_figures(color)
 
 
-moves = ["F", "F'", "B", "B'", "L", "L'", "R", "R'", "U", "U'", "D", "D'"]
+# moves = ["F", "F'", "B", "B'", "L", "L'", "R", "R'", "U", "U'", "D", "D'"]
 
-cube = Cube(2)
-# print("Original\n")
-while cube.solve_level_one("Green") == 0:
-    cube.solve_level_one("Green")
-
-
-while cube.bring_edge_pieces_to_bottom("Green") == 0:
-    cube.bring_edge_pieces_to_bottom("Green")
-
-while cube.handle_corner_pieces("Green") == 0:
-    cube.handle_corner_pieces("Green")
-
-while cube.hande_layer2("Green") == False:
-    cube.hande_layer2("Green")
-
-cube.handle_top_layer_figures("Green")
-
-# cube.show_cube()
-
-response = cube.cube_helper.getmoves()
-# print(response)
-
-l = len(response)
-print("\nStandard Solution...")
-for _ in range(int(l // 15)):
-    print(response[15 * (_ - 1) : _ * 15])
+# cube = Cube(2)
+# # print("Original\n")
+# while cube.solve_level_one("Green") == 0:
+#     cube.solve_level_one("Green")
 
 
-ursina_response = []
-ursina_commands = cube.ursina_commands
-for move in response:
-    ursina_response.append(ursina_commands[move])
-# print(ursina_response)
+# while cube.bring_edge_pieces_to_bottom("Green") == 0:
+#     cube.bring_edge_pieces_to_bottom("Green")
 
-print("\nUrsina commands...")
+# while cube.handle_corner_pieces("Green") == 0:
+#     cube.handle_corner_pieces("Green")
 
-for _ in range(int(l // 15)):
-    print(ursina_response[15 * (_ - 1) : _ * 15])
+# while cube.hande_layer2("Green") == False:
+#     cube.hande_layer2("Green")
+
+# cube.handle_top_layer_figures("Green")
+
+# # cube.show_cube()
+
+# response = cube.cube_helper.getmoves()
+# # print(response)
+
+# l = len(response)
+# print("\nStandard Solution...")
+# for _ in range(int(l // 15)):
+#     print(response[15 * (_ - 1) : _ * 15])
 
 
-scrambled_moves = [
-    "s",
-    "j",
-    "a",
-    "d",
-    "p",
-    "o",
-    "w",
-    "p",
-    "w",
-    "k",
-    "o",
-    "a",
-    "l",
-    "s",
-    "q",
-    "w",
-    "p",
-    "i",
-    "o",
-    "d",
-    "a",
-    "k",
-    "l",
-    "k",
-    "p",
-    "i",
-    "p",
-    "q",
-    "a",
-    "w",
-    "d",
-    "q",
-    "l",
-    "i",
-    "p",
-    "e",
-    "q",
-    "w",
-    "e",
-    "l",
-    "o",
-    "l",
-    "e",
-    "a",
-    "e",
-    "i",
-    "l",
-    "i",
-    "w",
-    "k",
-]
+# ursina_response = []
+# ursina_commands = cube.ursina_commands
+# for move in response:
+#     ursina_response.append(ursina_commands[move])
+# # print(ursina_response)
+
+# print("\nUrsina commands...")
+
+# for _ in range(int(l // 15)):
+#     print(ursina_response[15 * (_ - 1) : _ * 15])
+
+
+# scrambled_moves = [
+#     "s",
+#     "j",
+#     "a",
+#     "d",
+#     "p",
+#     "o",
+#     "w",
+#     "p",
+#     "w",
+#     "k",
+#     "o",
+#     "a",
+#     "l",
+#     "s",
+#     "q",
+#     "w",
+#     "p",
+#     "i",
+#     "o",
+#     "d",
+#     "a",
+#     "k",
+#     "l",
+#     "k",
+#     "p",
+#     "i",
+#     "p",
+#     "q",
+#     "a",
+#     "w",
+#     "d",
+#     "q",
+#     "l",
+#     "i",
+#     "p",
+#     "e",
+#     "q",
+#     "w",
+#     "e",
+#     "l",
+#     "o",
+#     "l",
+#     "e",
+#     "a",
+#     "e",
+#     "i",
+#     "l",
+#     "i",
+#     "w",
+#     "k",
+# ]
