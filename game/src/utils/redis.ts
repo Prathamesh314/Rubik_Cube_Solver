@@ -7,9 +7,9 @@ import { SimpleCubeHelper } from "@/utils/cube_helper";
 const REDIS_URL = process.env.REDIS_URL as string;
 const REDIS_PORT = process.env.REDIS_PORT as string;
 
-const PLAYERS_HASH_KEY = "players";
-const ROOMS_HASH_KEY = "rooms";
-const PLAYER_ROOMS_HASH_KEY = "player:room"; 
+const PLAYERS_HASH_KEY = "players"; // ---> this is to store players in the queue with state = waiting
+const ROOMS_HASH_KEY = "rooms"; // ---> this is to store room data which we will send in response to frontend
+const PLAYER_ROOMS_HASH_KEY = "player:room";  // ---> this is to map player_ids -> roomIds because this will help in sending opponent to correct roomid
 
 const waitingKey = (variant: CubeCategories) => `mm:${variant}:waiting`;
 export function generateScrambledCube(number_of_moves: number): { state: Cube; moves: string[] } {
@@ -222,8 +222,9 @@ export class Redis {
         await this.redis_client!.hSet(PLAYER_ROOMS_HASH_KEY, playerId, roomId);
     }
 
-    async remove_player_from_room(playerId: string, roomId: string): Promise<boolean> {
+    async remove_player_from_room(playerId: string, roomId: string | null): Promise<boolean> {
         this.ensureConnection();
+        if (roomId === null)  return true;
         const currentRoom = await this.redis_client!.hGet(PLAYER_ROOMS_HASH_KEY, playerId);
         if (currentRoom === roomId) {
             await this.redis_client!.hDel(PLAYER_ROOMS_HASH_KEY, playerId);
@@ -250,6 +251,12 @@ export class Redis {
         return result > 0;
     }
 
+    async delete_room(roomId: string | null): Promise<void> {
+        if (roomId === null) return
+        this.ensureConnection();
+        await this.redis_client!.hDel(ROOMS_HASH_KEY, roomId);
+    }
+
     async upsert_room(room_id: string, room: Room) {
         this.ensureConnection();
         await this.redis_client!.hSet(ROOMS_HASH_KEY, room_id, JSON.stringify(room));
@@ -263,7 +270,9 @@ export class Redis {
         await this.redis_client!.hSet(ROOMS_HASH_KEY, room.id, JSON.stringify(room));
     }
 
-    async get_room(roomId: string): Promise<Room> {
+    async get_room(roomId: string | null): Promise<Room | null> {
+        if (roomId === null) return null;
+
         const roomStr = await this.redis_client!.hGet(ROOMS_HASH_KEY, roomId);
         if (!roomStr) {
             throw new Error(`Room with id ${roomId} not found`);
@@ -273,54 +282,63 @@ export class Redis {
 
     async tryMatchOrEnqueue(
         player: Player,
-        roomId: string,
         variant: CubeCategories
-    ): Promise<
-        | { queued: true | false; room: Room; }
-    > {
-        const has_players = await this.has_players();
-        if (has_players) {
-            const players = await this.get_all_players();
-            // fetch which room the player1 is waiting inside??
-            const opponent_player = players[0]
-            player.updateCube(opponent_player.getCube())
+    ): Promise<{ queued: true | false; room: Room; }> {
 
-            const roomID = await this.get_player_room(opponent_player.player_id);
-            if (roomID === null){
-                throw new Error("We ran into mysterious error, room id is somehow none for a player waiting ..")
-            }
-            const room: Room = await this.get_room(roomID);
-            room.players.push(player);
+        // check whether we have players in waiting queue
+        const waiting_players = await this.get_all_players();
 
-            await this.upsert_room(roomID, room)
-            await this.insert_player(player);
+        if (waiting_players.length === 0) {
+            // no players in the waiting queue
 
-            player.player_state = PlayerState.Playing
-            opponent_player.player_state = PlayerState.Playing
-            await this.upsert_player(player.player_id, player);
-            await this.upsert_player(opponent_player.player_id, opponent_player)
-            
+            // insert player into players queue and set status = waiting
+            player.player_state = PlayerState.Waiting
+            await this.insert_player(player)
+
+            // create a new room and map player id to room id
+            const roomId = crypto.randomUUID()
+            const scrambled_cube = generateScrambledCube(20).state
+            player.updateCube(scrambled_cube)
+            const room: Room = {
+                id: roomId,
+                players: [player],
+                maxPlayers: 2,
+                gameState: { status: "init" },
+                initialState: scrambled_cube,
+                variant,
+                createdAt: Date.now(),
+            };
+
+            // inserted room
+            await this.insert_room(room);
+
+            // map playerid to roomid
             await this.set_player_room(player.player_id, roomId)
-
-            return {queued: false, room: room}
-
+            return {queued: true, room}
         }
-        // i think we should store room as well, because we have list of player id saved there.
-        const initialCubeState = generateScrambledCube(20).state
-        player.updateCube(initialCubeState)
-        const room: Room = {
-            id: roomId,
-            players: [player],
-            maxPlayers: 2,
-            gameState: { status: "init", variant },
-            initialState: initialCubeState,
-            variant,
-            createdAt: Date.now(),
-        };
-        await this.insert_player(player)
-        await this.insert_room(room)
-        await this.set_player_room(player.player_id, roomId)
 
-        return {queued: true, room: room}
+        // we have players in waiting queue
+        const opponent_player = waiting_players[0]
+        
+        player.updateCube(opponent_player.getCube())
+        await this.insert_player(player)
+
+        // fetch room for this player
+        const roomId = await this.get_player_room(opponent_player.player_id)
+        if (roomId === null) {
+            throw new Error(`room id is null for player id: ${opponent_player.player_id}`);
+        }
+
+        await this.set_player_room(player.player_id, roomId)
+        const player_room = await this.get_room(roomId)
+
+        if (player_room === null) {
+            throw new Error("We are bad programmers, room is not present in queue")
+        }
+
+        player_room.players.push(player)
+        await this.upsert_room(roomId, player_room)
+
+        return {queued: false, room: player_room}
     }
 }

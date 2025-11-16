@@ -1,4 +1,4 @@
-import { Player, PlayerState } from "@/modals/player";
+import { CubeCategories, Player, PlayerState } from "@/modals/player";
 import { Redis } from "@/utils/redis";
 // import { randomUUID } from "crypto";
 
@@ -61,6 +61,16 @@ async function main() {
         0,
         {}
     );
+
+    // async tryMatchOrEnqueue1(
+    //     player: Player,
+    //     roomId: string,
+    //     variant: CubeCategories
+    // )
+
+    // const response = await redis.tryMatchOrEnqueue(p1, CubeCategories.ThreeCube);
+    // const response = await redis.tryMatchOrEnqueue1(p2, CubeCategories.ThreeCube);
+    // console.log("Response: ", response);
 
     // const has_players = await redis.has_players();
     // if (has_players) {

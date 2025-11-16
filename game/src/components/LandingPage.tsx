@@ -112,12 +112,27 @@ export default function LandingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ variant, player }),
       });
+
+      // Response:  {
+      //   queued: false,
+      //   room: {
+      //     id: 'b377c9de-3d8f-4e3c-887c-5a36b9fed57f',
+      //     players: [ [Object], [Player] ],
+      //     maxPlayers: 2,
+      //     gameState: { status: 'init' },
+      //     initialState: [ [Array], [Array], [Array], [Array], [Array], [Array] ],
+      //     variant: '3x3 cube',
+      //     createdAt: 1763301445404
+      //   }
+      // }
+
       
       if (!res.ok) {
         throw new Error(`Failed to start matchmaking: ${res.status}`);
       }
       
       const data = await res.json();
+      console.log("Response of matchmake start api: ", data)
       
       if (typeof window !== 'undefined') {
         localStorage.setItem("player", JSON.stringify(player));

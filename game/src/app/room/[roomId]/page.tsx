@@ -4,7 +4,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Player } from "@/modals/player";
-import { Env } from "@/lib/env_config";
 import { Room } from "@/modals/room";
 import { GameEventTypes } from "@/types/game-events";
 import RubiksCubeViewer, { RubiksCubeViewerHandle } from "@/components/RubiksCubeViewer";
@@ -12,7 +11,7 @@ import { Cube, FaceName } from "@/utils/cube";
 import { SimpleCubeHelper } from "@/utils/cube_helper";
 import WinnerPopup from "@/components/WinnerPopup";
 
-const WS_URL = Env.NEXT_PUBLIC_WEBSOCKET_URL;
+const WS_URL = "ws://localhost:8002";
 const WS_PORT = 8002;
 
 function Timer({ startTime }: { startTime: number | null }) {
@@ -244,7 +243,9 @@ export default function RoomPage() {
           const j = await res.json().catch(() => ({}));
           throw new Error(`HTTP ${res.status}${j?.error ? ` (${j.error})` : ""}`);
         }
+
         const data: Room = await res.json();
+        console.log("Room data: ", data)
         if (!mounted) return;
 
         setRoom(data);
