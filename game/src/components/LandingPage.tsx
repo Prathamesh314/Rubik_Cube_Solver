@@ -175,7 +175,7 @@ export default function LandingPage() {
           <div className="hidden md:flex gap-8 text-slate-400 text-sm">
             <a href="#" className="hover:text-white transition">Play</a>
             <a href="#" className="hover:text-white transition">Leaderboard</a>
-            <a href="#" className="hover:text-white transition">Stats</a>
+            <a href="/profile" className="hover:text-white transition">Profile</a>
           </div>
         </nav>
 
