@@ -44,14 +44,15 @@ export class Player {
     top_speed_to_solve_cube: { [key in CubeCategories]?: SpeedCollection };
     scrambledCube: number[][][] = [[[]]];
 
-    constructor(username: string, player_state: PlayerState = PlayerState.Waiting, rating: number = 0, total_wins: number = 0, win_percentage: number, top_speed_to_solve_cube: { [key in CubeCategories]?: SpeedCollection }) {
-        this.player_id = randomUUID();
+    constructor(player_id: string, username: string, player_state: PlayerState = PlayerState.Waiting, rating: number = 0, total_wins: number = 0, win_percentage: number, top_speed_to_solve_cube: { [key in CubeCategories]?: SpeedCollection }, scrambled_cube: number[][][] = [[[]]]) {
+        this.player_id = player_id;
         this.username = username;
         this.player_state = player_state;
         this.rating = rating;
         this.total_wins = total_wins;
         this.win_percentage = win_percentage;
         this.top_speed_to_solve_cube = top_speed_to_solve_cube;
+        this.scrambledCube = scrambled_cube
     }
 
     to_string() {
@@ -73,17 +74,20 @@ export class Player {
             v ? { cube_category: v.cube_category, top_speed: v.top_speed } : v,
             ])
         ),
+        scrambledCube: p.scrambledCube
         };
     }
 
     static fromPlain(obj: any): Player {
         const p = new Player(
-        obj.username,
-        obj.player_state,
-        obj.rating,
-        obj.total_wins,
-        obj.win_percentage,
-        {}
+            obj.player_id,
+            obj.username,
+            obj.player_state,
+            obj.rating,
+            obj.total_wins,
+            obj.win_percentage,
+            {},
+            obj.scrambledCube
         );
         p.player_id = obj.player_id;
         // revive SpeedCollection instances

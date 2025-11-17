@@ -1,6 +1,7 @@
 import { CubeCategories, Player, PlayerState } from "@/modals/player";
 import { Redis } from "@/utils/redis";
 import {generateScrambledCube} from '@/utils/redis'
+import { randomUUID } from "crypto";
 // import { randomUUID } from "crypto";
 
 async function show_keys(redis: Redis){
@@ -48,28 +49,33 @@ async function main() {
     const cube = generateScrambledCube(20).state
 
     const p1 = new Player(
+        randomUUID(),
         "player 1",
         PlayerState.Playing,
         1200,
         0,
         0,
-        {}
+        {},
     );
 
     const p2 = new Player(
+        randomUUID(),
         "player 2",
         PlayerState.Playing,
         1300,
         0,
         0,
-        {}
+        {},
     );
-    const response = await redis.tryMatchOrEnqueue(p1, CubeCategories.ThreeCube);
-    // const response = await redis.tryMatchOrEnqueue(p2, CubeCategories.ThreeCube);
-    const response_all = await redis.get_all_players()
-    console.log("All players: ", response_all)
+    // const response1 = await redis.tryMatchOrEnqueue(p1, CubeCategories.ThreeCube);
+    // const response2 = await redis.tryMatchOrEnqueue(p2, CubeCategories.ThreeCube);
+    // const response_all = await redis.get_all_players()
+    // console.log("All players: ", response_all)
     // const response = await redis.get_all_waiting_players()
     // console.log("Response: ", response);
+    // const rooms = await redis.get_room("0abb6724-265c-464c-be19-11bb9f10f7cc")
+    const allrooms = await redis.get_all_rooms()
+    console.log("rooms: ", allrooms)
 
    
     // await redis.delete_all_players();

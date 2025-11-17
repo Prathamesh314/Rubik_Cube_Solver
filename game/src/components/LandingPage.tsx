@@ -13,6 +13,7 @@ type AuthStorage = {
     total_wins: number;
     win_percentage: number;
     top_speed_to_solve_cube: Record<string, { cube_category: string; top_speed: number }>;
+    scrambledCube: number[][][]
   };
 };
 
@@ -42,6 +43,7 @@ function ensureAuth(): AuthStorage {
   const currentPlayerId = sessionStorage.getItem("userId")
   const username = sessionStorage.getItem("username")
   const token = sessionStorage.getItem("token")
+
   if (!currentPlayerId || !username) {
     throw new Error("User is not logged in..")
   }
@@ -56,6 +58,7 @@ function ensureAuth(): AuthStorage {
       total_wins: 0,
       win_percentage: 0,
       top_speed_to_solve_cube: {},
+      scrambledCube: [[[]]]
     },
   };
   setAuth(auth);
@@ -95,6 +98,7 @@ export default function LandingPage() {
       console.log("Auth: ", auth)
       const player = auth.player;
       const userRes = await fetch(`/api/get_user?id=${player.player_id}`)
+
       if (userRes.ok) {
 
         const userData = await userRes.json();
@@ -104,7 +108,6 @@ export default function LandingPage() {
         player.total_wins = userData.total_wins;
         player.win_percentage = userData.win_percentage;
         player.top_speed_to_solve_cube = userData.top_speed_to_solve_cube ?? {};
-
       }
 
       const res = await fetch("/api/matchmake/start", {
@@ -112,20 +115,6 @@ export default function LandingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ variant, player }),
       });
-
-      // Response:  {
-      //   queued: false,
-      //   room: {
-      //     id: 'b377c9de-3d8f-4e3c-887c-5a36b9fed57f',
-      //     players: [ [Object], [Player] ],
-      //     maxPlayers: 2,
-      //     gameState: { status: 'init' },
-      //     initialState: [ [Array], [Array], [Array], [Array], [Array], [Array] ],
-      //     variant: '3x3 cube',
-      //     createdAt: 1763301445404
-      //   }
-      // }
-
       
       if (!res.ok) {
         throw new Error(`Failed to start matchmaking: ${res.status}`);

@@ -152,7 +152,6 @@ export class Redis {
 
     async insert_player(player: Player): Promise<boolean> {
         this.ensureConnection();
-        player.player_state = PlayerState.Waiting;
         const field = player.player_id;
         const value = JSON.stringify(Player.toPlain(player));
 
@@ -255,6 +254,20 @@ export class Redis {
         await this.redis_client!.del(PLAYER_ROOMS_HASH_KEY);
     }
 
+    async get_all_rooms(): Promise<Room[]> {
+        this.ensureConnection();
+        const roomsObj = await this.redis_client!.hGetAll(ROOMS_HASH_KEY);
+        const rooms: Room[] = [];
+        for (const [_, value] of Object.entries(roomsObj)) {
+            try {
+                rooms.push(JSON.parse(value) as Room);
+            } catch (e) {
+                // skip invalid entries
+            }
+        }
+        return rooms;
+    }
+
     async delete_all_rooms(): Promise<boolean> {
         this.ensureConnection();
         const result = await this.redis_client!.del(ROOMS_HASH_KEY);
@@ -289,6 +302,7 @@ export class Redis {
         }
         return JSON.parse(roomStr) as Room;
     }
+  
 
     async tryMatchOrEnqueue(
         player: Player,
@@ -304,19 +318,11 @@ export class Redis {
             // Generate scrambled cube FIRST
             const roomId = crypto.randomUUID()
             const scrambled_cube = generateScrambledCube(20).state
-            console.log("Scrmabled cube: ", scrambled_cube)
-            await this.insert_player(player)
             
-            // Update player with scrambled cube BEFORE inserting into Redis
-            console.log("Player before: ", Player.toPlain(player))
-            console.log("Player cube before: ", player.scrambledCube)
             player.updateCube(scrambled_cube)
             player.player_state = PlayerState.Waiting
-            console.log("Player after: ", Player.toPlain(player))
-            console.log("Cube after: ", player.scrambledCube)
             
-            // Now insert player with scrambled cube already set
-            await this.upsert_player(player.player_id, player)
+            await this.insert_player(player)
             // create room
             const room: Room = {
                 id: roomId,
