@@ -1,44 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/db/postgres';
-import User from '@/modals/user';
+import dbConnect, { tables } from '@/db/postgres';
+import {
+    sql
+} from 'kysely'
+import { success } from 'zod';
 
 export async function PATCH(req: NextRequest) {
   try {
-    await dbConnect();
+    const postgresdb = await dbConnect();
 
     const body = await req.json();
     const { playerId, ratingIncrement } = body;
 
-    if (!playerId || !/^[0-9a-fA-F]{24}$/.test(playerId)) {
-      return NextResponse.json(
-        { success: false, message: 'Valid player id is required' },
-        { status: 400 }
-      );
-    }
-    if (typeof ratingIncrement !== 'number' || !isFinite(ratingIncrement)) {
-      return NextResponse.json(
-        { success: false, message: 'A valid numeric rating is required' },
-        { status: 400 }
-      );
-    }
+    await sql`
+        UPDATE ${sql.table(tables.user)}
+        SET rating = rating + ${ratingIncrement}
+        WHERE id = ${playerId}
+    `.execute(postgresdb.connection());
 
-    const updatedUser = await User.findByIdAndUpdate(
-      playerId,
-      { $inc: { rating: ratingIncrement } },
-      { new: true, runValidators: true, select: '-password -__v' }
-    ).lean();
-
-    if (!updatedUser) {
-      return NextResponse.json(
-        { success: false, message: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(
-      { success: true, user: updatedUser },
-      { status: 200 }
-    );
+    return NextResponse.json({
+        success: true,
+        message: "Player updated successfully"
+    }, {status: 201})
+    
   } catch (error) {
     console.error('Update user error:', error);
     return NextResponse.json(
