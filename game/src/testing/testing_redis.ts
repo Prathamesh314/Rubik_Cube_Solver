@@ -74,14 +74,14 @@ async function main() {
     // const response = await redis.get_all_waiting_players()
     // console.log("Response: ", response);
     // const rooms = await redis.get_room("0abb6724-265c-464c-be19-11bb9f10f7cc")
-    const allrooms = await redis.get_all_rooms()
-    console.log("rooms: ", allrooms)
+    // const allrooms = await redis.get_all_rooms()
+    // console.log("rooms: ", allrooms)
 
    
-    // await redis.delete_all_players();
-    // await redis.delete_all_rooms();
+    await redis.delete_all_players();
+    await redis.delete_all_rooms();
     
-    // await redis.clear_player_room();
+    await redis.clear_player_room();
 
     // Display all keys and their values in Redis (assuming you have access to redis_client)
     // await show_keys(redis)

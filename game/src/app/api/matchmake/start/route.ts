@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Player, CubeCategories } from "@/modals/player";
 import { Game } from "@/services/game";
-import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
   try {

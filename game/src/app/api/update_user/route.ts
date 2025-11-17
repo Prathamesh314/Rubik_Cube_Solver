@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/db/db';
+import dbConnect from '@/db/postgres';
 import User from '@/modals/user';
 
 export async function PATCH(req: NextRequest) {

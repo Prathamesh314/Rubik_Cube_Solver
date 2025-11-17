@@ -354,6 +354,9 @@ export default function RoomPage() {
       if (message.type === GameEventTypes.GameStarted) {
         console.log("Game has started between two players....")
         console.log("Message: ", message)
+        if (room){
+          setStartState(room.initialState)
+        }
         // Track the start time as rounded to the nearest previous second (minutes and seconds only)
         setGameStartTime(Math.floor(Date.now() / 1000) * 1000);
       }

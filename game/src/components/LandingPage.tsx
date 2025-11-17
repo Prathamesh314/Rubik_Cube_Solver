@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { useRouter } from "next/navigation";
+import { Player } from "@/modals/player";
 
 const AUTH_KEY = "rc_auth";
 type AuthStorage = {
@@ -44,6 +45,8 @@ function ensureAuth(): AuthStorage {
   const username = sessionStorage.getItem("username")
   const token = sessionStorage.getItem("token")
 
+  console.log("Userid: ", currentPlayerId, " username: ", username)
+
   if (!currentPlayerId || !username) {
     throw new Error("User is not logged in..")
   }
@@ -61,6 +64,7 @@ function ensureAuth(): AuthStorage {
       scrambledCube: [[[]]]
     },
   };
+  console.log("Auth: ", auth)
   setAuth(auth);
   return auth;
 }
@@ -96,19 +100,7 @@ export default function LandingPage() {
 
       const auth = ensureAuth();
       console.log("Auth: ", auth)
-      const player = auth.player;
-      const userRes = await fetch(`/api/get_user?id=${player.player_id}`)
-
-      if (userRes.ok) {
-
-        const userData = await userRes.json();
-        player.username = userData.username;
-        player.player_state = userData.player_state;
-        player.rating = userData.rating;
-        player.total_wins = userData.total_wins;
-        player.win_percentage = userData.win_percentage;
-        player.top_speed_to_solve_cube = userData.top_speed_to_solve_cube ?? {};
-      }
+      const player = auth.player
 
       const res = await fetch("/api/matchmake/start", {
         method: "POST",
