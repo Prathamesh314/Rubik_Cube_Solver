@@ -3,13 +3,14 @@ import dbConnect, { tables } from '@/db/postgres';
 import {
     sql
 } from 'kysely'
+import { Game } from '@/services/game';
 
 export async function PATCH(req: NextRequest) {
   try {
     const postgresdb = await dbConnect();
 
     const body = await req.json();
-    let { playerId, ratingIncrement, game_result } = body;
+    let { playerId, ratingIncrement, game_result, roomId } = body;
     let total_wins_increment = 0;
     if (game_result === "lost") {
         ratingIncrement = -ratingIncrement
@@ -24,6 +25,10 @@ export async function PATCH(req: NextRequest) {
             total_wins = total_wins + ${total_wins_increment}
         WHERE id = ${playerId}
     `.execute(postgresdb.connection());
+
+    const game = await Game.getInstance();
+    await game.deletePlayer(playerId);
+    await game.deletePlayerRoom(playerId, roomId)
 
     return NextResponse.json({
         success: true,

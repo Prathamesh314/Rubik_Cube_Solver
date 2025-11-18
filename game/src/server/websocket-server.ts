@@ -79,7 +79,7 @@ export class GameServer {
         }
     }
 
-    private updatePlayerInDb(player: Player | undefined, game_result: "won" | "lost") {
+    private updatePlayerInDb(player: Player | undefined, roomId: string | null, game_result: "won" | "lost") {
       if (player === undefined) return;
       // Use absolute URL since this is running on the server and does not have access to Next.js relative API routes
       // Adjust base URL as needed for your backend server setup
@@ -93,7 +93,8 @@ export class GameServer {
         body: JSON.stringify({
           playerId: player.player_id,
           ratingIncrement: 8,
-          game_result
+          game_result,
+          roomId
         })
       })
         .then(async res => {
@@ -109,6 +110,30 @@ export class GameServer {
         .catch(err => {
           console.error('Error updating user rating for winner:', err);
         });
+    }
+
+    private deleteRoom(roomId: string) {
+      fetch("http://localhost:3000/api/delete_game_room", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          roomId: roomId
+        })
+      }).then(async res => {
+        if (!res.ok) {
+          console.error('Failed to delete game room');
+          return;
+        }
+        const result = await res.json();
+        if (!result.success) {
+          console.error('API responded with failure for delete_game_room:', result.message);
+        }
+      })
+      .catch(err => {
+        console.error('Error deleting game room:', err);
+      });
     }
 
     private setupListeners(): void {
@@ -253,8 +278,11 @@ export class GameServer {
                 }))
               }
 
-              this.updatePlayerInDb(player_won, "won")
-              this.updatePlayerInDb(player_lost, "lost")
+              // remove room and players from the queue
+              this.deleteRoom(message.value.roomId)
+
+              this.updatePlayerInDb(player_won, message.value.roomId, "won")
+              this.updatePlayerInDb(player_lost, message.value.roomId, "lost")
               return
             }
         } catch (error) {

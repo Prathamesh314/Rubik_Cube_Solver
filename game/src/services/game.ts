@@ -48,7 +48,16 @@ class Game {
     return await this.redis.remove_player_from_room(playerId, roomId);
   }
 
-  async update_scrambled_cube(player_id: string, cube: any) {
+  async deleteRoom(roomId: string) {
+    await this.redis.delete_room(roomId)
+  }
+
+  async deletePlayer(playerId: string) {
+    await this.redis.delete_player(playerId)
+  }
+
+  async deletePlayerRoom(playerId: string, roomId: string | null) {
+    await this.redis.remove_player_from_room(playerId, roomId)
   }
 
 }
