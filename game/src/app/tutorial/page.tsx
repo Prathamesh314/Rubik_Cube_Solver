@@ -100,9 +100,9 @@ const TutorialPage = () => {
               controlsEnabled: true,
             }}
             wsRef={null}
-            player={dummyPlayer}
+            player={dummyPlayer as Player}
             room={dummyRoom}
-            participants={[dummyPlayer]}
+            participants={[dummyPlayer as Player]}
           />
 
           {/* Tutorial Complete Overlay */}

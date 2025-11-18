@@ -78,10 +78,10 @@ async function main() {
     // console.log("rooms: ", allrooms)
 
    
-    // await redis.delete_all_players();
-    // await redis.delete_all_rooms();
+    await redis.delete_all_players();
+    await redis.delete_all_rooms();
     
-    // await redis.clear_player_room();
+    await redis.clear_player_room();
 
     // Display all keys and their values in Redis (assuming you have access to redis_client)
     // await show_keys(redis)
