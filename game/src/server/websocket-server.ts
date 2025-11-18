@@ -31,7 +31,7 @@ export class GameServer {
     private wss: WebSocketServer;
 
     private rooms: Map<string, PlayerConnection[]> = new Map();
-    private wsInfoMap: Map<WebSocket, WebSocketInfo> = new Map();
+    
     room_conn_map: Map<string, WebSocket>;
 
     private constructor() {

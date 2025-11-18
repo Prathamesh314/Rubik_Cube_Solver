@@ -3,6 +3,21 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  LogOut,
+  Trophy,
+  Target,
+  TrendingUp,
+  Clock,
+  Calendar,
+  Edit2,
+  Check,
+  X,
+  Gamepad2,
+  Award,
+  User,
+} from "lucide-react";
 
 interface GameHistory {
   id: string;
@@ -14,7 +29,6 @@ interface GameHistory {
   email?: string;
 }
 
-// Fix: make scrambledCube and top_speed_to_solve_cube optional for robustness, as they are not always present
 interface Player {
   player_id: string;
   username: string;
@@ -33,39 +47,87 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [newUsername, setNewUsername] = useState("");
 
-  // Mock game history - replace with actual API call
+//   useEffect(() => {
+//     const pl = localStorage.getItem("player")
+//     if (pl === null) {
+//         throw new Error("player is not found")
+//     }
+//     const parsed = JSON.parse(pl)
+//     setPlayer(parsed as Player)
+//   }, [])
+
   const [gameHistory] = useState<GameHistory[]>([
-    { id: "1", opponent: "SpeedCuber99", result: "win", rating_change: 8, time: "2:34", date: "2 hours ago", email: "speedcuber99@example.com" },
-    { id: "2", opponent: "CubeMaster", result: "loss", rating_change: -8, time: "3:45", date: "5 hours ago", email: "cubemaster@example.com" },
-    { id: "3", opponent: "QuickSolver", result: "win", rating_change: 8, time: "1:56", date: "1 day ago", email: "quicksolver@example.com" },
-    { id: "4", opponent: "PuzzlePro", result: "win", rating_change: 8, time: "2:12", date: "1 day ago", email: "puzzlepro@example.com" },
-    { id: "5", opponent: "CubeChamp", result: "loss", rating_change: -8, time: "4:23", date: "2 days ago", email: "cubechamp@example.com" },
+    {
+      id: "1",
+      opponent: "SpeedCuber99",
+      result: "win",
+      rating_change: 8,
+      time: "2:34",
+      date: "2 hours ago",
+      email: "speedcuber99@example.com",
+    },
+    {
+      id: "2",
+      opponent: "CubeMaster",
+      result: "loss",
+      rating_change: -8,
+      time: "3:45",
+      date: "5 hours ago",
+      email: "cubemaster@example.com",
+    },
+    {
+      id: "3",
+      opponent: "QuickSolver",
+      result: "win",
+      rating_change: 8,
+      time: "1:56",
+      date: "1 day ago",
+      email: "quicksolver@example.com",
+    },
+    {
+      id: "4",
+      opponent: "PuzzlePro",
+      result: "win",
+      rating_change: 8,
+      time: "2:12",
+      date: "1 day ago",
+      email: "puzzlepro@example.com",
+    },
+    {
+      id: "5",
+      opponent: "CubeChamp",
+      result: "loss",
+      rating_change: -8,
+      time: "4:23",
+      date: "2 days ago",
+      email: "cubechamp@example.com",
+    },
   ]);
 
   useEffect(() => {
-    // Fetch user profile from backend using userId taken from sessionStorage
     const loadUserProfile = async () => {
       const userId = sessionStorage.getItem("userId");
 
-      // Defensive guard clause
       if (!userId) {
         setPlayer(null);
         return;
       }
+
       try {
         const res = await fetch(`/api/get_user?id=${encodeURIComponent(userId)}`);
         if (!res.ok) throw new Error("Failed to fetch user");
         const user = await res.json();
+        console.log("User: ", user)
 
         setPlayer({
-          player_id: user._id ?? "",
-          username: user.username ?? "",
-          player_state: user.player_state ?? "",
-          rating: user.rating ?? 0,
-          total_wins: user.total_wins ?? 0,
-          win_percentage: user.win_percentage ?? 0,
-          top_speed_to_solve_cube: user.top_speed_to_solve_cube ?? {},
-          email: user.email ?? ""
+          player_id: user.user.id ?? "",
+          username: user.user.username ?? "",
+          player_state: user.user.player_state ?? "",
+          rating: user.user.rating ?? 0,
+          total_wins: user.user.total_wins ?? 0,
+          win_percentage: user.user.win_percentage ?? 0,
+          top_speed_to_solve_cube: user.user.top_speed_to_solve_cube ?? {},
+          email: user.user.email ?? "",
         });
         setNewUsername(user.username ?? "");
       } catch (err) {
@@ -74,11 +136,11 @@ export default function ProfilePage() {
     };
 
     loadUserProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("player");
+    sessionStorage.removeItem("userId");
     router.push("/");
   };
 
@@ -88,14 +150,16 @@ export default function ProfilePage() {
       setPlayer(updatedPlayer);
       localStorage.setItem("player", JSON.stringify(updatedPlayer));
       setIsEditing(false);
-      // TODO: Update username on backend
     }
   };
 
   if (!player) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
-        <div className="animate-pulse text-xl">Loading profile…</div>
+      <div className="min-h-screen bg-slate-950 text-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-slate-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-slate-400">Loading profile…</p>
+        </div>
       </div>
     );
   }
@@ -105,88 +169,89 @@ export default function ProfilePage() {
     wins: gameHistory.filter((g) => g.result === "win").length,
     losses: gameHistory.filter((g) => g.result === "loss").length,
   };
+
   const winRate =
     stats.gamesPlayed > 0
       ? ((stats.wins / stats.gamesPlayed) * 100).toFixed(1)
       : "0.0";
 
+  const initials =
+    player.username
+      ?.trim()
+      .split(" ")
+      .map((p: string) => p[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "U";
+
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="min-h-screen bg-slate-950 text-slate-50">
       {/* Header */}
-      <header className="border-b border-slate-800/60 bg-slate-950/80 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
+      <header className="sticky top-0 z-40 border-b border-slate-800 bg-slate-950/90 backdrop-blur">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <button
             onClick={() => router.push("/")}
-            className="flex items-center gap-2 text-slate-400 hover:text-white transition"
+            className="inline-flex items-center gap-2 text-sm text-slate-300 hover:text-white"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            <span className="font-medium">Back to Home</span>
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back</span>
           </button>
+
           <button
             onClick={handleLogout}
-            className="rounded-lg bg-red-600/80 px-4 py-2 text-sm font-semibold ring-1 ring-red-500/40 hover:bg-red-600 transition"
+            className="inline-flex items-center gap-2 rounded-md border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-800"
           >
+            <LogOut className="w-4 h-4" />
             Logout
           </button>
         </div>
       </header>
 
-      <div className="mx-auto max-w-5xl px-4 py-8">
-        {/* Profile Header */}
-        <div className="relative overflow-hidden rounded-3xl border border-slate-800/80 bg-gradient-to-br from-slate-900 to-slate-950 p-8 mb-8">
-          {/* Background decoration */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl" />
-
-          <div className="relative flex flex-col md:flex-row items-center md:items-start gap-6">
+      <main className="mx-auto max-w-5xl px-4 py-8 space-y-8">
+        {/* Profile Card */}
+        <section className="rounded-2xl border border-slate-800 bg-slate-900 px-5 py-6 md:px-7 md:py-7">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center">
             {/* Avatar */}
-            <div className="relative">
-              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-indigo-500 to-emerald-500 p-1">
-                <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center">
-                  <span className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-indigo-400 to-emerald-400">
-                    {(player.username?.charAt(0) || "?").toUpperCase()}
-                  </span>
-                </div>
-              </div>
-              <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center ring-4 ring-slate-900">
-                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
+            <div className="flex items-center justify-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-800 text-lg font-semibold text-slate-100 md:h-20 md:w-20">
+                {initials || <User className="w-7 h-7" />}
               </div>
             </div>
 
             {/* User Info */}
-            <div className="flex-1 text-center md:text-left">
+            <div className="flex-1 space-y-3">
               {isEditing ? (
-                <div className="flex items-center gap-3 mb-2">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <input
                     type="text"
                     value={newUsername}
                     onChange={(e) => setNewUsername(e.target.value)}
-                    className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-2xl font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-lg font-semibold text-slate-50 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                     autoFocus
                   />
-                  <button
-                    onClick={handleSaveUsername}
-                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold hover:bg-emerald-500 transition"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsEditing(false);
-                      setNewUsername(player.username || "");
-                    }}
-                    className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold hover:bg-slate-600 transition"
-                  >
-                    Cancel
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSaveUsername}
+                      className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-900 hover:bg-white"
+                    >
+                      <Check className="w-4 h-4" />
+                      Save
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsEditing(false);
+                        setNewUsername(player.username || "");
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-800"
+                    >
+                      <X className="w-4 h-4" />
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-3 mb-2 justify-center md:justify-start">
-                  <h1 className="text-3xl md:text-4xl font-bold text-white">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-semibold md:text-3xl">
                     {player.username}
                   </h1>
                   <button
@@ -194,161 +259,168 @@ export default function ProfilePage() {
                       setIsEditing(true);
                       setNewUsername(player.username || "");
                     }}
-                    className="text-slate-400 hover:text-white transition"
+                    className="rounded-md p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-100"
                     title="Edit username"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
+                    <Edit2 className="w-4 h-4" />
                   </button>
                 </div>
               )}
 
-              <p className="text-slate-400 text-sm mb-4">
-                Player ID: <span className="text-slate-300 font-mono">{player.player_id}</span>
-              </p>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                {player.email && (
+                  <span className="inline-flex items-center rounded-full bg-slate-800 px-3 py-1">
+                    {player.email}
+                  </span>
+                )}
+                {player.player_state && (
+                  <span className="inline-flex items-center rounded-full border border-slate-700 px-3 py-1">
+                    {player.player_state}
+                  </span>
+                )}
+              </div>
 
-              {/* Rating Badge */}
-              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/30 rounded-full px-5 py-2">
-                <svg className="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-                <span className="text-2xl font-bold text-amber-400">{player.rating}</span>
-                <span className="text-sm text-amber-400/80">ELO</span>
+              <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-slate-900 px-3 py-1.5 text-xs text-amber-300">
+                <Trophy className="w-4 h-4" />
+                <span className="text-base font-semibold text-amber-300">
+                  {player.rating}
+                </span>
+                <span className="text-[11px] uppercase tracking-wide text-amber-300/80">
+                  Rating
+                </span>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Statistics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center">
-                <svg className="w-5 h-5 text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                  <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <p className="text-slate-400 text-sm">Games Played</p>
-            </div>
-            <p className="text-3xl font-bold text-white">{stats.gamesPlayed}</p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                <svg className="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <p className="text-slate-400 text-sm">Wins</p>
-            </div>
-            <p className="text-3xl font-bold text-emerald-400">{stats.wins}</p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
-                <svg className="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <p className="text-slate-400 text-sm">Losses</p>
-            </div>
-            <p className="text-3xl font-bold text-red-400">{stats.losses}</p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                <svg className="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <p className="text-slate-400 text-sm">Win Rate</p>
-            </div>
-            <p className="text-3xl font-bold text-amber-400">{winRate}%</p>
-          </div>
-        </div>
+        {/* Stats Grid */}
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            icon={<Gamepad2 className="w-5 h-5" />}
+            label="Games Played"
+            value={stats.gamesPlayed}
+          />
+          <StatCard
+            icon={<Award className="w-5 h-5" />}
+            label="Wins"
+            value={stats.wins}
+          />
+          <StatCard
+            icon={<Target className="w-5 h-5" />}
+            label="Losses"
+            value={stats.losses}
+          />
+          <StatCard
+            icon={<TrendingUp className="w-5 h-5" />}
+            label="Win Rate"
+            value={`${winRate}%`}
+          />
+        </section>
 
         {/* Match History */}
-        <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6">
-          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-            <svg className="w-6 h-6 text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-            </svg>
-            Match History
-          </h2>
-
-          <div className="space-y-3">
-            {gameHistory.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 rounded-full bg-slate-800/50 flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-slate-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <p className="text-slate-400">No games played yet</p>
-                <p className="text-slate-500 text-sm mt-1">Start playing to see your match history</p>
+        <section className="rounded-2xl border border-slate-800 bg-slate-900 px-5 py-5 md:px-6 md:py-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-800">
+                <Calendar className="w-4 h-4 text-slate-200" />
               </div>
-            ) : (
-              gameHistory.map((game) => (
+              <h2 className="text-lg font-semibold">Match History</h2>
+            </div>
+            <p className="text-xs text-slate-400">
+              {stats.gamesPlayed} games total
+            </p>
+          </div>
+
+          {gameHistory.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center text-sm text-slate-400">
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-800">
+                <Gamepad2 className="w-6 h-6 text-slate-500" />
+              </div>
+              <p>No games played yet.</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Play a match to see your recent results here.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {gameHistory.map((game) => (
                 <div
                   key={game.id}
-                  className="flex items-center justify-between p-4 rounded-xl border border-slate-800/60 bg-slate-800/20 hover:bg-slate-800/40 transition"
+                  className="flex items-center justify-between gap-4 rounded-xl border border-slate-800/70 bg-slate-900/80 px-4 py-3 text-sm"
                 >
-                  <div className="flex items-center gap-4">
-                    {/* Result indicator */}
-                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                      game.result === "win" 
-                        ? "bg-emerald-500/20 text-emerald-400" 
-                        : "bg-red-500/20 text-red-400"
-                    }`}>
-                      {game.result === "win" ? (
-                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      ) : (
-                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
-                      )}
+                  <div className="flex flex-1 items-center gap-3">
+                    <div
+                      className={`flex h-9 w-9 items-center justify-center rounded-md text-xs font-medium ${
+                        game.result === "win"
+                          ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/40"
+                          : "bg-red-600/20 text-red-300 border border-red-500/40"
+                      }`}
+                    >
+                      {game.result === "win" ? "Win" : "Loss"}
                     </div>
-
-                    {/* Game details */}
-                    <div>
-                      <p className="text-white font-semibold">vs {game.opponent}</p>
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="text-slate-400 text-sm">{game.date}</span>
-                        <span className="text-slate-600">•</span>
-                        <span className="text-slate-400 text-sm font-mono">{game.time}</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-slate-50">
+                        vs {game.opponent}
+                      </p>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {game.time}
+                        </span>
+                        <span>•</span>
+                        <span className="inline-flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {game.date}
+                        </span>
+                        {game.email && (
+                          <>
+                            <span>•</span>
+                            <span className="truncate">{game.email}</span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Rating change */}
-                  <div className={`flex items-center gap-1 font-bold ${
-                    game.rating_change > 0 ? "text-emerald-400" : "text-red-400"
-                  }`}>
-                    {game.rating_change > 0 ? (
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                      </svg>
-                    ) : (
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
+                  <div
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
+                      game.rating_change > 0
+                        ? "bg-emerald-700/20 text-emerald-300 border border-emerald-500/40"
+                        : "bg-red-700/20 text-red-300 border border-red-500/40"
+                    }`}
+                  >
                     {game.rating_change > 0 ? "+" : ""}
                     {game.rating_change}
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
+  );
+}
+
+// Stat Card Component
+function StatCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number | string;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-4">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <span className="text-xs font-medium text-slate-400">{label}</span>
+        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-800 text-slate-200">
+          {icon}
         </div>
       </div>
+      <p className="text-xl font-semibold text-slate-50">{value}</p>
     </div>
   );
 }

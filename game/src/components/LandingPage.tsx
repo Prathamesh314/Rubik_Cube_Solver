@@ -2,6 +2,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { PlayerState } from "@/modals/player";
+import {NavBar} from "./Navbar";
 
 interface PlayerType {
   player_id: string;
@@ -79,19 +80,6 @@ function ensureAuth(): AuthStorage {
   setAuth(auth);
   return auth;
 }
-
-const CubeIcon = () => (
-  <svg width="64" height="64" viewBox="0 0 64 64" className="w-16 h-16 md:w-20 md:h-20 text-white drop-shadow-lg">
-    <path d="M32 2L2 17L32 32L62 17L32 2Z" fill="#0051BA"/>
-    <path d="M2 17L2 47L32 62L32 32L2 17Z" fill="#FFD500"/>
-    <path d="M62 17L62 47L32 62L32 32L62 17Z" fill="#FF5800"/>
-    <path d="M32 32L2 47L32 62" stroke="rgba(255,255,255,0.2)" strokeWidth="1"/>
-    <path d="M32 32L62 47" stroke="rgba(255,255,255,0.2)" strokeWidth="1"/>
-    <path d="M2 17L32 32" stroke="rgba(255,255,255,0.2)" strokeWidth="1"/>
-    <path d="M62 17L32 32" stroke="rgba(255,255,255,0.2)" strokeWidth="1"/>
-    <path d="M32 2V32" stroke="rgba(255,255,255,0.2)" strokeWidth="1"/>
-  </svg>
-);
 
 export default function LandingPage() {
   const router = useRouter();
@@ -190,21 +178,7 @@ export default function LandingPage() {
 
       <div className="relative z-10">
         {/* Header / Navigation space */}
-        <nav className="flex items-center justify-between px-6 md:px-12 py-6 max-w-7xl mx-auto">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 flex items-center justify-center">
-              <CubeIcon />
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-              Cube Clash
-            </span>
-          </div>
-          <div className="hidden md:flex gap-8 text-slate-400 text-sm">
-            <a href="#" className="hover:text-white transition">Play</a>
-            <a href="#" className="hover:text-white transition">Leaderboard</a>
-            <a href="/profile" className="hover:text-white transition">Profile</a>
-          </div>
-        </nav>
+        <NavBar />
 
         {/* Hero Section */}
         <div className="max-w-7xl mx-auto px-6 md:px-12 py-20 md:py-32">
@@ -249,7 +223,7 @@ export default function LandingPage() {
 
               {/* CTA Button and Play AI Button */}
               <div className="pt-4 flex flex-col sm:flex-row gap-4 sm:items-center">
-                <button
+                {/* <button
                   onClick={handleStartGame}
                   disabled={loading}
                   className={
@@ -258,19 +232,38 @@ export default function LandingPage() {
                       ? "bg-slate-700 text-slate-400 cursor-not-allowed"
                       : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:from-blue-500 hover:to-indigo-500 hover:scale-105 hover:-translate-y-0.5")
                   }
-                >
-                  {loading ? (
-                    <span className="flex items-center gap-2">
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Finding Match...
-                    </span>
-                  ) : (
-                    "Find Your Match"
-                  )}
-                </button>
+                > */}
+                  <div className="flex flex-col sm:flex-row gap-3 w-full">
+                    <button
+                      onClick={handleStartGame}
+                      disabled={loading}
+                      className={
+                        "flex-1 px-8 py-4 text-lg font-bold rounded-lg transition-all duration-200 flex items-center justify-center " +
+                        (loading
+                          ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                          : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:from-blue-500 hover:to-indigo-500 hover:scale-105 hover:-translate-y-0.5")
+                      }
+                    >
+                      {loading ? (
+                        <span className="flex items-center gap-2">
+                          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          Finding Match...
+                        </span>
+                      ) : (
+                        "Find Your Match"
+                      )}
+                    </button>
+                    <span className="hidden sm:block w-px bg-slate-700 mx-1 self-stretch" />
+                    <button
+                      className="flex-1 px-8 py-4 text-lg font-bold rounded-lg transition-all duration-200 flex items-center justify-center bg-gradient-to-r from-pink-600 to-purple-600 text-white shadow-lg shadow-pink-500/20 hover:shadow-pink-500/40 hover:from-pink-500 hover:to-purple-500 hover:scale-105 hover:-translate-y-0.5"
+                      // Insert your Play With Friend handler here
+                    >
+                      Play With Friend
+                    </button>
+                  </div>
                 {/* <button
                   onClick={handlePlayAI}
                   disabled={aiLoading}
