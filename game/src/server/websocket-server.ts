@@ -79,7 +79,7 @@ export class GameServer {
         }
     }
 
-    private updatePlayerInDb(player: Player | undefined) {
+    private updatePlayerInDb(player: Player | undefined, game_result: "won" | "lost") {
       if (player === undefined) return;
       // Use absolute URL since this is running on the server and does not have access to Next.js relative API routes
       // Adjust base URL as needed for your backend server setup
@@ -92,7 +92,8 @@ export class GameServer {
         },
         body: JSON.stringify({
           playerId: player.player_id,
-          ratingIncrement: 8
+          ratingIncrement: 8,
+          game_result
         })
       })
         .then(async res => {
@@ -252,8 +253,8 @@ export class GameServer {
                 }))
               }
 
-              this.updatePlayerInDb(player_won)
-              this.updatePlayerInDb(player_lost)
+              this.updatePlayerInDb(player_won, "won")
+              this.updatePlayerInDb(player_lost, "lost")
               return
             }
         } catch (error) {

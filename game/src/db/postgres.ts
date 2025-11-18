@@ -80,6 +80,7 @@ import {
             email TEXT NOT NULL,
             password TEXT NOT NULL,
             rating INTEGER NOT NULL DEFAULT 1000,
+            total_wins INTEGER NOT NULL DEFAULT 0,
             total_games_played INTEGER NOT NULL DEFAULT 0,
             fastest_time_to_solve_cube DOUBLE PRECISION NOT NULL DEFAULT 0.0,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

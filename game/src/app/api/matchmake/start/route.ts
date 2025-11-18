@@ -6,12 +6,14 @@ export async function POST(req: NextRequest) {
   try {
     const data = await req.json() as {
       variant: CubeCategories;
-      player: Record<string, any>; // Change type to a plain object structure
+      new_player: Record<string, any>; // Change type to a plain object structure
     };
     
     // Deserialize the plain object back into a Player instance
-    const playerInstance = Player.fromPlain(data.player);
+    const playerInstance = Player.fromPlain(data.new_player);
     const variant = data.variant;
+
+    console.log("Player: ", playerInstance, " variant: ", variant)
 
     const game = await Game.getInstance();
     

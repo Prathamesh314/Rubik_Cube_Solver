@@ -3,18 +3,25 @@ import dbConnect, { tables } from '@/db/postgres';
 import {
     sql
 } from 'kysely'
-import { success } from 'zod';
 
 export async function PATCH(req: NextRequest) {
   try {
     const postgresdb = await dbConnect();
 
     const body = await req.json();
-    const { playerId, ratingIncrement } = body;
-
+    let { playerId, ratingIncrement, game_result } = body;
+    let total_wins_increment = 0;
+    if (game_result === "lost") {
+        ratingIncrement = -ratingIncrement
+    } else {
+        total_wins_increment = 1;
+    }
     await sql`
         UPDATE ${sql.table(tables.user)}
-        SET rating = rating + ${ratingIncrement}
+        SET 
+            rating = rating + ${ratingIncrement},
+            total_games_played = total_games_played + 1,
+            total_wins = total_wins + ${total_wins_increment}
         WHERE id = ${playerId}
     `.execute(postgresdb.connection());
 

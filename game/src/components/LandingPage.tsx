@@ -1,7 +1,33 @@
 "use client";
 import React from "react";
 import { useRouter } from "next/navigation";
-import { Player } from "@/modals/player";
+import { PlayerState } from "@/modals/player";
+
+interface PlayerType {
+  player_id: string;
+  username: string;
+  player_state: PlayerState;
+  rating: number;
+  total_wins: number;
+  win_percentage: number;
+  scrambledCube: number[][][];
+}
+
+export type ApiUserResponse = {
+  success: boolean;
+  user: {
+    id: string;
+    username: string;
+    email: string;
+    password: string;
+    rating: number;
+    total_games_played: number;
+    fastest_time_to_solve_cube: number;
+    created_at: string;
+    updated_at: string;
+    total_wins: number;
+  };
+};
 
 const AUTH_KEY = "rc_auth";
 type AuthStorage = {
@@ -9,12 +35,6 @@ type AuthStorage = {
   player: {
     player_id: string;
     username: string;
-    player_state: "playing" | "not playing" | "waiting";
-    rating: number;
-    total_wins: number;
-    win_percentage: number;
-    top_speed_to_solve_cube: Record<string, { cube_category: string; top_speed: number }>;
-    scrambledCube: number[][][]
   };
 };
 
@@ -45,8 +65,6 @@ function ensureAuth(): AuthStorage {
   const username = sessionStorage.getItem("username")
   const token = sessionStorage.getItem("token")
 
-  console.log("Userid: ", currentPlayerId, " username: ", username)
-
   if (!currentPlayerId || !username) {
     throw new Error("User is not logged in..")
   }
@@ -55,16 +73,9 @@ function ensureAuth(): AuthStorage {
     token: token,
     player: {
       player_id: currentPlayerId,
-      username: username,
-      player_state: "waiting",
-      rating: 1200,
-      total_wins: 0,
-      win_percentage: 0,
-      top_speed_to_solve_cube: {},
-      scrambledCube: [[[]]]
+      username: username
     },
   };
-  console.log("Auth: ", auth)
   setAuth(auth);
   return auth;
 }
@@ -98,14 +109,34 @@ export default function LandingPage() {
     try {
       setLoading(true);
 
+      // so we will make sure ensureAuth returns a token only.
       const auth = ensureAuth();
-      console.log("Auth: ", auth)
-      const player = auth.player
+
+      // we will fetch player from db instead of ensureAuth();
+      const userId = sessionStorage.getItem("userId")
+      const player_res = await fetch(`/api/get_user?id=${userId}`)
+      if (!player_res.ok) {
+        throw new Error(`Cannot find user in db for user id: ${userId}`)
+      }
+
+      const player_data: ApiUserResponse = await player_res.json()
+
+      const new_player: PlayerType = {
+        player_id: player_data.user.id,
+        username: player_data.user.username,
+        player_state: PlayerState.NotPlaying,
+        rating: player_data.user.rating,
+        total_wins: player_data.user.total_wins,
+        scrambledCube: [[[]]],
+        win_percentage: (player_data.user.total_games_played / player_data.user.total_wins) * 100
+      }
+
+      console.log("New player: ", new_player)
 
       const res = await fetch("/api/matchmake/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ variant, player }),
+        body: JSON.stringify({ variant, new_player }),
       });
       
       if (!res.ok) {
@@ -116,7 +147,7 @@ export default function LandingPage() {
       console.log("Response of matchmake start api: ", data)
       
       if (typeof window !== 'undefined') {
-        localStorage.setItem("player", JSON.stringify(player));
+        localStorage.setItem("player", JSON.stringify(new_player));
       }
       
       router.push(`/room/${data.room.id}`);
