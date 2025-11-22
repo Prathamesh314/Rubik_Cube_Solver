@@ -40,6 +40,11 @@ class Game {
     return this.redis.tryMatchOrEnqueue(player, variant);
   }
 
+  async startFriendsMatch(player: Player, variant: CubeCategories, isOpponentReady: boolean, opponentPlayerId?: string) {
+    if (!this._initialized) await this.initialize();
+    return await this.redis.startFriendMatch(player, variant, isOpponentReady, opponentPlayerId)
+  }
+
   async getRoom(room_id: string) {
     return await this.redis.get_room(room_id)
   }

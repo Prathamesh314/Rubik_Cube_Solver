@@ -5,6 +5,8 @@ import { Search, MessageCircle, Swords, Users } from "lucide-react";
 // 1. Import the socket context and types
 import { useSocket } from "@/context/SocketContext"; 
 import { GameEventTypes } from "@/types/game-events";
+import { CubeCategories, PlayerState, Player } from "@/modals/player";
+import { useRouter } from "next/navigation";
 
 type Friend = {
   id: string;
@@ -13,6 +15,32 @@ type Friend = {
   rating: number;
   bestTime: number;
   status: "online" | "offline" | "busy";
+};
+
+interface PlayerType {
+  player_id: string;
+  username: string;
+  player_state: PlayerState;
+  rating: number;
+  total_wins: number;
+  win_percentage: number;
+  scrambledCube: number[][][];
+}
+
+export type ApiUserResponse = {
+  success: boolean;
+  user: {
+    id: string;
+    username: string;
+    email: string;
+    password: string;
+    rating: number;
+    total_games_played: number;
+    fastest_time_to_solve_cube: number;
+    created_at: string;
+    updated_at: string;
+    total_wins: number;
+  };
 };
 
 const statusColors: Record<Friend["status"], string> = {
@@ -27,6 +55,7 @@ const FriendsPage: React.FC = () => {
   const [allPlayers, setAllPlayers] = useState<any[]>([]);
   const [onlinePlayers, setOnlinePlayers] = useState<string[]>([]);
   const [updatedFriends, setUpdatedFriends] = useState<Friend[]>([]);
+  const router = useRouter()
 
   // ✅ Call the hook at the top level
   const { isReady, send, onMessage } = useSocket();
@@ -146,6 +175,59 @@ const FriendsPage: React.FC = () => {
     if (userId === null) {
       throw Error(`User id is null cannot send challenge`)
     }
+
+    const makeApiRequestToStartFriendMatch = async () => {
+      console.log("Making an api request to match frineds...")
+      
+      const userId = sessionStorage.getItem("userId")
+      const player_res = await fetch(`/api/get_user?id=${userId}`)
+      if (!player_res.ok) {
+        throw new Error(`Cannot find user in db for user id: ${userId}`)
+      }
+
+      const player_data: ApiUserResponse = await player_res.json()
+
+      const new_player = new Player(
+        player_data.user.id,
+        player_data.user.username,
+        PlayerState.NotPlaying,
+        player_data.user.rating,
+        player_data.user.total_wins,
+        (player_data.user.total_wins === 0 ? 0 : (player_data.user.total_wins / player_data.user.total_games_played) * 100),
+        {}, // top_speed_to_solve_cube: no data, provide empty object
+        [[[]]] // scrambledCube, default
+      );
+
+      const res = await fetch("/api/match_friends", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          player: new_player,
+          variant: CubeCategories.ThreeCube,
+          isOpponentReady: false,
+          opponentPlayerId: null
+        })
+      })
+
+      if (!res.ok) {
+        throw Error("Error in matching friends api")
+      }
+
+      const data: {
+        roomId: string;
+        isGameStarted: boolean;
+      } = await res.json()
+      // response looks like this: {
+      //   roomId: '3f86ccc0-7bf6-47d0-a775-9170c8b11349',
+      //   isGameStarted: false
+      // }
+      localStorage.setItem("player", JSON.stringify(new_player))
+      router.push(`/room/${data.roomId}`);
+    }
+
+    makeApiRequestToStartFriendMatch();
     const friendChallengeMsg = {
       type: GameEventTypes.FriendChallenge,
       value: {

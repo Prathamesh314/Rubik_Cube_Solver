@@ -1,15 +1,13 @@
 "use client";
 import React, { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { PlayerState } from "@/modals/player";
+import { CubeCategories, Player, PlayerState } from "@/modals/player";
 import {NavBar} from "./Navbar";
-import { GameEvents, GameEventTypes } from "@/types/game-events";
+import { GameEventTypes } from "@/types/game-events";
 import { useSocket } from "@/context/SocketContext";
 import { toast } from "react-hot-toast";
 import { Swords, X, Check } from "lucide-react"; 
 
-
-const WS_URL = "ws://localhost:8002";
 
 interface PlayerType {
   player_id: string;
@@ -104,6 +102,59 @@ export default function LandingPage() {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const handleChallengeAccepted = (opponetPlayerId?: string) => {
+    const helper = async () => {
+      const userId = sessionStorage.getItem("userId")
+      const player_res = await fetch(`/api/get_user?id=${userId}`)
+      if (!player_res.ok) {
+        throw new Error(`Cannot find user in db for user id: ${userId}`)
+      }
+
+      const player_data: ApiUserResponse = await player_res.json()
+
+      const new_player = new Player(
+        player_data.user.id,
+        player_data.user.username,
+        PlayerState.NotPlaying,
+        player_data.user.rating,
+        player_data.user.total_wins,
+        (player_data.user.total_wins === 0 ? 0 : (player_data.user.total_wins / player_data.user.total_games_played) * 100),
+        {}, // top_speed_to_solve_cube: no data, provide empty object
+        [[[]]] // scrambledCube, default
+      );
+
+      const res = await fetch("/api/match_friends", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          player: new_player,
+          variant: CubeCategories.ThreeCube,
+          isOpponentReady: true,
+          opponentPlayerId: opponetPlayerId
+        })
+      })
+
+      if (!res.ok) {
+        throw Error("Error in matching friends api")
+      }
+
+      const data: {
+        roomId: string;
+        isGameStarted: boolean;
+      } = await res.json()
+      // response looks like this: {
+      //   roomId: '3f86ccc0-7bf6-47d0-a775-9170c8b11349',
+      //   isGameStarted: false
+      // }
+      localStorage.setItem("player", JSON.stringify(new_player))
+      router.push(`/room/${data.roomId}`);
+    }
+
+    helper()
+  }
+
   React.useEffect(() => {
     ensureAuth();
     setAuthReady(true);
@@ -157,6 +208,7 @@ export default function LandingPage() {
                 onClick={() => {
                   console.log("Challenge Accepted!");
                   // Handle your accept logic here
+                  handleChallengeAccepted(msg.value?.opponentPlayerId)
                   toast.dismiss(t.id);
                 }}
                 className="w-full px-4 py-3 flex items-center justify-center gap-2 text-sm font-semibold text-sky-500 hover:text-sky-400 hover:bg-sky-500/10 transition-colors"

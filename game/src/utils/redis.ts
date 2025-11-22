@@ -3,6 +3,7 @@ import { createClient, RedisClientType } from 'redis';
 import { Room } from '@/modals/room';
 import { Cube, FaceName } from "@/utils/cube";
 import { SimpleCubeHelper } from "@/utils/cube_helper";
+import { randomUUID } from 'crypto';
 
 const REDIS_URL = process.env.REDIS_URL as string;
 const REDIS_PORT = process.env.REDIS_PORT as string;
@@ -375,5 +376,58 @@ export class Redis {
         await this.upsert_room(roomId, player_room)
     
         return {queued: false, room: player_room}
+    }
+
+    async startFriendMatch(player: Player, variant: CubeCategories, isOpponentReady: boolean, opponentPlayerId?: string): Promise<{ roomId: string, isGameStarted: boolean }> {
+        // we will simply check whether we have an opponent ready or not?
+        // if opponent is not ready that means, we have sent a challenge to opponent and we have to generate roomid, scrambled cube and map players and room.
+
+        if (isOpponentReady) {
+            if (opponentPlayerId === undefined) {
+                throw Error("Opponent player cannot be none when isOpponentReady is true.")
+            }
+
+            
+            const roomId = await this.get_player_room(opponentPlayerId)
+            const room = await this.get_room(roomId)
+            if (roomId == null || room === null) {
+                throw Error(`room or roomid cannot be null for player: ${opponentPlayerId}`)
+            }
+
+            player.updateCube(room.initialState)
+            player.player_state = PlayerState.Playing
+
+            room?.players.push(player)
+
+            await this.insert_player(player)
+            await this.upsert_room(roomId, room)
+            await this.set_player_room(player.player_id, roomId)
+
+            return {roomId, isGameStarted: true}
+        } 
+
+        let roomId = randomUUID();
+        let scrambledCube = generateScrambledCube(20).state
+        player.updateCube(scrambledCube)
+        player.player_state = PlayerState.Playing
+
+        // create a room
+        const room: Room = {
+            id: roomId,
+            players: [player],
+            maxPlayers: 2,
+            gameState: { status: "init" },
+            initialState: scrambledCube,
+            variant,
+            createdAt: Date.now(),
+        };
+
+        // insert room, player and map player id to room.
+        await this.insert_room(room);
+        await this.insert_player(player)
+        await this.set_player_room(player.player_id, roomId)
+
+        return {roomId, isGameStarted: false}
+
     }
 }
