@@ -1,8 +1,12 @@
 "use client";
-import React from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PlayerState } from "@/modals/player";
 import {NavBar} from "./Navbar";
+import { GameEvents, GameEventTypes } from "@/types/game-events";
+import { useSocket } from "@/context/SocketContext";
+
+const WS_URL = "ws://localhost:8002";
 
 interface PlayerType {
   player_id: string;
@@ -88,10 +92,43 @@ export default function LandingPage() {
   const [authReady, setAuthReady] = React.useState(false);
   const [aiLoading, setAiLoading] = React.useState(false);
 
+  const [wsReady, setWsReady] = useState(false);
+
+  // ✅ Call the hook at the top level
+  const { isReady, send, onMessage } = useSocket();
+
+  // local refs/states (you can drop wsRef if you only use provider's socket)
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   React.useEffect(() => {
     ensureAuth();
     setAuthReady(true);
   }, []);
+
+  // Receive messages here....
+  useEffect(() => {
+    const off = onMessage((msg) => {
+      console.log("[LandingPage] incoming:", msg);
+    })
+    
+    return off
+  }, [onMessage, router]);
+
+  // Sending messages to websocet server.
+  useEffect(() => {
+    if (!isReady) return;
+    // prove send/receive path via a ping
+    const playerId = sessionStorage.getItem("userId")
+    const playerOnlineMessage = {
+      type: GameEventTypes.PlayerOnline,
+      value: {
+        playerId: playerId
+      }
+    }
+    console.log("Sending playeronline message...")
+    send(playerOnlineMessage)
+  }, [isReady, send]);
 
   const handleStartGame = async () => {
     try {

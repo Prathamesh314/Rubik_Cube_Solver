@@ -12,6 +12,12 @@ export enum GameEventTypes {
   JoinRoom = 'JOIN_ROOM',
   LeaveRoom = 'LEAVE_ROOM',
   RoomJoined = 'ROOM_JOINED',
+  PlayerOnline = 'PLAYER_ONLINE',
+  PlayerOffline = 'PLAYER_OFFLINE',
+  // New types for friend requests
+  PlayerStatusUpdate= 'PLAYER_STATUS_UPDATE',
+  SendFriendRequest = "SendFriendRequest",
+  FriendRequestReceived = "FriendRequestReceived",
   Error = 'ERROR'
 }
 
@@ -74,12 +80,32 @@ export interface PlayerMoveMessage {
   timestamp: string;
 }
 
+export interface PlayerActiveStatusMessage {
+  playerId: string;
+}
+
+export interface FriendRequestPayload {
+  fromUserId: string;
+  fromUsername: string;
+  toUserId: string;
+}
+
+export interface FriendUpdateMessage {
+  userId: string;
+  status: "offline" | "online"
+}
+
 export type GameEvents =
   | { type: GameEventTypes.GameStarted; value: GameStartEventMessageValues }
   | { type: GameEventTypes.GameStartedAI; value: GameStartAIEventMessageValues }
   | { type: GameEventTypes.GameFinished; value: GameEndEventMessageValues }
   | { type: GameEventTypes.CubeMoved; value: CubeMovedEventMessageValues }
   | { type: GameEventTypes.KeyBoardButtonPressed; value: KeyboardButtonPressedMessageValues }
-  | { type: GameEventTypes.JoinRoom; value: JoinRoomMessage}
-  | { type: GameEventTypes.LeaveRoom; value: LeaveRoomMessage}
-  | { type: GameEventTypes.PlayerMove; value: PlayerMoveMessage};
+  | { type: GameEventTypes.JoinRoom; value: JoinRoomMessage }
+  | { type: GameEventTypes.LeaveRoom; value: LeaveRoomMessage }
+  | { type: GameEventTypes.PlayerOnline; value: PlayerActiveStatusMessage }
+  | { type: GameEventTypes.PlayerOffline; value: PlayerActiveStatusMessage}
+  | { type: GameEventTypes.FriendRequestReceived; value: FriendRequestPayload }
+  | { type: GameEventTypes.SendFriendRequest; value: FriendRequestPayload }
+  | { type: GameEventTypes.PlayerStatusUpdate; value: FriendUpdateMessage }
+  | { type: GameEventTypes.PlayerMove; value: PlayerMoveMessage };

@@ -1,7 +1,10 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useRef, useEffect, useMemo, useState } from "react";
 import { Search, MessageCircle, Swords, Users } from "lucide-react";
+// 1. Import the socket context and types
+import { useSocket } from "@/context/SocketContext"; 
+import { GameEventTypes } from "@/types/game-events";
 
 type Friend = {
   id: string;
@@ -22,11 +25,18 @@ const FriendsPage: React.FC = () => {
   const [search, setSearch] = useState("");
   const [friends, setFriends] = useState<Friend[]>([]);
   const [allPlayers, setAllPlayers] = useState<any[]>([]);
+  const [onlinePlayers, setOnlinePlayers] = useState<string[]>([]);
+  const [updatedFriends, setUpdatedFriends] = useState<Friend[]>([]);
 
-  // Safe to read from sessionStorage in a client component
-  const userId =
-    typeof window !== "undefined" ? sessionStorage.getItem("userId") : null;
+  // ✅ Call the hook at the top level
+  const { isReady, send, onMessage } = useSocket();
 
+  // local refs/states (you can drop wsRef if you only use provider's socket)
+  const wsRef = useRef<WebSocket | null>(null);
+
+  const userId = typeof window !== "undefined" ? sessionStorage.getItem("userId") : null;
+
+  // Fetch initial friends list
   useEffect(() => {
     const getFriends = async () => {
       if (!userId) return;
@@ -36,9 +46,10 @@ const FriendsPage: React.FC = () => {
         );
         if (res.ok) {
           const data = await res.json();
-          console.log("Friends: ", data);
           if (Array.isArray(data.friends)) {
-            setFriends(data.friends);
+            // Note: The API should ideally return current status. 
+            // If API returns null for status, default to offline until socket updates it.
+            setFriends(data.friends.map((f: any) => ({ ...f, status: f.status || 'offline' })));
           } else {
             setFriends([]);
           }
@@ -54,42 +65,92 @@ const FriendsPage: React.FC = () => {
     getFriends();
   }, [userId]);
 
+  // Receive messages here....
+  useEffect(() => {
+    const off = onMessage((msg) => {
+      console.log("[FriendsPage] incoming:", msg);
+
+      if (msg.type === GameEventTypes.PlayerStatusUpdate) {
+        // INSERT_YOUR_CODE
+        // If PlayerStatusUpdate received, update "friends" list to reflect who's online
+        setOnlinePlayers(msg.value.player)
+      }
+    })
+    
+    return off
+  }, [onMessage]);
+
+  useEffect(() => {
+    setUpdatedFriends(
+      friends.map(friend => ({
+        ...friend,
+        status: onlinePlayers.includes(friend.id) ? 'online' : 'offline'
+      }))
+    );
+  }, [friends, onlinePlayers])
+
+  // Sending messages to websocet server.
+  useEffect(() => {
+    if (!isReady) return;
+    // prove send/receive path via a ping
+    const playerId = sessionStorage.getItem("userId")
+    const playerOnlineMessage = {
+      type: GameEventTypes.PlayerOnline,
+      value: {
+        playerId: playerId
+      }
+    }
+    send(playerOnlineMessage)
+
+  }, [isReady, send]);
+
   const handleSearchBoxClicked = async () => {
     try {
       const res = await fetch("/api/get_user");
       if (!res.ok) {
         throw new Error("Error in fetching users in searchbox");
       }
-
       const data = await res.json();
-      console.log("Data: ", data);
       setAllPlayers(data);
     } catch (err) {
       console.error(err);
     }
   };
 
-  console.log("All Players: ", allPlayers);
+  const friendsWithStatus = useMemo(() => {
+    return friends.map(friend => ({
+      ...friend,
+      status: onlinePlayers.includes(friend.id) ? 'online' : 'offline'
+    }));
+  }, [friends, onlinePlayers]); // Re-runs whenever friends or online list changes
 
+  // 3. Filter the calculated list
   const filteredFriends = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return friends;
-    return friends.filter(
+    if (!q) return friendsWithStatus;
+
+    return friendsWithStatus.filter(
       (f) =>
         f.name.toLowerCase().includes(q) ||
         f.username.toLowerCase().includes(q)
     );
-  }, [search, friends]);
+  }, [search, friendsWithStatus]);
 
   const handleChat = (friend: Friend) => {
-    // TODO: replace with your chat navigation logic
     console.log("Open chat with:", friend.id);
   };
 
   const handleChallenge = (friend: Friend) => {
-    // TODO: replace with your challenge logic
     console.log("Send challenge to:", friend.id);
   };
+
+  // if (updatedFriends.length === 0) {
+  //   return (
+  //     <div className="flex justify-center items-center h-screen">
+  //       <span className="text-slate-400 text-lg">Loading...</span>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
@@ -149,15 +210,17 @@ const FriendsPage: React.FC = () => {
                   <div className="relative">
                     <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-sm font-semibold">
                       {friend.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .slice(0, 2)
-                        .toUpperCase()}
+                        ? friend.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .slice(0, 2)
+                            .toUpperCase()
+                        : "??"}
                     </div>
                     <span
                       className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border border-slate-950 ${
-                        statusColors[friend.status]
+                        statusColors[friend.status as keyof typeof statusColors] || statusColors.offline
                       }`}
                     />
                   </div>
@@ -188,17 +251,28 @@ const FriendsPage: React.FC = () => {
                 {/* Right: actions */}
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => handleChat(friend)}
+                    onClick={() => handleChat({
+                      ...friend,
+                      status: friend.status as "online" | "offline" | "busy"
+                    })}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-medium
                                hover:border-sky-500 hover:bg-slate-900/80 transition-colors"
                   >
                     <MessageCircle className="w-4 h-4" />
                     Chat
                   </button>
+                  {/* Only show Challenge if online */}
                   <button
-                    onClick={() => handleChallenge(friend)}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-sky-500 px-3 py-1.5 text-xs font-semibold text-slate-950
-                               hover:bg-sky-400 transition-colors"
+                    onClick={() => handleChallenge({
+                      ...friend,
+                      status: friend.status as "online" | "offline" | "busy"
+                    })}
+                    disabled={friend.status !== 'online'}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-950 transition-colors ${
+                        friend.status === 'online' 
+                        ? 'bg-sky-500 hover:bg-sky-400' 
+                        : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                    }`}
                   >
                     <Swords className="w-4 h-4" />
                     Challenge

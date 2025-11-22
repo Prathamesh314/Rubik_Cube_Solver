@@ -5,7 +5,7 @@ import http from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { WEBSOCKET_PORT, NEXT_PUBLIC_WEBSOCKET_URL } from '@/lib/env_config';
 import type { Player } from '@/modals/player';
-import { GameEventTypes } from '@/types/game-events';
+import { GameEventTypes, FriendRequestPayload } from '@/types/game-events';
 
 const websocket_port = WEBSOCKET_PORT ?? 8002;
 const websocket_url = NEXT_PUBLIC_WEBSOCKET_URL ?? 'ws://localhost:8002';
@@ -31,13 +31,14 @@ export class GameServer {
     private wss: WebSocketServer;
 
     private rooms: Map<string, PlayerConnection[]> = new Map();
-    
+    onlinePlayers: Map<string, WebSocket>; 
     room_conn_map: Map<string, WebSocket>;
 
     private constructor() {
         this.server = http.createServer();
         this.wss = new WebSocketServer({ server: this.server });
         this.room_conn_map = new Map();
+        this.onlinePlayers = new  Map();
         this.setupListeners();
     }
 
@@ -153,6 +154,14 @@ export class GameServer {
                 this.handleDisconnect(ws); // Treat errors as disconnects
             });
         });
+    }
+
+    private broadcastGlobal(message: any) {
+        for (const client of this.onlinePlayers.values()) {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify(message));
+            }
+        }
     }
 
     private handleMessage(ws: WebSocket, rawMessage: string | Buffer): void {
@@ -285,6 +294,56 @@ export class GameServer {
               this.updatePlayerInDb(player_lost, message.value.roomId, "lost")
               return
             }
+
+            else if (message.type === GameEventTypes.PlayerOnline) {
+              console.log(`Player ${message.value.playerId} came online.`);
+              this.onlinePlayers.set(message.value.playerId, ws);
+
+              // NEW: Broadcast to everyone that this user is now Online
+              // we will send all the online player's Id in the message
+              this.broadcastGlobal({
+                  type: GameEventTypes.PlayerStatusUpdate,
+                  value: {
+                      player: Array.from(this.onlinePlayers.keys()),
+                      status: "online"
+                  }
+              });
+          }
+
+          else if (message.type === GameEventTypes.PlayerOffline) {
+              this.onlinePlayers.delete(message.value.playerId);
+
+              // NEW: Broadcast to everyone that this user is now Offline
+              this.broadcastGlobal({
+                  type: GameEventTypes.PlayerStatusUpdate,
+                  value: {
+                    player: Array.from(this.onlinePlayers.keys()),
+                      status: "offline"
+                  }
+              });
+          }
+
+            else if (message.type === GameEventTypes.SendFriendRequest) {
+              const payload = message.value as FriendRequestPayload;
+              const targetSocket = this.onlinePlayers.get(payload.toUserId);
+
+              if (targetSocket && targetSocket.readyState === WebSocket.OPEN) {
+                  // Send notification immediately to the specific user
+                  targetSocket.send(JSON.stringify({
+                      type: GameEventTypes.FriendRequestReceived,
+                      value: {
+                          fromUserId: payload.fromUserId,
+                          fromUsername: payload.fromUsername,
+                          timestamp: new Date().toISOString()
+                      }
+                  }));
+                  console.log(`Friend request sent from ${payload.fromUserId} to ${payload.toUserId}`);
+              } else {
+                  console.log(`User ${payload.toUserId} is offline. Request saved to DB (logic to be added)`);
+                  // Optional: Here you would save to DB if you want persistence
+              }
+              return;
+            }
         } catch (error) {
             if (error instanceof Error) {
                 console.error(`Error processing message: ${error.message}`);
@@ -295,8 +354,14 @@ export class GameServer {
     }
 
     private handleDisconnect(ws: WebSocket): void {
-        
-    }
+      // Find and remove the player from online map on disconnect
+      for (const [playerId, socket] of this.onlinePlayers.entries()) {
+          if (socket === ws) {
+              this.onlinePlayers.delete(playerId);
+              break;
+          }
+      }
+  }
 
     private setupGracefulShutdown(): void {
         process.on('SIGINT', () => {
