@@ -323,6 +323,19 @@ export class GameServer {
               });
           }
 
+          else if (message.type === GameEventTypes.FriendChallenge) {
+            console.log("Sending challenge to opponent onlyyyy")
+            const {playerId, opponentPlayerId} = message.value;
+
+            this.onlinePlayers.get(opponentPlayerId)?.send(JSON.stringify({
+              type: GameEventTypes.FriendChallenge,
+              value: {
+                opponentPlayerId: playerId
+              }
+            }
+          ))
+          }
+
             else if (message.type === GameEventTypes.SendFriendRequest) {
               const payload = message.value as FriendRequestPayload;
               const targetSocket = this.onlinePlayers.get(payload.toUserId);

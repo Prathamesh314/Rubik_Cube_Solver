@@ -142,6 +142,19 @@ const FriendsPage: React.FC = () => {
 
   const handleChallenge = (friend: Friend) => {
     console.log("Send challenge to:", friend.id);
+    const userId = sessionStorage.getItem("userId")
+    if (userId === null) {
+      throw Error(`User id is null cannot send challenge`)
+    }
+    const friendChallengeMsg = {
+      type: GameEventTypes.FriendChallenge,
+      value: {
+        playerId: userId,
+        opponentPlayerId: friend.id
+      }
+    }
+    console.log("Sending challenge to friend: ", friend.id)
+    send(friendChallengeMsg)
   };
 
   // if (updatedFriends.length === 0) {

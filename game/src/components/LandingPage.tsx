@@ -5,6 +5,9 @@ import { PlayerState } from "@/modals/player";
 import {NavBar} from "./Navbar";
 import { GameEvents, GameEventTypes } from "@/types/game-events";
 import { useSocket } from "@/context/SocketContext";
+import { toast } from "react-hot-toast";
+import { Swords, X, Check } from "lucide-react"; 
+
 
 const WS_URL = "ws://localhost:8002";
 
@@ -110,6 +113,65 @@ export default function LandingPage() {
   useEffect(() => {
     const off = onMessage((msg) => {
       console.log("[LandingPage] incoming:", msg);
+      if (msg.type === GameEventTypes.FriendChallenge) {
+        const opponentId = msg.value.opponentPlayerId;
+        console.log("Friend challenged you whose playerId: ", msg.value)
+        toast.custom((t) => (
+          <div
+            className={`${
+              t.visible ? 'animate-in fade-in zoom-in-95' : 'animate-out fade-out zoom-out-95'
+            } w-full max-w-sm pointer-events-auto bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden`}
+          >
+            {/* Card Content */}
+            <div className="p-4 flex items-start gap-4">
+              {/* Icon Circle */}
+              <div className="flex-shrink-0">
+                <div className="h-10 w-10 rounded-full bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+                  <Swords className="h-5 w-5 text-sky-500" />
+                </div>
+              </div>
+              
+              {/* Text Info */}
+              <div className="flex-1 pt-0.5">
+                <h3 className="text-sm font-bold text-white">Duel Request</h3>
+                <p className="mt-1 text-sm text-slate-400">
+                  <span className="font-semibold text-sky-400">{opponentId}</span> wants to challenge you!
+                </p>
+              </div>
+            </div>
+        
+            {/* Button Footer - Split Design */}
+            <div className="flex border-t border-slate-800 bg-slate-950/30">
+              <button
+                onClick={() => {
+                  console.log("Rejection sent.");
+                  toast.dismiss(t.id);
+                }}
+                className="w-full px-4 py-3 flex items-center justify-center gap-2 text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-slate-800/50 transition-colors border-r border-slate-800"
+              >
+                <X className="w-4 h-4" />
+                Decline
+              </button>
+              
+              <button
+                onClick={() => {
+                  console.log("Challenge Accepted!");
+                  // Handle your accept logic here
+                  toast.dismiss(t.id);
+                }}
+                className="w-full px-4 py-3 flex items-center justify-center gap-2 text-sm font-semibold text-sky-500 hover:text-sky-400 hover:bg-sky-500/10 transition-colors"
+              >
+                <Check className="w-4 h-4" />
+                Accept
+              </button>
+            </div>
+          </div>
+        ), {
+          id: "challenge-toast", // Unique ID prevents duplicate toasts
+          duration: Infinity,    // Keeps it open forever
+          position: "top-center" // Optional: usually better for alerts
+        });
+      }
     })
     
     return off

@@ -18,6 +18,7 @@ export enum GameEventTypes {
   PlayerStatusUpdate= 'PLAYER_STATUS_UPDATE',
   SendFriendRequest = "SendFriendRequest",
   FriendRequestReceived = "FriendRequestReceived",
+  FriendChallenge = "FriendChallenge",
   Error = 'ERROR'
 }
 
@@ -95,6 +96,11 @@ export interface FriendUpdateMessage {
   status: "offline" | "online"
 }
 
+export interface FriendChallengeMessage {
+  playerId: string;
+  opponentPlayerId: string;
+}
+
 export type GameEvents =
   | { type: GameEventTypes.GameStarted; value: GameStartEventMessageValues }
   | { type: GameEventTypes.GameStartedAI; value: GameStartAIEventMessageValues }
@@ -108,4 +114,5 @@ export type GameEvents =
   | { type: GameEventTypes.FriendRequestReceived; value: FriendRequestPayload }
   | { type: GameEventTypes.SendFriendRequest; value: FriendRequestPayload }
   | { type: GameEventTypes.PlayerStatusUpdate; value: FriendUpdateMessage }
+  | { type: GameEventTypes.FriendChallenge; value: FriendChallengeMessage }
   | { type: GameEventTypes.PlayerMove; value: PlayerMoveMessage };
