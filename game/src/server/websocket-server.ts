@@ -137,6 +137,35 @@ export class GameServer {
       });
     }
 
+    private insert_into_game_history(roomId: string, playerId: string, opponentPlayerId: string) {
+      fetch("http://localhost:3000/api/insert_game_history", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          roomId,
+          playerId,
+          opponentPlayerId,
+          started_at: new Date().toISOString()
+        })
+      })
+    }
+
+    private update_game_history(roomId: string, winnerPlayerId: string) {
+      fetch("http://localhost:3000/api/update_game_history", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          roomId,
+          winnerPlayerId,
+          ended_at: new Date().toISOString()
+        })
+      })
+    }
+
     private setupListeners(): void {
         this.wss.on('connection', (ws: WebSocket) => {
             console.log('🔌 Client connected');
@@ -204,7 +233,14 @@ export class GameServer {
                     value: this.rooms.get(roomId)
                   }
                   this.broadcastToAllInRoom(roomId,message)
+                  // insert an entry into db game history
+                  const playersInRoom = this.rooms.get(roomId);
+                  if (playersInRoom && playersInRoom.length >= 2) {
+                    console.log("Inserting game history in db.")
+                    this.insert_into_game_history(roomId, playersInRoom[0].player_id, playersInRoom[1].player_id);
+                  }
                 }
+
                 return;
             }
 
@@ -292,6 +328,9 @@ export class GameServer {
 
               this.updatePlayerInDb(player_won, message.value.roomId, "won")
               this.updatePlayerInDb(player_lost, message.value.roomId, "lost")
+              if (player_won) {
+                this.update_game_history(message.value.roomId, player_won.player_id)
+              }
               return
             }
 
