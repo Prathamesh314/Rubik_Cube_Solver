@@ -19,14 +19,26 @@ import {
   User,
 } from "lucide-react";
 
+interface RawGame {
+  id: string;
+  user_id: string;
+  opponent_id: string;
+  started_at: string;  
+  ended_at: string;    
+  winner_user_id: string;
+  created_at: string;
+  updated_at: string;
+  rating_change?: number;
+}
 interface GameHistory {
   id: string;
-  opponent: string;
+  opponent: string;        
   result: "win" | "loss";
-  rating_change: number;
-  time: string;
-  date: string;
-  email?: string;
+  rating_change: number;   
+  user_won: boolean;       
+  time: string;            
+  date: string;            
+  email?: string;          
 }
 
 interface Player {
@@ -41,83 +53,61 @@ interface Player {
   scrambledCube?: number[][][];
 }
 
+function calcDurationSec(startISO: string, endISO: string): number {
+  const s = new Date(startISO).getTime();
+  const e = new Date(endISO).getTime();
+  if (!s || !e || e < s) return 0;
+  return Math.round((e - s) / 1000);
+}
+function formatDuration(seconds: number): string {
+  if (!seconds || isNaN(seconds)) return "-";
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+function formatRelativeDate(iso: string): string {
+  const now = new Date();
+  const then = new Date(iso);
+  const diffMs = now.getTime() - then.getTime();
+  if (isNaN(diffMs)) return "-";
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHr = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHr / 24);
+
+  if (diffDay > 0) return `${diffDay} day${diffDay > 1 ? "s" : ""} ago`;
+  if (diffHr > 0) return `${diffHr} hour${diffHr > 1 ? "s" : ""} ago`;
+  if (diffMin > 0) return `${diffMin} min${diffMin > 1 ? "s" : ""} ago`;
+  return `just now`;
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const [player, setPlayer] = useState<Player | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [newUsername, setNewUsername] = useState("");
 
-//   useEffect(() => {
-//     const pl = localStorage.getItem("player")
-//     if (pl === null) {
-//         throw new Error("player is not found")
-//     }
-//     const parsed = JSON.parse(pl)
-//     setPlayer(parsed as Player)
-//   }, [])
+  const [gameHistory, setGameHistory] = useState<GameHistory[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [gameHistory] = useState<GameHistory[]>([
-    {
-      id: "1",
-      opponent: "SpeedCuber99",
-      result: "win",
-      rating_change: 8,
-      time: "2:34",
-      date: "2 hours ago",
-      email: "speedcuber99@example.com",
-    },
-    {
-      id: "2",
-      opponent: "CubeMaster",
-      result: "loss",
-      rating_change: -8,
-      time: "3:45",
-      date: "5 hours ago",
-      email: "cubemaster@example.com",
-    },
-    {
-      id: "3",
-      opponent: "QuickSolver",
-      result: "win",
-      rating_change: 8,
-      time: "1:56",
-      date: "1 day ago",
-      email: "quicksolver@example.com",
-    },
-    {
-      id: "4",
-      opponent: "PuzzlePro",
-      result: "win",
-      rating_change: 8,
-      time: "2:12",
-      date: "1 day ago",
-      email: "puzzlepro@example.com",
-    },
-    {
-      id: "5",
-      opponent: "CubeChamp",
-      result: "loss",
-      rating_change: -8,
-      time: "4:23",
-      date: "2 days ago",
-      email: "cubechamp@example.com",
-    },
-  ]);
+  // Optionally cache id vs username for opponents!
+  const [opponentMap, setOpponentMap] = useState<{ [id: string]: { username?: string; email?: string } }>({});
 
   useEffect(() => {
-    const loadUserProfile = async () => {
+    const loadUserProfileAndHistory = async () => {
       const userId = sessionStorage.getItem("userId");
 
       if (!userId) {
         setPlayer(null);
+        setLoading(false);
         return;
       }
 
       try {
+        // Fetch profile
         const res = await fetch(`/api/get_user?id=${encodeURIComponent(userId)}`);
         if (!res.ok) throw new Error("Failed to fetch user");
         const user = await res.json();
-        console.log("User: ", user)
 
         setPlayer({
           player_id: user.user.id ?? "",
@@ -129,13 +119,93 @@ export default function ProfilePage() {
           top_speed_to_solve_cube: user.user.top_speed_to_solve_cube ?? {},
           email: user.user.email ?? "",
         });
-        setNewUsername(user.username ?? "");
+        setNewUsername(user.user.username ?? "");
+
+        // Fetch actual game history
+        const ghRes = await fetch(
+          `/api/fetch_game_history?userId=${encodeURIComponent(userId)}`
+        );
+        if (!ghRes.ok) throw new Error("Failed to fetch game history");
+        const ghData = await ghRes.json();
+
+        if (!ghData.success || !Array.isArray(ghData.games)) {
+          setGameHistory([]);
+          setLoading(false);
+          return;
+        }
+
+        // Gather opponent ids to display names
+        const opponentIds: Set<string> = new Set();
+        ghData.games.forEach((g: RawGame) => {
+          // If current user is user_id, opponent is opponent_id, else vice versa
+          if (g.user_id === userId) {
+            opponentIds.add(g.opponent_id);
+          } else {
+            opponentIds.add(g.user_id);
+          }
+        });
+
+        // Fetch usernames for opponents (batch, but here N requests)
+        // This assumes an API endpoint like /api/get_user?id=...
+        // Optionally: skip if already cached
+        const opponentArr = Array.from(opponentIds).filter(
+          (oid) => !opponentMap[oid]
+        );
+        let newMap: typeof opponentMap = {};
+        if (opponentArr.length) {
+          await Promise.all(
+            opponentArr.map(async (oid) => {
+              try {
+                const oRes = await fetch(`/api/get_user?id=${encodeURIComponent(oid)}`);
+                if (oRes.ok) {
+                  const oUser = await oRes.json();
+                  newMap[oid] = {
+                    username: oUser.user?.username ?? oid,
+                    email: oUser.user?.email ?? undefined,
+                  };
+                }
+              } catch (e) {}
+            })
+          );
+        }
+        setOpponentMap((prev) => ({ ...prev, ...newMap }));
+
+        // Build formatted gameHistory
+        const fullMap = { ...opponentMap, ...newMap };
+        const localUserId = typeof window !== "undefined" ? (window.localStorage.getItem("userId") || userId) : userId;
+        const games: GameHistory[] = ghData.games.map((g: RawGame) => {
+          // Determine if this user won
+          const userWon = g.winner_user_id === localUserId;
+          const result: "win" | "loss" = userWon ? "win" : "loss";
+          const rating_change = typeof g.rating_change === "number" ? g.rating_change : 0;
+          const opponent_id = g.user_id === userId ? g.opponent_id : g.user_id;
+          const oppUsername = fullMap?.[opponent_id]?.username ?? opponent_id;
+          const oppEmail = fullMap?.[opponent_id]?.email;
+          const durationSec = calcDurationSec(g.started_at, g.ended_at);
+          const time = formatDuration(durationSec);
+          const date = formatRelativeDate(g.ended_at);
+          return {
+            id: g.id,
+            opponent: oppUsername,
+            email: oppEmail,
+            result,
+            rating_change,
+            user_won: userWon,
+            time,
+            date,
+          };
+        });
+        setGameHistory(games);
+        setLoading(false);
       } catch (err) {
         setPlayer(null);
+        setGameHistory([]);
+        setLoading(false);
       }
     };
 
-    loadUserProfile();
+    loadUserProfileAndHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleLogout = () => {
@@ -153,7 +223,8 @@ export default function ProfilePage() {
     }
   };
 
-  if (!player) {
+  // Show loading spinner if loading or player not ready
+  if (loading || !player) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
@@ -164,6 +235,7 @@ export default function ProfilePage() {
     );
   }
 
+  // Real stats from loaded history
   const stats = {
     gamesPlayed: gameHistory.length,
     wins: gameHistory.filter((g) => g.result === "win").length,
@@ -343,57 +415,61 @@ export default function ProfilePage() {
             </div>
           ) : (
             <div className="space-y-2">
-              {gameHistory.map((game) => (
-                <div
-                  key={game.id}
-                  className="flex items-center justify-between gap-4 rounded-xl border border-slate-800/70 bg-slate-900/80 px-4 py-3 text-sm"
-                >
-                  <div className="flex flex-1 items-center gap-3">
-                    <div
-                      className={`flex h-9 w-9 items-center justify-center rounded-md text-xs font-medium ${
-                        game.result === "win"
-                          ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/40"
-                          : "bg-red-600/20 text-red-300 border border-red-500/40"
-                      }`}
-                    >
-                      {game.result === "win" ? "Win" : "Loss"}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-slate-50">
-                        vs {game.opponent}
-                      </p>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
-                        <span className="inline-flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {game.time}
-                        </span>
-                        <span>•</span>
-                        <span className="inline-flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {game.date}
-                        </span>
-                        {game.email && (
-                          <>
-                            <span>•</span>
-                            <span className="truncate">{game.email}</span>
-                          </>
-                        )}
+              {gameHistory.map((game) => {
+                // Determine rating change color based on win/loss
+                let ratingChangeColor =
+                  game.user_won
+                    ? "bg-emerald-700/20 text-emerald-300 border border-emerald-500/40"
+                    : "bg-red-700/20 text-red-300 border border-red-500/40";
+
+                return (
+                  <div
+                    key={game.id}
+                    className="flex items-center justify-between gap-4 rounded-xl border border-slate-800/70 bg-slate-900/80 px-4 py-3 text-sm"
+                  >
+                    <div className="flex flex-1 items-center gap-3">
+                      <div
+                        className={`flex h-9 w-9 items-center justify-center rounded-md text-xs font-medium ${
+                          game.result === "win"
+                            ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/40"
+                            : "bg-red-600/20 text-red-300 border border-red-500/40"
+                        }`}
+                      >
+                        {game.result === "win" ? "Win" : "Loss"}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-slate-50">
+                          vs {game.opponent}
+                        </p>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
+                          <span className="inline-flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {game.time}
+                          </span>
+                          <span>•</span>
+                          <span className="inline-flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {game.date}
+                          </span>
+                          {game.email && (
+                            <>
+                              <span>•</span>
+                              <span className="truncate">{game.email}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div
-                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-                      game.rating_change > 0
-                        ? "bg-emerald-700/20 text-emerald-300 border border-emerald-500/40"
-                        : "bg-red-700/20 text-red-300 border border-red-500/40"
-                    }`}
-                  >
-                    {game.rating_change > 0 ? "+" : ""}
-                    {game.rating_change}
+                    <div
+                      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${ratingChangeColor}`}
+                    >
+                      {game.rating_change > 0 ? "+" : ""}
+                      {game.rating_change}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>

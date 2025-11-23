@@ -11,7 +11,8 @@ export async function POST(request: Request) {
       roomId,
       playerId,
       opponentPlayerId,
-      started_at
+      started_at,
+      rating_change
     } = body;
 
     // Basic validation
@@ -31,11 +32,13 @@ export async function POST(request: Request) {
         id,
         user_id,
         opponent_id,
+        rating_change,
         started_at
       ) VALUES (
         ${roomId},
         ${playerId},
         ${opponentPlayerId},
+        ${rating_change},
         ${started_at}
       )
     `.execute(postgresDb.connection());

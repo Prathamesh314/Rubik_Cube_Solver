@@ -137,7 +137,7 @@ export class GameServer {
       });
     }
 
-    private insert_into_game_history(roomId: string, playerId: string, opponentPlayerId: string) {
+    private insert_into_game_history(roomId: string, playerId: string, opponentPlayerId: string, rating_change: number) {
       fetch("http://localhost:3000/api/insert_game_history", {
         method: "POST",
         headers: {
@@ -147,7 +147,8 @@ export class GameServer {
           roomId,
           playerId,
           opponentPlayerId,
-          started_at: new Date().toISOString()
+          started_at: new Date().toISOString(),
+          rating_change
         })
       })
     }
@@ -237,7 +238,7 @@ export class GameServer {
                   const playersInRoom = this.rooms.get(roomId);
                   if (playersInRoom && playersInRoom.length >= 2) {
                     console.log("Inserting game history in db.")
-                    this.insert_into_game_history(roomId, playersInRoom[0].player_id, playersInRoom[1].player_id);
+                    this.insert_into_game_history(roomId, playersInRoom[0].player_id, playersInRoom[1].player_id, 8);
                   }
                 }
 
