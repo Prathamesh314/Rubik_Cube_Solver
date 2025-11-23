@@ -67,6 +67,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           onLogin({ email: data.user.email });
         }
 
+        if (email === "admin@gmail.com" && password === "admin@31415") {
+          router.push('/admin');
+          router.refresh();
+          return
+        }
+
         router.push('/');
         router.refresh(); // Refresh to update middleware state
       }
