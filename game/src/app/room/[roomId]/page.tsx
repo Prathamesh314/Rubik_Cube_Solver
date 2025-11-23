@@ -250,13 +250,6 @@ export default function RoomPage() {
             setPlayerA(data.players[0] as Player);
             setPlayerB(data.players[1] as Player | undefined);
           }
-
-          // if (playerA && playerB) {
-          //   const scrambled_cube = generateScrambledCube(20).state;
-          //   setStartState(scrambled_cube);
-          //   playerA.scrambledCube = scrambled_cube;
-          //   playerB.scrambledCube = scrambled_cube;
-          // }
         }
       } catch (e: any) {
         if (!mounted) return;
@@ -317,7 +310,7 @@ export default function RoomPage() {
   };
 
   useEffect(() => {
-    if (typeof window === "undefined" || roomSize !== 2) return;
+    if (typeof window === "undefined" || !roomId || !playerA) return;
 
     if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) {
       return;
@@ -352,12 +345,35 @@ export default function RoomPage() {
       const message = JSON.parse(e.data);
       console.log("Message type: ", message.type)
       if (message.type === GameEventTypes.GameStarted) {
-        console.log("Game has started between two players....")
-        console.log("Message: ", message)
-        if (room){
-          setStartState(room.initialState)
+        // console.log("Game has started between two players....")
+        // console.log("Message: ", message)
+        // if (room){
+        //   setStartState(room.initialState)
+        //   if (room.players.length === 2) {
+        //     router.refresh()
+        //   }
+        // }
+        // // Track the start time as rounded to the nearest previous second (minutes and seconds only)
+        // setGameStartTime(Math.floor(Date.now() / 1000) * 1000);
+        console.log("Game has started between two players....");
+
+        const connections = message.value;
+        const playersInGame = connections.map((conn: any) => conn.player);
+
+        const opponent = playersInGame.find((p: Player) => p.player_id !== selfPlayerId);
+
+        if (opponent) {
+          setPlayerB(opponent);
         }
-        // Track the start time as rounded to the nearest previous second (minutes and seconds only)
+
+        // Update the room object and set startState using the current room data
+        setRoom((prev) => {
+          if (!prev) return null;
+          // Set startState here using the current room's initialState
+          setStartState(prev.initialState);
+          return { ...prev, players: playersInGame };
+        });
+
         setGameStartTime(Math.floor(Date.now() / 1000) * 1000);
       }
 
@@ -391,7 +407,7 @@ export default function RoomPage() {
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
       if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) ws.close();
     };
-  }, [roomSize]);
+  }, [playerA, roomId, selfPlayerId]);
 
   // Keyboard -> send to WS
   useEffect(() => {

@@ -70,7 +70,9 @@ const RubiksCubeViewer = forwardRef<RubiksCubeViewerHandle, RubiksCubeViewerProp
 
   // Initialize RubikCube instance
   useEffect(() => {
-    if (!mountRef.current || !props.player) return;
+    // We need mountRef (DOM) and player data. 
+    // We also check !rubikCubeRef.current to prevent double initialization.
+    if (!mountRef.current || !props.player || rubikCubeRef.current) return;
     
     rubikCubeRef.current = new RubikCube(
       mountRef.current,
@@ -79,11 +81,20 @@ const RubiksCubeViewer = forwardRef<RubiksCubeViewerHandle, RubiksCubeViewerProp
       props.player,
       props.room,
       props.participants,
-      // props.cube
     );
     
     setIsInitialized(true);
-  }, []);
+  }, [props.player]); // <--- Dependency added
+
+  // --- FIX 2: Watch for Room/Scramble Updates ---
+  // When the game starts, room.initialState arrives. We must update the visual cubeState.
+  useEffect(() => {
+    if (props.room?.initialState) {
+      setCubeState(props.room.initialState);
+    }
+  }, [props.room]);
+
+  console.log("Player: ", props.player)
 
   // Update cube state when props.cube changes (for opponent's cube)
   // useEffect(() => {
