@@ -1,7 +1,7 @@
 // Filename: src/app/profile/page.tsx
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -17,14 +17,16 @@ import {
   Gamepad2,
   Award,
   User,
+  Camera,
+  UploadCloud,
 } from "lucide-react";
 
 interface RawGame {
   id: string;
   user_id: string;
   opponent_id: string;
-  started_at: string;  
-  ended_at: string;    
+  started_at: string;
+  ended_at: string;
   winner_user_id: string;
   created_at: string;
   updated_at: string;
@@ -32,13 +34,13 @@ interface RawGame {
 }
 interface GameHistory {
   id: string;
-  opponent: string;        
+  opponent: string;
   result: "win" | "loss";
-  rating_change: number;   
-  user_won: boolean;       
-  time: string;            
-  date: string;            
-  email?: string;          
+  rating_change: number;
+  user_won: boolean;
+  time: string;
+  date: string;
+  email?: string;
 }
 
 interface Player {
@@ -51,6 +53,7 @@ interface Player {
   win_percentage: number;
   top_speed_to_solve_cube?: Record<string, unknown>;
   scrambledCube?: number[][][];
+  profileImageUrl?: string | null;
 }
 
 function calcDurationSec(startISO: string, endISO: string): number {
@@ -90,8 +93,14 @@ export default function ProfilePage() {
   const [gameHistory, setGameHistory] = useState<GameHistory[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Optionally cache id vs username for opponents!
+  // Avatar state
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   const [opponentMap, setOpponentMap] = useState<{ [id: string]: { username?: string; email?: string } }>({});
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const loadUserProfileAndHistory = async () => {
@@ -104,7 +113,6 @@ export default function ProfilePage() {
       }
 
       try {
-        // Fetch profile
         const res = await fetch(`/api/get_user?id=${encodeURIComponent(userId)}`);
         if (!res.ok) throw new Error("Failed to fetch user");
         const user = await res.json();
@@ -118,10 +126,11 @@ export default function ProfilePage() {
           win_percentage: user.user.win_percentage ?? 0,
           top_speed_to_solve_cube: user.user.top_speed_to_solve_cube ?? {},
           email: user.user.email ?? "",
+          profileImageUrl: user.user.profile_image_url ?? user.user.profileImageUrl ?? null,
         });
         setNewUsername(user.user.username ?? "");
+        setProfileImageUrl(user.user.profile_image_url ?? user.user.profileImageUrl ?? null);
 
-        // Fetch actual game history
         const ghRes = await fetch(
           `/api/fetch_game_history?userId=${encodeURIComponent(userId)}`
         );
@@ -134,10 +143,8 @@ export default function ProfilePage() {
           return;
         }
 
-        // Gather opponent ids to display names
         const opponentIds: Set<string> = new Set();
         ghData.games.forEach((g: RawGame) => {
-          // If current user is user_id, opponent is opponent_id, else vice versa
           if (g.user_id === userId) {
             opponentIds.add(g.opponent_id);
           } else {
@@ -145,9 +152,6 @@ export default function ProfilePage() {
           }
         });
 
-        // Fetch usernames for opponents (batch, but here N requests)
-        // This assumes an API endpoint like /api/get_user?id=...
-        // Optionally: skip if already cached
         const opponentArr = Array.from(opponentIds).filter(
           (oid) => !opponentMap[oid]
         );
@@ -170,11 +174,9 @@ export default function ProfilePage() {
         }
         setOpponentMap((prev) => ({ ...prev, ...newMap }));
 
-        // Build formatted gameHistory
         const fullMap = { ...opponentMap, ...newMap };
         const localUserId = typeof window !== "undefined" ? (window.localStorage.getItem("userId") || userId) : userId;
         const games: GameHistory[] = ghData.games.map((g: RawGame) => {
-          // Determine if this user won
           const userWon = g.winner_user_id === localUserId;
           const result: "win" | "loss" = userWon ? "win" : "loss";
           const rating_change = typeof g.rating_change === "number" ? g.rating_change : 0;
@@ -223,7 +225,75 @@ export default function ProfilePage() {
     }
   };
 
-  // Show loading spinner if loading or player not ready
+  // FIXED: Proper button click handler
+  const handleAvatarClick = () => {
+    if (uploading) return; // Don't allow clicking while uploading
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // Upload profile picture
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    setUploadError(null);
+
+    if (!file || !player) return;
+
+    if (!file.type.startsWith("image/")) {
+      setUploadError("Please select a valid image file.");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setUploadError("Image file must be less than 2MB.");
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("userId", player.player_id);
+      formData.append("file", file);
+
+      console.log("Formdata: ", formData)
+
+      const resp = await fetch("/api/upload_profile_image", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!resp.ok) {
+        const errorData = await resp.json().catch(() => ({}));
+        setUploadError(errorData.message || "Upload failed.");
+        setUploading(false);
+        return;
+      }
+
+      const data = await resp.json();
+      if (data.success && data.url) {
+        setProfileImageUrl(data.url);
+        setPlayer((prev) =>
+          prev ? { ...prev, profileImageUrl: data.url } : prev
+        );
+        setUploadError(null);
+        
+        // Clear the file input so the same file can be uploaded again if needed
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      } else {
+        setUploadError(data.message || "Upload failed.");
+      }
+    } catch (err) {
+      console.error("Upload error:", err);
+      setUploadError("Upload error. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   if (loading || !player) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-50 flex items-center justify-center">
@@ -235,7 +305,6 @@ export default function ProfilePage() {
     );
   }
 
-  // Real stats from loaded history
   const stats = {
     gamesPlayed: gameHistory.length,
     wins: gameHistory.filter((g) => g.result === "win").length,
@@ -283,10 +352,58 @@ export default function ProfilePage() {
         {/* Profile Card */}
         <section className="rounded-2xl border border-slate-800 bg-slate-900 px-5 py-6 md:px-7 md:py-7">
           <div className="flex flex-col gap-6 md:flex-row md:items-center">
-            {/* Avatar */}
+            {/* Avatar - FIXED */}
             <div className="flex items-center justify-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-800 text-lg font-semibold text-slate-100 md:h-20 md:w-20">
-                {initials || <User className="w-7 h-7" />}
+              <div className="relative group">
+                {/* Hidden file input */}
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                  disabled={uploading}
+                />
+                
+                {/* Clickable avatar button */}
+                <button
+                  type="button"
+                  onClick={handleAvatarClick}
+                  disabled={uploading}
+                  className="relative outline-none focus-visible:ring-2 focus-visible:ring-slate-500/90 transition shadow rounded-full cursor-pointer disabled:cursor-not-allowed"
+                  aria-label="Upload new profile picture"
+                  title="Click to upload profile picture"
+                >
+                  {profileImageUrl ? (
+                    <img
+                      src={profileImageUrl}
+                      alt="Profile"
+                      className="h-16 w-16 md:h-20 md:w-20 object-cover rounded-full border border-slate-800 bg-slate-950"
+                    />
+                  ) : (
+                    <div className="flex h-16 w-16 md:h-20 md:w-20 items-center justify-center rounded-full bg-slate-800 text-lg font-semibold text-slate-100 border border-slate-900">
+                      {initials || <User className="w-7 h-7" />}
+                    </div>
+                  )}
+                  
+                  {/* Camera icon overlay */}
+                  <div className={`absolute bottom-1 right-1 ${uploading ? "" : "opacity-0 group-hover:opacity-100"} transition-opacity`}>
+                    <div className="flex items-center justify-center rounded-full bg-slate-900 ring-1 ring-slate-800 p-1">
+                      {uploading ? (
+                        <UploadCloud className="w-4 h-4 animate-pulse text-blue-400" />
+                      ) : (
+                        <Camera className="w-4 h-4 text-slate-400" />
+                      )}
+                    </div>
+                  </div>
+                </button>
+                
+                {/* Error message */}
+                {uploadError && (
+                  <div className="absolute left-1/2 -translate-x-1/2 mt-2 bg-red-900 text-red-200 px-3 py-1.5 text-xs rounded shadow-lg z-20 w-max max-w-xs">
+                    {uploadError}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -416,7 +533,6 @@ export default function ProfilePage() {
           ) : (
             <div className="space-y-2">
               {gameHistory.map((game) => {
-                // Determine rating change color based on win/loss
                 let ratingChangeColor =
                   game.user_won
                     ? "bg-emerald-700/20 text-emerald-300 border border-emerald-500/40"

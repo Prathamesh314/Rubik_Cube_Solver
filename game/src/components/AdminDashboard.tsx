@@ -56,21 +56,13 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => {
     try {
-      setLoggingOut(true);
+        setLoggingOut(true);
       
-      const response = await fetch('/api/logout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+        localStorage.removeItem("player");
+        sessionStorage.removeItem("userId");
 
-      if (!response.ok) {
-        throw new Error('Logout failed');
-      }
-
-      // Redirect to login page or home page after successful logout
-      window.location.href = '/login';
+        // Redirect to login page or home page after successful logout
+        window.location.href = '/login';
     } catch (error) {
       console.error('Logout error:', error);
       alert('Failed to logout. Please try again.');

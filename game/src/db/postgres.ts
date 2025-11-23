@@ -79,6 +79,7 @@ import {
             username TEXT NOT NULL,
             email TEXT NOT NULL,
             password TEXT NOT NULL,
+            user_profile TEXT,
             rating INTEGER NOT NULL DEFAULT 1000,
             total_wins INTEGER NOT NULL DEFAULT 0,
             total_games_played INTEGER NOT NULL DEFAULT 0,
