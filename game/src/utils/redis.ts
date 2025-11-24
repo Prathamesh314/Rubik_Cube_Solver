@@ -387,7 +387,6 @@ export class Redis {
                 throw Error("Opponent player cannot be none when isOpponentReady is true.")
             }
 
-            
             const roomId = await this.get_player_room(opponentPlayerId)
             const room = await this.get_room(roomId)
             if (roomId == null || room === null) {
