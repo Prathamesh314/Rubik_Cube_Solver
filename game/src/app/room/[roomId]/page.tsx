@@ -380,7 +380,7 @@ export default function RoomPage() {
       else if (message.type === GameEventTypes.KeyBoardButtonPressed) {
         const player = message.value.player as Player;
         const keybutton_pressed = message.value.keybutton_pressed;
-        const clockwise = message.value.clockwise;
+        const clockwise = true? message.value.clockwise === "clockwise": false;
 
         if (player.player_id !== selfPlayerId) {
           const faceName = keybutton_pressed.toUpperCase()
