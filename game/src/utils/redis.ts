@@ -11,6 +11,7 @@ const REDIS_PORT = process.env.REDIS_PORT as string;
 const PLAYERS_HASH_KEY = "players"; // ---> this is to store players in the queue with state = waiting
 const ROOMS_HASH_KEY = "rooms"; // ---> this is to store room data which we will send in response to frontend
 const PLAYER_ROOMS_HASH_KEY = "player:room";  // ---> this is to map player_ids -> roomIds because this will help in sending opponent to correct roomid
+const WAITING_LIST_KEY = "waiting_players";
 
 const waitingKey = (variant: CubeCategories) => `mm:${variant}:waiting`;
 export function generateScrambledCube(number_of_moves: number): { state: Cube; moves: string[] } {
@@ -28,7 +29,6 @@ export function generateScrambledCube(number_of_moves: number): { state: Cube; m
     let prevFace: FaceName | null = null;
   
     for (let i = 0; i < number_of_moves; i++) {
-      // Choose a random face, but avoid repeating the same face consecutively
       let face: FaceName;
       do {
         face = faces[Math.floor(Math.random() * faces.length)];
@@ -234,15 +234,24 @@ export class Redis {
 
     async remove_player_from_room(playerId: string, roomId: string | null): Promise<boolean> {
         this.ensureConnection();
-        if (roomId === null)  return true;
-        const currentRoom = await this.redis_client!.hGet(PLAYER_ROOMS_HASH_KEY, playerId);
-        if (currentRoom === roomId) {
-            await this.redis_client!.hDel(PLAYER_ROOMS_HASH_KEY, playerId);
-            await this.redis_client!.hDel(PLAYERS_HASH_KEY, playerId);
-            return true;
+        if (!roomId) return true;
+      
+        const currentRoomId = await this.redis_client!.hGet(PLAYER_ROOMS_HASH_KEY, playerId);
+        if (currentRoomId !== roomId) return false;
+      
+        const roomStr = await this.redis_client!.hGet(ROOMS_HASH_KEY, roomId);
+        if (roomStr) {
+          const room = JSON.parse(roomStr) as Room;
+          room.players = room.players.filter(p => p.player_id !== playerId);
+          await this.redis_client!.hSet(ROOMS_HASH_KEY, roomId, JSON.stringify(room));
         }
-        return false;
-    }
+      
+        await this.redis_client!.hDel(PLAYER_ROOMS_HASH_KEY, playerId);
+        await this.redis_client!.hDel(PLAYERS_HASH_KEY, playerId);
+      
+        return true;
+      }
+      
       
     async get_player_room(playerId: string): Promise<string | null> {
         this.ensureConnection();
@@ -295,35 +304,50 @@ export class Redis {
     }
 
     async get_room(roomId: string | null): Promise<Room | null> {
-        if (roomId === null) return null;
-
+        if (!roomId) return null;
+        this.ensureConnection();
+      
         const roomStr = await this.redis_client!.hGet(ROOMS_HASH_KEY, roomId);
         if (!roomStr) {
-            throw new Error(`Room with id ${roomId} not found`);
+          throw new Error(`Room with id ${roomId} not found`);
         }
         return JSON.parse(roomStr) as Room;
     }
-  
 
-    async tryMatchOrEnqueue(
-        player: Player,
-        variant: CubeCategories
-    ): Promise<{ queued: true | false; room: Room; }> {
-    
-        // check whether we have players in waiting queue
-        const waiting_players = await this.get_all_waiting_players();
-    
-        if (waiting_players.length === 0) {
+    async withMatchmakingLock(fn: () => Promise<void>) {
+        const lockKey = "lock:matchmaking";
+        const lockId = randomUUID();
+        const acquired = await this.redis_client!.set(lockKey, lockId, { NX: true, EX: 5 });
+        if (!acquired) {
+          // retry or fail fast
+          throw new Error("Could not acquire matchmaking lock");
+        }
+      
+        try {
+          await fn();
+        } finally {
+          const current = await this.redis_client!.get(lockKey);
+          if (current === lockId) {
+            await this.redis_client!.del(lockKey);
+          }
+        }
+    }
+
+    async tryMatchOrEnqueueHelper(player: Player, variant: CubeCategories) {
+        // we have players in waiting queue
+        const opponentPlayerId = await this.redis_client!.lPop(WAITING_LIST_KEY)
+        if (opponentPlayerId === null) {
             // no players in the waiting queue
     
             // Generate scrambled cube FIRST
-            const roomId = crypto.randomUUID()
+            const roomId = randomUUID()
             const scrambled_cube = generateScrambledCube(20).state
             
             player.updateCube(scrambled_cube)
             player.player_state = PlayerState.Waiting
             
-            await this.insert_player(player)
+            await this.upsert_player(player.player_id, player)
+            await this.redis_client!.lPush(WAITING_LIST_KEY, player.player_id)
             // create room
             const room: Room = {
                 id: roomId,
@@ -342,16 +366,17 @@ export class Redis {
             await this.set_player_room(player.player_id, roomId)
             return {queued: true, room}
         }
-    
-        // we have players in waiting queue
-        const opponent_player = waiting_players[0]
+        const opponent_player = await this.get_player(opponentPlayerId)
+        if(opponent_player  === null){
+            throw Error(`Cannot find opponent player for player id: ${opponentPlayerId}`)
+        }
     
         // Update the current player with opponent's scrambled cube BEFORE inserting
         player.updateCube(opponent_player.scrambledCube) 
         player.player_state = PlayerState.Playing
         
         // Now insert player with all data set
-        await this.insert_player(player)
+        await this.upsert_player(player.player_id, player)
     
         // update the opponent player's state from waiting -> playing
         opponent_player.player_state = PlayerState.Playing
@@ -378,7 +403,20 @@ export class Redis {
         return {queued: false, room: player_room}
     }
 
-    async startFriendMatch(player: Player, variant: CubeCategories, isOpponentReady: boolean, opponentPlayerId?: string): Promise<{ roomId: string, isGameStarted: boolean }> {
+    async tryMatchOrEnqueue(
+        player: Player,
+        variant: CubeCategories
+    ): Promise<{ queued: true | false; room: Room; }> {
+
+        // Acquire lock, call helper, and return result outside the lock context
+        let result: { queued: true | false; room: Room; };
+        await this.withMatchmakingLock(async () => {
+            result = await this.tryMatchOrEnqueueHelper(player, variant);
+        });
+        return result!;
+    }
+
+    async startFriendMatchHelper(player: Player, variant: CubeCategories, isOpponentReady: boolean, opponentPlayerId?: string) {
         // we will simply check whether we have an opponent ready or not?
         // if opponent is not ready that means, we have sent a challenge to opponent and we have to generate roomid, scrambled cube and map players and room.
 
@@ -427,6 +465,14 @@ export class Redis {
         await this.set_player_room(player.player_id, roomId)
 
         return {roomId, isGameStarted: false}
+    }
 
+    async startFriendMatch(player: Player, variant: CubeCategories, isOpponentReady: boolean, opponentPlayerId?: string): Promise<{ roomId: string, isGameStarted: boolean }> {
+
+        let result: { roomId: string, isGameStarted: boolean };
+        await this.withMatchmakingLock(async () => {
+            result = await this.startFriendMatchHelper(player, variant, isOpponentReady, opponentPlayerId);
+        });
+        return result!;
     }
 }

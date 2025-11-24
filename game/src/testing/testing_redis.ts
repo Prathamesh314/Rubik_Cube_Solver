@@ -68,20 +68,24 @@ async function main() {
         {},
     );
     // const response1 = await redis.tryMatchOrEnqueue(p1, CubeCategories.ThreeCube);
-    // const response2 = await redis.tryMatchOrEnqueue(p2, CubeCategories.ThreeCube);
-    // const response_all = await redis.get_all_players()
-    // console.log("All players: ", response_all)
-    // const response = await redis.get_all_waiting_players()
-    // console.log("Response: ", response);
+    const response2 = await redis.tryMatchOrEnqueue(p2, CubeCategories.ThreeCube);
+    const response_all = await redis.get_all_players()
+    console.log("All players: ", response_all)
+    const response = await redis.get_all_waiting_players()
+    console.log("Response: ", response);
+
+    // Show current values in the waiting queue
+    const waitingQueue = await redis.redis_client?.lRange("waiting_players", 0, -1);
+    console.log("Current waiting_players queue:", waitingQueue);
     // const rooms = await redis.get_room("0abb6724-265c-464c-be19-11bb9f10f7cc")
     // const allrooms = await redis.get_all_rooms()
     // console.log("rooms: ", allrooms)
 
    
-    await redis.delete_all_players();
-    await redis.delete_all_rooms();
+    // await redis.delete_all_players();
+    // await redis.delete_all_rooms();
     
-    await redis.clear_player_room();
+    // await redis.clear_player_room();
 
     // Display all keys and their values in Redis (assuming you have access to redis_client)
     // await show_keys(redis)
