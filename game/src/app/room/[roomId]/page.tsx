@@ -234,7 +234,6 @@ export default function RoomPage() {
         }
 
         const data: Room = await res.json();
-        console.log("Room data: ", data)
         if (!mounted) return;
 
         setRoom(data);
@@ -302,7 +301,6 @@ export default function RoomPage() {
     };
 
     try {
-      console.log("Sending message: ", message);
       ws.send(JSON.stringify(message));
     } catch (err) {
       console.error("Failed to send keyboard event:", err);
@@ -343,10 +341,7 @@ export default function RoomPage() {
 
     ws.onmessage = (e) => {
       const message = JSON.parse(e.data);
-      console.log("Message type: ", message.type)
       if (message.type === GameEventTypes.GameStarted) {
-        console.log("Game has started between two players....");
-
         const connections = message.value;
         const playersInGame = connections.map((conn: any) => conn.player);
 
@@ -366,7 +361,6 @@ export default function RoomPage() {
       }
 
       else if (message.type === GameEventTypes.GameFinished) {
-        console.log("Player: ", message.value.player_id_who_won, " has won the game.");
         if (playerA && playerB) {
           const winner = playerA.player_id === message.value.player_id_who_won ? playerA : playerB;
           const loser = playerA.player_id === message.value.player_id_who_won ? playerB : playerA;
