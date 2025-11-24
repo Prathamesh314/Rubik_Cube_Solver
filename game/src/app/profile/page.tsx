@@ -19,6 +19,8 @@ import {
   User,
   Camera,
   UploadCloud,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 interface RawGame {
@@ -84,6 +86,8 @@ function formatRelativeDate(iso: string): string {
   return `just now`;
 }
 
+const MATCHES_PER_PAGE = 6;
+
 export default function ProfilePage() {
   const router = useRouter();
   const [player, setPlayer] = useState<Player | null>(null);
@@ -92,6 +96,9 @@ export default function ProfilePage() {
 
   const [gameHistory, setGameHistory] = useState<GameHistory[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Avatar state
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
@@ -210,6 +217,11 @@ export default function ProfilePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Reset to first page if gameHistory changes (for example, after data load)
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [gameHistory.length]);
+
   const handleLogout = () => {
     localStorage.removeItem("player");
     sessionStorage.removeItem("userId");
@@ -324,6 +336,21 @@ export default function ProfilePage() {
       .join("")
       .slice(0, 2)
       .toUpperCase() || "U";
+
+  // Pagination computations
+  const totalGames = gameHistory.length;
+  const totalPages = Math.ceil(totalGames / MATCHES_PER_PAGE);
+  const currentPageGames = gameHistory.slice(
+    (currentPage - 1) * MATCHES_PER_PAGE,
+    currentPage * MATCHES_PER_PAGE
+  );
+
+  const handlePrevPage = () => {
+    setCurrentPage((page) => Math.max(1, page - 1));
+  };
+  const handleNextPage = () => {
+    setCurrentPage((page) => Math.min(totalPages, page + 1));
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
@@ -531,62 +558,101 @@ export default function ProfilePage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {gameHistory.map((game) => {
-                let ratingChangeColor =
-                  game.user_won
-                    ? "bg-emerald-700/20 text-emerald-300 border border-emerald-500/40"
-                    : "bg-red-700/20 text-red-300 border border-red-500/40";
+            <>
+              <div className="space-y-2">
+                {currentPageGames.map((game) => {
+                  let ratingChangeColor =
+                    game.user_won
+                      ? "bg-emerald-700/20 text-emerald-300 border border-emerald-500/40"
+                      : "bg-red-700/20 text-red-300 border border-red-500/40";
 
-                return (
-                  <div
-                    key={game.id}
-                    className="flex items-center justify-between gap-4 rounded-xl border border-slate-800/70 bg-slate-900/80 px-4 py-3 text-sm"
-                  >
-                    <div className="flex flex-1 items-center gap-3">
-                      <div
-                        className={`flex h-9 w-9 items-center justify-center rounded-md text-xs font-medium ${
-                          game.result === "win"
-                            ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/40"
-                            : "bg-red-600/20 text-red-300 border border-red-500/40"
-                        }`}
-                      >
-                        {game.result === "win" ? "Win" : "Loss"}
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-slate-50">
-                          vs {game.opponent}
-                        </p>
-                        <div className="mt-0.5 flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
-                          <span className="inline-flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {game.time}
-                          </span>
-                          <span>•</span>
-                          <span className="inline-flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {game.date}
-                          </span>
-                          {game.email && (
-                            <>
-                              <span>•</span>
-                              <span className="truncate">{game.email}</span>
-                            </>
-                          )}
+                  return (
+                    <div
+                      key={game.id}
+                      className="flex items-center justify-between gap-4 rounded-xl border border-slate-800/70 bg-slate-900/80 px-4 py-3 text-sm"
+                    >
+                      <div className="flex flex-1 items-center gap-3">
+                        <div
+                          className={`flex h-9 w-9 items-center justify-center rounded-md text-xs font-medium ${
+                            game.result === "win"
+                              ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/40"
+                              : "bg-red-600/20 text-red-300 border border-red-500/40"
+                          }`}
+                        >
+                          {game.result === "win" ? "Win" : "Loss"}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-slate-50">
+                            vs {game.opponent}
+                          </p>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
+                            <span className="inline-flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {game.time}
+                            </span>
+                            <span>•</span>
+                            <span className="inline-flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {game.date}
+                            </span>
+                            {game.email && (
+                              <>
+                                <span>•</span>
+                                <span className="truncate">{game.email}</span>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div
-                      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${ratingChangeColor}`}
-                    >
-                      {game.rating_change > 0 ? "+" : ""}
-                      {game.rating_change}
+                      <div
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${ratingChangeColor}`}
+                      >
+                        {game.rating_change > 0 ? "+" : ""}
+                        {game.rating_change}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex flex-wrap items-center justify-center gap-2 mt-7">
+                  <button
+                    onClick={handlePrevPage}
+                    disabled={currentPage === 1}
+                    aria-label="Previous page"
+                    className={`inline-flex items-center justify-center rounded-md p-2 border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 transition disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  {/* Page indicators */}
+                  {Array.from({ length: totalPages }).map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentPage(idx + 1)}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition border
+                        ${currentPage === idx + 1
+                          ? "bg-blue-500 text-white border-blue-400"
+                          : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"}
+                        `}
+                      aria-current={currentPage === idx + 1 ? "page" : undefined}
+                    >
+                      {idx + 1}
+                    </button>
+                  ))}
+                  <button
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                    aria-label="Next page"
+                    className={`inline-flex items-center justify-center rounded-md p-2 border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 transition disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </section>
       </main>

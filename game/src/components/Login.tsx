@@ -270,15 +270,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </svg>
               Continue with Google
             </button>
-
-            <button
-              onClick={handleGuestLogin}
-              disabled={loading}
-              className="w-full py-3.5 px-4 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-500/30 transition-all disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2"
-            >
-              <User className="w-4 h-4" />
-              Continue as Guest
-            </button>
           </div>
 
           {/* Toggle Sign Up / Sign In */}
