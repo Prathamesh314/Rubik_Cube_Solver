@@ -22,6 +22,7 @@ import {
     user: 'user', 
     friends: 'friends',  
     game_history: 'game_history',
+    feedback: 'feedback'
   };
   
   export class Postgres {
@@ -117,6 +118,16 @@ import {
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
           );
         `.execute(this.db);
+
+        await sql`
+          CREATE TABLE IF NOT EXISTS ${sql.table(tables.feedback)} (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            text TEXT NOT NULL,
+            type TEXT NOT NULL, --feedback or bug
+            created_by UUID NOT NULL REFERENCES ${sql.table(tables.user)}(id) ON DELETE CASCADE,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          );
+        `.execute(this.db)
       } catch (e) {
         console.error("Error in initializing tables: ", e)
       }
