@@ -41,7 +41,7 @@ async function getAllUsers() {
     const postgresDb = await dbConnect();
 
     const exists = await sql`
-        SELECT * FROM ${sql.table(tables.user)}
+        SELECT * FROM ${sql.table(tables.user)} WHERE email != 'admin@gmail.com'
     `.execute(postgresDb.connection());
 
     return sendResult(exists)
@@ -52,7 +52,7 @@ async function getUserByUsername(username: string) {
 
     const exists = await sql`
         SELECT * FROM ${sql.table(tables.user)}
-        WHERE username = ${username}
+        WHERE username = ${username} AND email != 'admin@gmail.com'
     `.execute(postgresDb.connection());
 
     return sendResult(exists)
@@ -63,7 +63,7 @@ async function getUserById(id: string) {
 
     const exists = await sql`
         SELECT * FROM ${sql.table(tables.user)}
-        WHERE id = ${id}
+        WHERE id = ${id} AND email != 'admin@gmail.com' 
     `.execute(postgresDb.connection());
 
     return sendResult(exists)
