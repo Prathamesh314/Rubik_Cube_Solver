@@ -345,16 +345,6 @@ export default function RoomPage() {
       const message = JSON.parse(e.data);
       console.log("Message type: ", message.type)
       if (message.type === GameEventTypes.GameStarted) {
-        // console.log("Game has started between two players....")
-        // console.log("Message: ", message)
-        // if (room){
-        //   setStartState(room.initialState)
-        //   if (room.players.length === 2) {
-        //     router.refresh()
-        //   }
-        // }
-        // // Track the start time as rounded to the nearest previous second (minutes and seconds only)
-        // setGameStartTime(Math.floor(Date.now() / 1000) * 1000);
         console.log("Game has started between two players....");
 
         const connections = message.value;
@@ -366,10 +356,8 @@ export default function RoomPage() {
           setPlayerB(opponent);
         }
 
-        // Update the room object and set startState using the current room data
         setRoom((prev) => {
           if (!prev) return null;
-          // Set startState here using the current room's initialState
           setStartState(prev.initialState);
           return { ...prev, players: playersInGame };
         });
@@ -379,7 +367,6 @@ export default function RoomPage() {
 
       else if (message.type === GameEventTypes.GameFinished) {
         console.log("Player: ", message.value.player_id_who_won, " has won the game.");
-        // The message contains the winner's player_id, but we need the full player objects for WinnerPopup.
         if (playerA && playerB) {
           const winner = playerA.player_id === message.value.player_id_who_won ? playerA : playerB;
           const loser = playerA.player_id === message.value.player_id_who_won ? playerB : playerA;

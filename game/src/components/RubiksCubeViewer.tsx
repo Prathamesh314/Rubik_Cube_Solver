@@ -5,7 +5,6 @@ import { OrbitControls } from 'three/examples/jsm/Addons.js';
 import { CubeOptions, RubikCube } from '../utils/cube';
 import { Player } from '@/modals/player';
 import { Room } from '@/modals/room';
-import { GameEventTypes } from '@/types/game-events';
 import { generateScrambledCube } from '@/app/room/[roomId]/page';
 
 
@@ -84,24 +83,14 @@ const RubiksCubeViewer = forwardRef<RubiksCubeViewerHandle, RubiksCubeViewerProp
     );
     
     setIsInitialized(true);
-  }, [props.player]); // <--- Dependency added
+  }, [props.player]); 
 
-  // --- FIX 2: Watch for Room/Scramble Updates ---
-  // When the game starts, room.initialState arrives. We must update the visual cubeState.
   useEffect(() => {
     if (props.room?.initialState) {
       setCubeState(props.room.initialState);
     }
   }, [props.room]);
 
-  console.log("Player: ", props.player)
-
-  // Update cube state when props.cube changes (for opponent's cube)
-  // useEffect(() => {
-  //   setCubeState(props.room?.initialState);
-  // }, [props.cube]);
-
-  // Create text sprite for face labels
   const createTextSprite = (
     text: string,
     color: string = '#ffffff'
