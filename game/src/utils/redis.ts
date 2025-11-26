@@ -436,7 +436,7 @@ export class Redis {
 
             room?.players.push(player)
 
-            await this.insert_player(player)
+            await this.upsert_player(player.player_id, player)
             await this.upsert_room(roomId, room)
             await this.set_player_room(player.player_id, roomId)
 
@@ -460,8 +460,8 @@ export class Redis {
         };
 
         // insert room, player and map player id to room.
-        await this.insert_room(room);
-        await this.insert_player(player)
+        await this.upsert_room(room.id, room);
+        await this.upsert_player(player.player_id, player)
         await this.set_player_room(player.player_id, roomId)
 
         return {roomId, isGameStarted: false}
