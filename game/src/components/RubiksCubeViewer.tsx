@@ -48,6 +48,7 @@ interface RubiksCubeViewerProps {
   player: Player | undefined;
   room: Room | null;
   participants: Array<Player | undefined>;
+  onSolved?: () => void; // 👈 NEW
   // cube: Cube;
 }
 
@@ -267,6 +268,9 @@ const RubiksCubeViewer = forwardRef<RubiksCubeViewerHandle, RubiksCubeViewerProp
     setCubeState(newState);
     if (rubikCubeRef.current.isRubikCubeSolved()) {
       console.log("Cube solved....");
+      if (props.onSolved) {
+        props.onSolved();
+      }
     }
     setMoveHistory((prev: MoveHistory) => [...prev, `${face}${clockwise ? '' : "'"}`]);
 

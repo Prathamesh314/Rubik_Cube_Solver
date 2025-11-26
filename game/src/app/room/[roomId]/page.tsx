@@ -221,6 +221,35 @@ export default function RoomPage() {
     };
   }, []);
 
+  const [hasSentGameFinished, setHasSentGameFinished] = useState(false);
+
+  const handleCubeSolved = () => {
+    if (hasSentGameFinished) return;
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    if (!selfPlayerId) return;
+  
+    let elapsedTime = 0;
+    if (gameStartTime) {
+      const totalSeconds = Math.floor((Date.now() - gameStartTime) / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      elapsedTime = minutes * 60 + seconds;
+    }
+  
+    const game_finished_msg = {
+      type: GameEventTypes.GameFinished,
+      value: {
+        roomId: roomId,
+        player_id_who_won: selfPlayerId,
+        end_time: elapsedTime,
+      },
+    };
+  
+    wsRef.current.send(JSON.stringify(game_finished_msg));
+    setHasSentGameFinished(true);
+  };
+  
+
   useEffect(() => {
     let mounted = true;
 
@@ -268,27 +297,27 @@ export default function RoomPage() {
     const ws = wsRef.current;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
-    if (playerCubeRef.current?.IsRubikCubeSolved()) {
-      // Use minutes and seconds only, not milliseconds
-      let elapsedTime = 0;
-      if (gameStartTime) {
-        const totalSeconds = Math.floor((Date.now() - gameStartTime) / 1000);
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
-        // Represent elapsed time as total seconds (minutes*60 + seconds)
-        elapsedTime = minutes * 60 + seconds;
-      }
-      const game_finished_msg = {
-        type: GameEventTypes.GameFinished,
-        value: {
-          roomId: roomId,
-          player_id_who_won: selfPlayerId,
-          end_time: elapsedTime
-        }
-      }
+    // if (playerCubeRef.current?.IsRubikCubeSolved()) {
+    //   // Use minutes and seconds only, not milliseconds
+    //   let elapsedTime = 0;
+    //   if (gameStartTime) {
+    //     const totalSeconds = Math.floor((Date.now() - gameStartTime) / 1000);
+    //     const minutes = Math.floor(totalSeconds / 60);
+    //     const seconds = totalSeconds % 60;
+    //     // Represent elapsed time as total seconds (minutes*60 + seconds)
+    //     elapsedTime = minutes * 60 + seconds;
+    //   }
+    //   const game_finished_msg = {
+    //     type: GameEventTypes.GameFinished,
+    //     value: {
+    //       roomId: roomId,
+    //       player_id_who_won: selfPlayerId,
+    //       end_time: elapsedTime
+    //     }
+    //   }
 
-      ws.send(JSON.stringify(game_finished_msg))
-    }
+    //   ws.send(JSON.stringify(game_finished_msg))
+    // }
 
     const message = {
       type: "KeyBoardButtonPressed",
@@ -533,6 +562,7 @@ export default function RoomPage() {
                 player={playerA}
                 room={room}
                 participants={[playerA, playerB]}
+                onSolved={handleCubeSolved}
               />
             </div>
           </div>
@@ -552,6 +582,7 @@ export default function RoomPage() {
                 player={playerB}
                 room={room}
                 participants={[playerA, playerB]}
+                onSolved={handleCubeSolved}
               />
             </div>
           </div>

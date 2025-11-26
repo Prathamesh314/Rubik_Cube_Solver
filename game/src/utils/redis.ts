@@ -444,7 +444,7 @@ export class Redis {
         } 
 
         let roomId = randomUUID();
-        let scrambledCube = generateScrambledCube(20).state
+        let scrambledCube = generateScrambledCube(3).state
         player.updateCube(scrambledCube)
         player.player_state = PlayerState.Playing
 
