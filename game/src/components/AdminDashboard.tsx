@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Users, Gamepad2, Trophy, TrendingUp, Activity, Clock, Calendar, ArrowUpRight, ArrowDownRight, LogOut } from 'lucide-react';
+import { Users, Gamepad2, Trophy, TrendingUp, Activity, Clock, Calendar, ArrowUpRight, ArrowDownRight, LogOut, MessageSquare, Bug, AlertCircle } from 'lucide-react';
 
 interface DashboardStats {
   totalUsers: number;
@@ -15,17 +15,33 @@ interface DashboardStats {
   dailyGames: { date: string; count: number }[];
 }
 
+interface FeedbackItem {
+  id: string;
+  text: string;
+  type: 'feedback' | 'bug';
+  created_by: string;
+  created_at: string;
+  user_name?: string;
+}
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [feedbackLoading, setFeedbackLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<'day' | 'week' | 'month'>('week');
+  const [feedbackFilter, setFeedbackFilter] = useState<'all' | 'feedback' | 'bug'>('all');
   const [loggingOut, setLoggingOut] = useState(false);
 
   // Fetch real data from API
   useEffect(() => {
     fetchDashboardData();
   }, [timeRange]);
+
+  useEffect(() => {
+    fetchFeedback();
+  }, []);
 
   const fetchDashboardData = async () => {
     try {
@@ -54,6 +70,36 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchFeedback = async () => {
+    try {
+      setFeedbackLoading(true);
+      
+      const response = await fetch('/api/fetch_feedback', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data?.message || `Failed to fetch feedback: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success === false) {
+        throw new Error(data.message || 'Failed to fetch feedback');
+      }
+      
+      setFeedback(data.feedback || []);
+    } catch (error) {
+      console.error('Error fetching feedback:', error);
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
         setLoggingOut(true);
@@ -70,6 +116,13 @@ export default function AdminDashboard() {
       setLoggingOut(false);
     }
   };
+
+  const filteredFeedback = feedback.filter(item => 
+    feedbackFilter === 'all' ? true : item.type === feedbackFilter
+  );
+
+  const feedbackCount = feedback.filter(item => item.type === 'feedback').length;
+  const bugCount = feedback.filter(item => item.type === 'bug').length;
 
   if (loading) {
     return (
@@ -290,6 +343,90 @@ export default function AdminDashboard() {
               </div>
             </div>
             <p className="metric-desc">Growth rate compared to previous 7 day period.</p>
+          </div>
+        </div>
+
+        {/* Feedback & Bugs Section */}
+        <div className="card feedback-card">
+          <div className="feedback-header">
+            <div className="feedback-title-row">
+              <div className="feedback-title-group">
+                <MessageSquare size={24} className="feedback-icon" />
+                <h3>Feedback & Bug Reports</h3>
+              </div>
+              <div className="feedback-stats">
+                <span className="stat-pill feedback-pill">
+                  <MessageSquare size={14} />
+                  {feedbackCount}
+                </span>
+                <span className="stat-pill bug-pill">
+                  <Bug size={14} />
+                  {bugCount}
+                </span>
+              </div>
+            </div>
+            
+            <div className="feedback-filter-tabs">
+              <button
+                className={`filter-tab ${feedbackFilter === 'all' ? 'active' : ''}`}
+                onClick={() => setFeedbackFilter('all')}
+              >
+                All ({feedback.length})
+              </button>
+              <button
+                className={`filter-tab ${feedbackFilter === 'feedback' ? 'active' : ''}`}
+                onClick={() => setFeedbackFilter('feedback')}
+              >
+                Feedback ({feedbackCount})
+              </button>
+              <button
+                className={`filter-tab ${feedbackFilter === 'bug' ? 'active' : ''}`}
+                onClick={() => setFeedbackFilter('bug')}
+              >
+                Bugs ({bugCount})
+              </button>
+            </div>
+          </div>
+
+          <div className="feedback-list">
+            {feedbackLoading ? (
+              <div className="feedback-loading">
+                <div className="mini-loader"></div>
+                <p>Loading feedback...</p>
+              </div>
+            ) : filteredFeedback.length === 0 ? (
+              <div className="empty-feedback">
+                <AlertCircle size={32} />
+                <p>No {feedbackFilter === 'all' ? 'feedback or bugs' : feedbackFilter} reported yet</p>
+              </div>
+            ) : (
+              filteredFeedback.map((item) => (
+                <div key={item.id} className={`feedback-item ${item.type}`}>
+                  <div className="feedback-item-header">
+                    <div className="feedback-type-badge">
+                      {item.type === 'bug' ? <Bug size={14} /> : <MessageSquare size={14} />}
+                      <span>{item.type === 'bug' ? 'Bug' : 'Feedback'}</span>
+                    </div>
+                    <span className="feedback-date">
+                      {new Date(item.created_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                  <p className="feedback-text">{item.text}</p>
+                  {item.user_name && (
+                    <div className="feedback-user">
+                      <Users size={12} />
+                      <span>{item.user_name}</span>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </div>
       </main>
@@ -825,6 +962,215 @@ const styles = `
     line-height: 1.5;
   }
 
+  /* Feedback & Bugs Card */
+  .feedback-card {
+    grid-column: span 4;
+    max-height: 600px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .feedback-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .feedback-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .feedback-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .feedback-icon {
+    color: var(--accent-blue);
+  }
+
+  .feedback-title-group h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  .feedback-stats {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .feedback-pill {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--accent-blue);
+  }
+
+  .bug-pill {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+  }
+
+  .feedback-filter-tabs {
+    display: flex;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 4px;
+    border-radius: 10px;
+    border: 1px solid var(--card-border);
+  }
+
+  .filter-tab {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1;
+  }
+
+  .filter-tab:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .filter-tab.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+
+  .feedback-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-right: 0.5rem;
+  }
+
+  .feedback-list::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .feedback-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+  }
+
+  .feedback-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+  }
+
+  .feedback-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  .feedback-loading,
+  .empty-feedback {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: var(--text-secondary);
+    gap: 1rem;
+  }
+
+  .mini-loader {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(59, 130, 246, 0.2);
+    border-top-color: var(--accent-blue);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  .feedback-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 1rem;
+    transition: all 0.2s;
+  }
+
+  .feedback-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .feedback-item.bug {
+    border-left: 3px solid #ef4444;
+  }
+
+  .feedback-item.feedback {
+    border-left: 3px solid var(--accent-blue);
+  }
+
+  .feedback-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .feedback-type-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .feedback-item.bug .feedback-type-badge {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+  }
+
+  .feedback-item.feedback .feedback-type-badge {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--accent-blue);
+  }
+
+  .feedback-date {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .feedback-text {
+    color: var(--text-primary);
+    line-height: 1.6;
+    margin: 0 0 0.75rem 0;
+  }
+
+  .feedback-user {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+  }
+
   /* Loading State */
   .loading-container {
     display: flex;
@@ -915,12 +1261,15 @@ const styles = `
     .highlight-card {
       grid-column: span 2;
     }
+    .feedback-card {
+      grid-column: span 2;
+    }
   }
 
   @media (max-width: 640px) {
     .dashboard-container { padding: 1rem; }
     .dashboard-grid { grid-template-columns: 1fr; }
-    .stat-card, .chart-card, .highlight-card { grid-column: span 1; }
+    .stat-card, .chart-card, .highlight-card, .feedback-card { grid-column: span 1; }
     .header-content { flex-direction: column; align-items: flex-start; gap: 1rem; }
     .controls-wrapper { 
       width: 100%; 
@@ -934,5 +1283,10 @@ const styles = `
       justify-content: center;
     }
     .bar { width: 24px; }
+    .feedback-title-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
   }
 `;
