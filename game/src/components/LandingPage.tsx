@@ -88,9 +88,7 @@ function ensureAuth(): AuthStorage {
 export default function LandingPage() {
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
-  const [variant, setVariant] = React.useState<"3x3 cube" | "4x4 cube">(
-    "3x3 cube"
-  );
+  const [variant, setVariant] = React.useState<"3x3 cube">("3x3 cube");
   const [authReady, setAuthReady] = React.useState(false);
   const [aiLoading, setAiLoading] = React.useState(false);
 
@@ -345,30 +343,6 @@ export default function LandingPage() {
                 <p className="text-lg md:text-xl text-slate-400 max-w-lg leading-relaxed">
                   Challenge cubers worldwide in real-time multiplayer competitions. Master the Rubik's Cube while climbing global rankings.
                 </p>
-              </div>
-
-              {/* Variant selector */}
-              <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-                <span className="text-sm font-medium text-slate-400">Choose your challenge:</span>
-                <div className="flex gap-2 bg-slate-800/50 p-1 rounded-lg border border-slate-700">
-                  {(["3x3 cube", "4x4 cube"] as const).map(v => {
-                    const active = v === variant;
-                    return (
-                      <button
-                        key={v}
-                        onClick={() => setVariant(v)}
-                        className={
-                          "px-4 py-2 rounded-md font-medium text-sm transition-all duration-200 " +
-                          (active
-                            ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20"
-                            : "text-slate-400 hover:text-white hover:bg-slate-700/50")
-                        }
-                      >
-                        {v.replace(" cube", "").replace("x", "×")}
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
 
               {/* CTA Button and Play AI Button */}

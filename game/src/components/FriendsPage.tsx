@@ -45,7 +45,6 @@ const FriendsPage: React.FC = () => {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [allPlayers, setAllPlayers] = useState<any[]>([]);
   const [onlinePlayers, setOnlinePlayers] = useState<string[]>([]);
-  const [updatedFriends, setUpdatedFriends] = useState<Friend[]>([]);
   const router = useRouter()
 
   // ✅ Call the hook at the top level
@@ -95,10 +94,6 @@ const FriendsPage: React.FC = () => {
         roomId: string;
         isGameStarted: boolean;
       } = await res.json()
-      // response looks like this: {
-      //   roomId: '3f86ccc0-7bf6-47d0-a775-9170c8b11349',
-      //   isGameStarted: false
-      // }
       localStorage.setItem("player", JSON.stringify(new_player))
       router.push(`/room/${data.roomId}`);
     }
@@ -209,15 +204,6 @@ const FriendsPage: React.FC = () => {
     return off
   }, [onMessage]);
 
-  useEffect(() => {
-    setUpdatedFriends(
-      friends.map(friend => ({
-        ...friend,
-        status: onlinePlayers.includes(friend.id) ? 'online' : 'offline'
-      }))
-    );
-  }, [friends, onlinePlayers])
-
   // Sending messages to websocet server.
   useEffect(() => {
     if (!isReady) return;
@@ -240,30 +226,60 @@ const FriendsPage: React.FC = () => {
         throw new Error("Error in fetching users in searchbox");
       }
       const data = await res.json();
-      setAllPlayers(data);
+      // The data structure is { success: true, user: [...] }
+      setAllPlayers(data.user || []);
+      console.log("All players: ", data)
     } catch (err) {
       console.error(err);
     }
   };
 
+  // Convert allPlayers to Friend format with online status
+  const playersAsFriends = useMemo(() => {
+    return allPlayers
+      .filter(player => player.id !== userId) // Exclude current user
+      .map(player => ({
+        id: player.id,
+        name: player.username, // Using username as name since we don't have a separate name field
+        username: player.username,
+        rating: player.rating || 0,
+        bestTime: player.fastest_time_to_solve_cube || 0,
+        status: (onlinePlayers.includes(player.id) ? 'online' : 'offline') as "online" | "offline" | "busy"
+      }));
+  }, [allPlayers, onlinePlayers, userId]);
+
+  // Add online status to existing friends
   const friendsWithStatus = useMemo(() => {
     return friends.map(friend => ({
       ...friend,
-      status: onlinePlayers.includes(friend.id) ? 'online' : 'offline'
+      status: (onlinePlayers.includes(friend.id) ? 'online' : 'offline') as "online" | "offline" | "busy"
     }));
-  }, [friends, onlinePlayers]); // Re-runs whenever friends or online list changes
+  }, [friends, onlinePlayers]);
 
-  // 3. Filter the calculated list
-  const filteredFriends = useMemo(() => {
+  // Filter logic: if search is active and allPlayers is loaded, search from all players
+  // Otherwise show friends list
+  const filteredList = useMemo(() => {
     const q = search.trim().toLowerCase();
+    
+    // If no search query, show friends
     if (!q) return friendsWithStatus;
 
+    // If search query exists and allPlayers is loaded, search from all players
+    if (allPlayers.length > 0) {
+      return playersAsFriends.filter(
+        (p) =>
+          p.username.toLowerCase().includes(q) ||
+          p.name.toLowerCase().includes(q)
+      );
+    }
+
+    // Fallback: search from friends
     return friendsWithStatus.filter(
       (f) =>
         f.name.toLowerCase().includes(q) ||
         f.username.toLowerCase().includes(q)
     );
-  }, [search, friendsWithStatus]);
+  }, [search, friendsWithStatus, playersAsFriends, allPlayers.length]);
 
   const handleChat = (friend: Friend) => {
     console.log("Open chat with:", friend.id);
@@ -339,14 +355,6 @@ const FriendsPage: React.FC = () => {
     send(friendChallengeMsg)
   };
 
-  // if (updatedFriends.length === 0) {
-  //   return (
-  //     <div className="flex justify-center items-center h-screen">
-  //       <span className="text-slate-400 text-lg">Loading...</span>
-  //     </div>
-  //   );
-  // }
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
@@ -387,14 +395,14 @@ const FriendsPage: React.FC = () => {
 
         {/* Friends list */}
         <section className="space-y-3">
-          {filteredFriends.length === 0 ? (
+          {filteredList.length === 0 ? (
             <div className="border border-dashed border-slate-800 rounded-xl py-10 text-center">
               <p className="text-sm text-slate-400">
-                No friends found. Try a different name or username.
+                {search ? "No users found matching your search." : "No friends found. Try searching for users to add."}
               </p>
             </div>
           ) : (
-            filteredFriends.map((friend) => (
+            filteredList.map((friend) => (
               <div
                 key={friend.id}
                 className="flex items-center justify-between gap-4 rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-3
@@ -407,7 +415,7 @@ const FriendsPage: React.FC = () => {
                       {friend.name
                         ? friend.name
                             .split(" ")
-                            .map((n) => n[0])
+                            .map((n: string) => n[0])
                             .join("")
                             .slice(0, 2)
                             .toUpperCase()
@@ -433,8 +441,8 @@ const FriendsPage: React.FC = () => {
                           Rating: {friend.rating}
                         </span>
                       )}
-                      {friend.bestTime && (
-                        <span>Best solve: {friend.bestTime}</span>
+                      {friend.bestTime > 0 && (
+                        <span>Best solve: {friend.bestTime}s</span>
                       )}
                       <span className="capitalize">
                         Status: {friend.status}
@@ -446,10 +454,7 @@ const FriendsPage: React.FC = () => {
                 {/* Right: actions */}
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => handleChat({
-                      ...friend,
-                      status: friend.status as "online" | "offline" | "busy"
-                    })}
+                    onClick={() => handleChat(friend)}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-medium
                                hover:border-sky-500 hover:bg-slate-900/80 transition-colors"
                   >
@@ -458,10 +463,7 @@ const FriendsPage: React.FC = () => {
                   </button>
                   {/* Only show Challenge if online */}
                   <button
-                    onClick={() => handleChallenge({
-                      ...friend,
-                      status: friend.status as "online" | "offline" | "busy"
-                    })}
+                    onClick={() => handleChallenge(friend)}
                     disabled={friend.status !== 'online'}
                     className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-950 transition-colors ${
                         friend.status === 'online' 

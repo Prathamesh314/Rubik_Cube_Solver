@@ -49,7 +49,7 @@ export const NavBar: React.FC = () => {
       sessionStorage.removeItem("userId");
       sessionStorage.removeItem("token");
     }
-    router.push("/");
+    router.push("/login");
   };
 
   const handleAcceptRequest = (notificationId: string, fromUserId: string) => {
@@ -112,89 +112,13 @@ export const NavBar: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsFeedbackModalOpen(true)}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 transition-colors"
+              className="flex items-center gap-2 px-3 h-8 rounded-full border border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 transition-colors text-sm font-medium"
               aria-label="Send feedback or report bug"
             >
               <MessageSquare className="w-4 h-4" />
+              <span className="hidden sm:inline">Feedback</span>
+              <span className="hidden md:inline"> / Report a Bug</span>
             </button>
-
-            {/* Notification Area */}
-            <div className="relative" ref={dropdownRef}>
-              <button
-                type="button"
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="relative flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 transition-colors"
-                aria-label="Notifications"
-              >
-                <Bell className="w-4 h-4" />
-                
-                {/* Notification Dot - Only show if there are notifications */}
-                {notifications.length > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                  </span>
-                )}
-              </button>
-
-              {/* Notification Dropdown */}
-              {isDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-80 rounded-lg border border-slate-700 bg-slate-900 shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none z-50 overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-900/50">
-                    <span className="text-xs font-semibold text-slate-300">
-                      Notifications
-                    </span>
-                    <span className={`text-[10px] ${isReady ? 'text-emerald-500' : 'text-amber-500'}`}>
-                      {isReady ? '● Live' : '○ Connecting...'}
-                    </span>
-                  </div>
-                  
-                  <div className="max-h-72 overflow-y-auto">
-                    {notifications.length === 0 ? (
-                      <div className="px-4 py-6 text-center">
-                        <Bell className="w-8 h-8 text-slate-700 mx-auto mb-2" />
-                        <p className="text-xs text-slate-500">No new notifications</p>
-                      </div>
-                    ) : (
-                      <ul className="divide-y divide-slate-800">
-                        {notifications.map((notif) => (
-                          <li key={notif.id} className="px-4 py-3 hover:bg-slate-800/50 transition-colors">
-                            <div className="flex items-start gap-3">
-                              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-slate-700 flex items-center justify-center">
-                                <User className="w-4 h-4 text-slate-400" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs text-slate-300">
-                                  <span className="font-bold text-white">{notif.fromUsername}</span> sent you a friend request.
-                                </p>
-                                <p className="text-[10px] text-slate-500 mt-0.5">
-                                  {new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </p>
-                                
-                                <div className="flex gap-2 mt-2">
-                                  <button 
-                                    onClick={() => handleAcceptRequest(notif.id, notif.fromUserId)}
-                                    className="flex items-center gap-1 px-2 py-1 rounded bg-emerald-600/20 text-emerald-400 border border-emerald-600/30 hover:bg-emerald-600/30 text-[10px] font-medium transition-colors"
-                                  >
-                                    <Check className="w-3 h-3" /> Accept
-                                  </button>
-                                  <button 
-                                    onClick={() => handleDeclineRequest(notif.id)}
-                                    className="flex items-center gap-1 px-2 py-1 rounded bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600 text-[10px] font-medium transition-colors"
-                                  >
-                                    <X className="w-3 h-3" /> Decline
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
 
             {/* Logout Button */}
             <button

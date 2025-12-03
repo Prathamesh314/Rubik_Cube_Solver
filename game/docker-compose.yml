@@ -1,6 +1,95 @@
-version: '3.8'
+# version: '3.8'
+
+# services:
+#   redis:
+#     image: redis:alpine
+#     container_name: redis-local
+#     ports:
+#       - "6379:6379"
+#     volumes:
+#       - redis-data:/data
+#     command: redis-server --appendonly yes
+#     restart: unless-stopped
+
+# volumes:
+#   redis-data:
+
+version: "3.9"
 
 services:
+  app:
+    build: .
+    container_name: rc-next-app
+    command: npm run dev
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      # This is what your browser will use to connect to WS
+      # Because 8002 is published on the host, "localhost:8002" is correct from browser.
+      NEXT_PUBLIC_WEBSOCKET_URL: "ws://localhost:8002"
+      # DB connection string your Next.js / backend code uses
+      DATABASE_URL: "postgres://postgres:kurvepg@123@db:5432/fmcg"
+      REDIS_URL: "redis://redis:6379"
+    depends_on:
+      - db
+      - redis
+      - ws
+
+  ws:
+    build: .
+    container_name: rc-ws-server
+    command: npm run ws:dev
+    ports:
+      - "8002:8002"
+    env_file:
+      - .env
+    environment:
+      # WS server backend uses internal Docker hostnames
+      DATABASE_URL: "postgres://postgres:kurvepg@123@db:5432/rubik_game"
+      REDIS_URL: "redis://redis:6379"
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:16
+    container_name: my-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: rubik_game
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "kurvepg@123"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data/pgdata
+      - ./init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fmcg"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: my-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
   redis:
     image: redis:alpine
     container_name: redis-local
@@ -11,24 +100,7 @@ services:
     command: redis-server --appendonly yes
     restart: unless-stopped
 
-  postgres:
-    image: postgres:16-alpine
-    container_name: postgres-local
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: rubik_game
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
 volumes:
+  db_data:
+  pgadmin_data:
   redis-data:
-  postgres-data:
