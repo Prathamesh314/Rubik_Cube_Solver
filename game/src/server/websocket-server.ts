@@ -138,7 +138,7 @@ export class GameServer {
     }
 
     private insert_into_game_history(roomId: string, playerId: string, opponentPlayerId: string, rating_change: number) {
-      fetch("http://localhost:3000/api/insert_game_history", {
+      fetch("http://app:3000/api/insert_game_history", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -154,7 +154,7 @@ export class GameServer {
     }
 
     private update_game_history(roomId: string, winnerPlayerId: string) {
-      fetch("http://localhost:3000/api/update_game_history", {
+      fetch("http://app:3000/api/update_game_history", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json"

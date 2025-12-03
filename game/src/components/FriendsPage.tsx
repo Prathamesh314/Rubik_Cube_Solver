@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useMemo, useState } from "react";
-import { Search, MessageCircle, Swords, Users, X, Check } from "lucide-react";
+import { Search, MessageCircle, Swords, Users, X, Check, UserPlus } from "lucide-react"; // Added UserPlus icon
 // 1. Import the socket context and types
 import { useSocket } from "@/context/SocketContext"; 
 import { GameEventTypes } from "@/types/game-events";
@@ -130,6 +130,42 @@ const FriendsPage: React.FC = () => {
     getFriends();
   }, [userId]);
 
+  const handleFriendRequestAccept = async (message:  any) => {
+    //   value: {
+    //     fromUserId: payload.fromUserId,
+    //     fromUsername: payload.fromUsername,
+    //     timestamp: new Date().toISOString()
+    // }
+    // if we decline the friend request we should remove friend from friends table.
+    try {
+      // message.value should contain the relevant IDs, e.g., fromUserId and toUserId
+      const { fromUserId, fromUsername } = message.value;
+      const selfUserId = sessionStorage.getItem("userId");
+      const addresseeUserId = fromUserId;
+      const status = "accepted";
+      const res = await fetch("/api/update_friends", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          selfUserId,
+          addresseeUserId,
+          status
+        })
+      });
+      const result = await res.json();
+      if (res.ok && result.success) {
+        toast.success("Friend request accepted!");
+        // Optionally, update the friends list UI or state here if needed
+      } else {
+        toast.error(result.message || "Failed to accept friend request.");
+      }
+    } catch (error) {
+      toast.error("An error occurred while updating friend status.");
+    }
+  }
+
   // Receive messages here....
   useEffect(() => {
     const off = onMessage((msg) => {
@@ -199,6 +235,64 @@ const FriendsPage: React.FC = () => {
           position: "top-center" // Optional: usually better for alerts
         });
       }
+      else if (msg.type === GameEventTypes.FriendRequestReceived) {
+        console.log("Message: ", msg)
+        const { fromUserId, fromUsername } = msg.value || {};
+
+        toast.custom((t) => (
+          <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-lg max-w-xs w-full">
+            <div className="p-4 flex items-start gap-4">
+              {/* Icon Circle */}
+              <div className="flex-shrink-0">
+                <div className="h-10 w-10 rounded-full bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-sky-500" />
+                </div>
+              </div>
+              {/* Text Info */}
+              <div className="flex-1 pt-0.5">
+                <h3 className="text-sm font-bold text-white">Friend Request</h3>
+                <p className="mt-1 text-sm text-slate-400">
+                  <span className="font-semibold text-sky-400">
+                    {fromUsername || fromUserId}
+                  </span>{" "}
+                  sent you a friend request!
+                </p>
+              </div>
+            </div>
+            {/* Button Footer - Split Design */}
+            <div className="flex border-t border-slate-800 bg-slate-950/30">
+              <button
+                onClick={() => {
+                  // You can add logic here to reject (server-side if desired)
+                  toast.dismiss(t.id);
+                  toast.success("Friend request declined.");
+                }}
+                className="w-full px-4 py-3 flex items-center justify-center gap-2 text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-slate-800/50 transition-colors border-r border-slate-800"
+              >
+                <X className="w-4 h-4" />
+                Decline
+              </button>
+              <button
+                onClick={() => {
+                  // Accept logic: could make API call, update UI, etc
+                  toast.dismiss(t.id);
+                  toast.success("Friend request accepted.");
+                  // Optional: add logic to update friend list, notify server, etc.
+                  handleFriendRequestAccept(msg);
+                }}
+                className="w-full px-4 py-3 flex items-center justify-center gap-2 text-sm font-semibold text-sky-500 hover:text-sky-400 hover:bg-sky-500/10 transition-colors"
+              >
+                <Check className="w-4 h-4" />
+                Accept
+              </button>
+            </div>
+          </div>
+        ), {
+          id: `friend-request-toast-${fromUserId}`,
+          duration: Infinity,
+          position: "top-center"
+        });
+      }
     })
     
     return off
@@ -233,6 +327,12 @@ const FriendsPage: React.FC = () => {
       console.error(err);
     }
   };
+
+  // Helper: Set of friend IDs for easy lookup
+  const friendIdsSet = useMemo(
+    () => new Set(friends.map((f) => f.id)),
+    [friends]
+  );
 
   // Convert allPlayers to Friend format with online status
   const playersAsFriends = useMemo(() => {
@@ -355,6 +455,55 @@ const FriendsPage: React.FC = () => {
     send(friendChallengeMsg)
   };
 
+  // Handler to send friend request (dummy for UI)
+  const handleSendFriendRequest = async (user: Friend) => {
+    
+    
+
+    try {
+      const selfUserId = typeof window !== "undefined" ? sessionStorage.getItem("userId") : null;
+      const userName = sessionStorage.getItem("username");
+      if (!selfUserId) {
+        toast.error("You must be logged in to send friend requests.");
+        return;
+      }
+      if (selfUserId === user.id) {
+        toast.error("You cannot add yourself as a friend.");
+        return;
+    }
+        const res = await fetch("/api/add_friends", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            selfUserId,
+            addresseeUserId: user.id
+          })
+        });
+  
+        const result = await res.json();
+  
+        if (res.ok && result.success) {
+          toast.success(`Sent friend request to ${user.username}`);
+          const send_friend_request_msg = {
+            type: GameEventTypes.SendFriendRequest,
+            value: {
+                fromUserId: selfUserId,
+                fromUsername: userName,
+                toUserId: user.id
+            }
+          }
+      
+          console.log("Sending friend request message: ", send_friend_request_msg)
+          send(send_friend_request_msg)
+          
+        } else {
+          toast.error(result.message || "Failed to send friend request.");
+        }
+      } catch (error) {
+        toast.error("An error occurred while sending friend request.");
+      }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
@@ -402,81 +551,101 @@ const FriendsPage: React.FC = () => {
               </p>
             </div>
           ) : (
-            filteredList.map((friend) => (
-              <div
-                key={friend.id}
-                className="flex items-center justify-between gap-4 rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-3
-                           hover:border-sky-500/70 hover:bg-slate-900 transition-colors"
-              >
-                {/* Left: avatar + info */}
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-sm font-semibold">
-                      {friend.name
-                        ? friend.name
-                            .split(" ")
-                            .map((n: string) => n[0])
-                            .join("")
-                            .slice(0, 2)
-                            .toUpperCase()
-                        : "??"}
+            filteredList.map((friend) => {
+              // friend.id may or may not be in the current friends set
+              const isFriend = friendIdsSet.has(friend.id);
+              return (
+                <div
+                  key={friend.id}
+                  className="flex items-center justify-between gap-4 rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-3
+                             hover:border-sky-500/70 hover:bg-slate-900 transition-colors"
+                >
+                  {/* Left: avatar + info */}
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-sm font-semibold">
+                        {friend.name
+                          ? friend.name
+                              .split(" ")
+                              .map((n: string) => n[0])
+                              .join("")
+                              .slice(0, 2)
+                              .toUpperCase()
+                          : "??"}
+                      </div>
+                      <span
+                        className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border border-slate-950 ${
+                          statusColors[friend.status as keyof typeof statusColors] || statusColors.offline
+                        }`}
+                      />
                     </div>
-                    <span
-                      className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border border-slate-950 ${
-                        statusColors[friend.status as keyof typeof statusColors] || statusColors.offline
-                      }`}
-                    />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium">{friend.name}</p>
-                      <span className="text-xs text-slate-500">
-                        {friend.username}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-slate-400">
-                      {friend.rating && (
-                        <span className="inline-flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
-                          Rating: {friend.rating}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium flex items-center gap-1">
+                          {friend.name}
+                          {
+                            // Show friend request icon if NOT a friend and it's not my own profile
+                            !isFriend && friend.id !== userId && (
+                              <button
+                                className="p-0.5 rounded hover:bg-sky-900 group"
+                                aria-label="Send friend request"
+                                onClick={() => handleSendFriendRequest(friend)}
+                                title="Send friend request"
+                                tabIndex={0}
+                              >
+                                <UserPlus className="w-4 h-4 text-sky-400 group-hover:text-sky-200 transition" />
+                              </button>
+                            )
+                          }
+                        </p>
+                        <span className="text-xs text-slate-500">
+                          {friend.username}
                         </span>
-                      )}
-                      {friend.bestTime > 0 && (
-                        <span>Best solve: {friend.bestTime}s</span>
-                      )}
-                      <span className="capitalize">
-                        Status: {friend.status}
-                      </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-slate-400">
+                        {friend.rating && (
+                          <span className="inline-flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
+                            Rating: {friend.rating}
+                          </span>
+                        )}
+                        {friend.bestTime > 0 && (
+                          <span>Best solve: {friend.bestTime}s</span>
+                        )}
+                        <span className="capitalize">
+                          Status: {friend.status}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Right: actions */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleChat(friend)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-medium
-                               hover:border-sky-500 hover:bg-slate-900/80 transition-colors"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    Chat
-                  </button>
-                  {/* Only show Challenge if online */}
-                  <button
-                    onClick={() => handleChallenge(friend)}
-                    disabled={friend.status !== 'online'}
-                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-950 transition-colors ${
-                        friend.status === 'online' 
-                        ? 'bg-sky-500 hover:bg-sky-400' 
-                        : 'bg-slate-700 text-slate-400 cursor-not-allowed'
-                    }`}
-                  >
-                    <Swords className="w-4 h-4" />
-                    Challenge
-                  </button>
+                  {/* Right: actions */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleChat(friend)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-medium
+                                  hover:border-sky-500 hover:bg-slate-900/80 transition-colors"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      Chat
+                    </button>
+                    {/* Only show Challenge if online */}
+                    <button
+                      onClick={() => handleChallenge(friend)}
+                      disabled={friend.status !== 'online'}
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-950 transition-colors ${
+                          friend.status === 'online' 
+                          ? 'bg-sky-500 hover:bg-sky-400' 
+                          : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                      }`}
+                    >
+                      <Swords className="w-4 h-4" />
+                      Challenge
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </section>
       </main>
