@@ -84,7 +84,7 @@ export class GameServer {
       if (player === undefined) return;
       // Use absolute URL since this is running on the server and does not have access to Next.js relative API routes
       // Adjust base URL as needed for your backend server setup
-      const apiUrl = `http://localhost:3000/api/update_user`;
+      const apiUrl = `http://app:3000/api/update_user`;
 
       fetch(apiUrl, {
         method: 'PATCH',
@@ -114,7 +114,7 @@ export class GameServer {
     }
 
     private deleteRoom(roomId: string) {
-      fetch("http://localhost:3000/api/delete_game_room", {
+      fetch("http://app:3000/api/delete_game_room", {
         method: "POST",
         headers: {
           'Content-Type': 'application/json'
