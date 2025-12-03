@@ -2,7 +2,13 @@
 "use client";
 
 import React, {
-  createContext, useContext, useEffect, useRef, useState, useCallback, useMemo
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
 } from "react";
 import { GameEventTypes } from "@/types/game-events";
 
@@ -21,10 +27,13 @@ interface SocketContextType {
   socket: WebSocket | null;
   isReady: boolean;
   notifications: Notification[];
-  send: (msg: AnyWSMessage) => boolean;              // ✅ generic sender
-  onMessage: (cb: (msg: AnyWSMessage) => void) => () => void; // ✅ subscribe API (returns unsubscribe)
+  send: (msg: AnyWSMessage) => boolean;
+  onMessage: (cb: (msg: AnyWSMessage) => void) => () => void;
   sendFriendRequest: (targetUserId: string) => void;
   clearNotifications: () => void;
+
+  // NEW: let pages tell the provider who the user is
+  setUserId: (id: string | null) => void;
 }
 
 const SocketContext = createContext<SocketContextType | null>(null);
@@ -35,7 +44,9 @@ export const useSocket = () => {
   return ctx;
 };
 
-export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -44,29 +55,52 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // listeners for incoming messages
   const listenersRef = useRef(new Set<(m: AnyWSMessage) => void>());
 
-  // track userId, only connect when present
-  const [userId, setUserId] = useState<string | null>(null);
+  // userId that controls whether we connect
+  const [userId, _setUserId] = useState<string | null>(null);
+
+  // On first mount, try to read userId from sessionStorage (if already logged in)
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const load = () => setUserId(sessionStorage.getItem("userId"));
-    load();
-    window.addEventListener("storage", load);
-    return () => window.removeEventListener("storage", load);
+    const stored = sessionStorage.getItem("userId");
+    if (stored) {
+      console.log("[SocketProvider] Initial userId from sessionStorage:", stored);
+      _setUserId(stored);
+    }
   }, []);
 
+  const setUserId = useCallback((id: string | null) => {
+    console.log("[SocketProvider] setUserId called with:", id);
+    _setUserId(id);
+  }, []);
+
+  // Connect websocket whenever we have a userId
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (!userId) return;
-    if (wsRef.current) return;
+    if (!userId) {
+      console.log("[SocketProvider] No userId yet, not connecting WS");
+      return;
+    }
+    if (wsRef.current) {
+      console.log("[SocketProvider] WS already exists, skipping connect");
+      return;
+    }
 
+    console.log("[SocketProvider] Creating WebSocket connection to", WS_URL);
     const ws = new WebSocket(WS_URL);
     wsRef.current = ws;
 
     ws.onopen = () => {
+      console.log("[SocketProvider] WebSocket open, sending PlayerOnline for", userId);
       setIsReady(true);
       setSocket(ws);
+
       // announce online once from provider
-      ws.send(JSON.stringify({ type: GameEventTypes.PlayerOnline, value: { playerId: userId } }));
+      ws.send(
+        JSON.stringify({
+          type: GameEventTypes.PlayerOnline,
+          value: { playerId: userId },
+        })
+      );
     };
 
     ws.onmessage = (event) => {
@@ -86,23 +120,28 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setNotifications((p) => [n, ...p]);
         }
       } catch (e) {
-        console.error("WS parse error", e);
+        console.error("[SocketProvider] WS parse error", e);
       }
     };
 
     ws.onclose = () => {
+      console.log("[SocketProvider] WebSocket closed");
       setIsReady(false);
       setSocket(null);
       wsRef.current = null;
     };
 
     ws.onerror = (err) => {
-      console.error("WS Error:", err);
+      console.error("[SocketProvider] WS Error:", err);
       ws.close();
     };
 
     return () => {
-      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+      console.log("[SocketProvider] Cleanup effect for WS");
+      if (
+        ws.readyState === WebSocket.OPEN ||
+        ws.readyState === WebSocket.CONNECTING
+      ) {
         ws.close();
       }
       wsRef.current = null;
@@ -111,29 +150,74 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const send = useCallback((msg: AnyWSMessage) => {
     const s = wsRef.current;
-    if (!s || s.readyState !== WebSocket.OPEN) return false;
+    if (!s || s.readyState !== WebSocket.OPEN) {
+      console.warn("[SocketProvider] send called but socket not open");
+      return false;
+    }
     s.send(JSON.stringify(msg));
     return true;
   }, []);
 
   const onMessage = useCallback((cb: (msg: AnyWSMessage) => void) => {
     listenersRef.current.add(cb);
-    return () => listenersRef.current.delete(cb);
+    return () => {
+      listenersRef.current.delete(cb);
+    };
   }, []);
 
-  const sendFriendRequest = useCallback((targetUserId: string) => {
-    const myUserId = sessionStorage.getItem("userId");
-    const myUsername = sessionStorage.getItem("username") ?? "Unknown";
-    if (!send({ type: GameEventTypes.SendFriendRequest, value: { fromUserId: myUserId, fromUsername: myUsername, toUserId: targetUserId } })) {
-      console.warn("Socket not ready or user not logged in");
-    }
-  }, [send]);
+  const sendFriendRequest = useCallback(
+    (targetUserId: string) => {
+      const myUserId =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("userId")
+          : null;
+      const myUsername =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("username") ?? "Unknown"
+          : "Unknown";
+
+      if (
+        !send({
+          type: GameEventTypes.SendFriendRequest,
+          value: {
+            fromUserId: myUserId,
+            fromUsername: myUsername,
+            toUserId: targetUserId,
+          },
+        })
+      ) {
+        console.warn("[SocketProvider] Socket not ready or user not logged in");
+      }
+    },
+    [send]
+  );
 
   const clearNotifications = useCallback(() => setNotifications([]), []);
 
-  const value = useMemo(() => ({
-    socket, isReady, notifications, send, onMessage, sendFriendRequest, clearNotifications
-  }), [socket, isReady, notifications, send, onMessage, sendFriendRequest, clearNotifications]);
+  const value = useMemo(
+    () => ({
+      socket,
+      isReady,
+      notifications,
+      send,
+      onMessage,
+      sendFriendRequest,
+      clearNotifications,
+      setUserId,
+    }),
+    [
+      socket,
+      isReady,
+      notifications,
+      send,
+      onMessage,
+      sendFriendRequest,
+      clearNotifications,
+      setUserId,
+    ]
+  );
 
-  return <SocketContext.Provider value={value}>{children}</SocketContext.Provider>;
+  return (
+    <SocketContext.Provider value={value}>{children}</SocketContext.Provider>
+  );
 };

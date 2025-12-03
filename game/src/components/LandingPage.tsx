@@ -2,12 +2,11 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CubeCategories, Player, PlayerState } from "@/modals/player";
-import {NavBar} from "./Navbar";
+import { NavBar } from "./Navbar";
 import { GameEventTypes } from "@/types/game-events";
 import { useSocket } from "@/context/SocketContext";
 import { toast } from "react-hot-toast";
-import { Swords, X, Check } from "lucide-react"; 
-
+import { Swords, X, Check } from "lucide-react";
 
 interface PlayerType {
   player_id: string;
@@ -45,7 +44,7 @@ type AuthStorage = {
 };
 
 function getAuth(): AuthStorage | null {
-  if (typeof window === 'undefined') return null; 
+  if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(AUTH_KEY);
     return raw ? JSON.parse(raw) : null;
@@ -55,7 +54,7 @@ function getAuth(): AuthStorage | null {
 }
 
 function setAuth(data: AuthStorage) {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
     localStorage.setItem(AUTH_KEY, JSON.stringify(data));
   } catch (error) {
@@ -67,19 +66,19 @@ function ensureAuth(): AuthStorage {
   const existing = getAuth();
   if (existing?.player?.player_id) return existing;
 
-  const currentPlayerId = sessionStorage.getItem("userId")
-  const username = sessionStorage.getItem("username")
-  const token = sessionStorage.getItem("token")
+  const currentPlayerId = sessionStorage.getItem("userId");
+  const username = sessionStorage.getItem("username");
+  const token = sessionStorage.getItem("token");
 
   if (!currentPlayerId || !username) {
-    throw new Error("User is not logged in..")
+    throw new Error("User is not logged in..");
   }
 
   const auth: AuthStorage = {
     token: token,
     player: {
       player_id: currentPlayerId,
-      username: username
+      username: username,
     },
   };
   setAuth(auth);
@@ -89,28 +88,27 @@ function ensureAuth(): AuthStorage {
 export default function LandingPage() {
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
-  const [variant, setVariant] = React.useState<"3x3 cube" | "4x4 cube">("3x3 cube");
+  const [variant, setVariant] = React.useState<"3x3 cube" | "4x4 cube">(
+    "3x3 cube"
+  );
   const [authReady, setAuthReady] = React.useState(false);
   const [aiLoading, setAiLoading] = React.useState(false);
 
+  // we don't actually need wsReady anymore
   const [wsReady, setWsReady] = useState(false);
 
-  // ✅ Call the hook at the top level
-  const { isReady, send, onMessage } = useSocket();
-
-  // local refs/states (you can drop wsRef if you only use provider's socket)
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // ✅ pull setUserId from socket context
+  const { isReady, send, onMessage, setUserId } = useSocket();
 
   const handleChallengeAccepted = (opponetPlayerId?: string) => {
     const helper = async () => {
-      const userId = sessionStorage.getItem("userId")
-      const player_res = await fetch(`/api/get_user?id=${userId}`)
+      const userId = sessionStorage.getItem("userId");
+      const player_res = await fetch(`/api/get_user?id=${userId}`);
       if (!player_res.ok) {
-        throw new Error(`Cannot find user in db for user id: ${userId}`)
+        throw new Error(`Cannot find user in db for user id: ${userId}`);
       }
 
-      const player_data: ApiUserResponse = await player_res.json()
+      const player_data: ApiUserResponse = await player_res.json();
 
       const new_player = new Player(
         player_data.user.id,
@@ -118,7 +116,11 @@ export default function LandingPage() {
         PlayerState.NotPlaying,
         player_data.user.rating,
         player_data.user.total_wins,
-        (player_data.user.total_wins === 0 ? 0 : (player_data.user.total_wins / player_data.user.total_games_played) * 100),
+        player_data.user.total_wins === 0
+          ? 0
+          : (player_data.user.total_wins /
+              player_data.user.total_games_played) *
+            100,
         {}, // top_speed_to_solve_cube: no data, provide empty object
         [[[]]] // scrambledCube, default
       );
@@ -126,39 +128,45 @@ export default function LandingPage() {
       const res = await fetch("/api/match_friends", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           player: new_player,
           variant: CubeCategories.ThreeCube,
           isOpponentReady: true,
-          opponentPlayerId: opponetPlayerId
-        })
-      })
+          opponentPlayerId: opponetPlayerId,
+        }),
+      });
 
       if (!res.ok) {
-        throw Error("Error in matching friends api")
+        throw Error("Error in matching friends api");
       }
 
       const data: {
         roomId: string;
         isGameStarted: boolean;
-      } = await res.json()
-      // response looks like this: {
-      //   roomId: '3f86ccc0-7bf6-47d0-a775-9170c8b11349',
-      //   isGameStarted: false
-      // }
-      localStorage.setItem("player", JSON.stringify(new_player))
+      } = await res.json();
+
+      localStorage.setItem("player", JSON.stringify(new_player));
       router.push(`/room/${data.roomId}`);
+    };
+
+    helper();
+  };
+
+  // 🔹 On first mount: ensure auth AND tell SocketProvider the userId
+  useEffect(() => {
+    try {
+      const auth = ensureAuth();
+      setAuthReady(true);
+      console.log("[LandingPage] ensureAuth player_id:", auth.player.player_id);
+      setUserId(auth.player.player_id); // <== this triggers WS connect + PlayerOnline
+    } catch (e) {
+      console.error("[LandingPage] ensureAuth failed:", e);
+      // you can redirect to login page if needed
+      // router.push("/login");
     }
-
-    helper()
-  }
-
-  React.useEffect(() => {
-    ensureAuth();
-    setAuthReady(true);
-  }, []);
+  }, [setUserId]);
 
   // Receive messages here....
   useEffect(() => {
@@ -166,99 +174,98 @@ export default function LandingPage() {
       console.log("[LandingPage] incoming:", msg);
       if (msg.type === GameEventTypes.FriendChallenge) {
         const opponentId = msg.value.opponentPlayerId;
-        console.log("Friend challenged you whose playerId: ", msg.value)
-        toast.custom((t) => (
-          <div
-            className={`${
-              t.visible ? 'animate-in fade-in zoom-in-95' : 'animate-out fade-out zoom-out-95'
-            } w-full max-w-sm pointer-events-auto bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden`}
-          >
-            {/* Card Content */}
-            <div className="p-4 flex items-start gap-4">
-              {/* Icon Circle */}
-              <div className="flex-shrink-0">
-                <div className="h-10 w-10 rounded-full bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
-                  <Swords className="h-5 w-5 text-sky-500" />
+        console.log(
+          "Friend challenged you whose playerId: ",
+          msg.value
+        );
+        toast.custom(
+          (t) => (
+            <div
+              className={`${
+                t.visible
+                  ? "animate-in fade-in zoom-in-95"
+                  : "animate-out fade-out zoom-out-95"
+              } w-full max-w-sm pointer-events-auto bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden`}
+            >
+              {/* Card Content */}
+              <div className="p-4 flex items-start gap-4">
+                {/* Icon Circle */}
+                <div className="flex-shrink-0">
+                  <div className="h-10 w-10 rounded-full bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+                    <Swords className="h-5 w-5 text-sky-500" />
+                  </div>
+                </div>
+
+                {/* Text Info */}
+                <div className="flex-1 pt-0.5">
+                  <h3 className="text-sm font-bold text-white">
+                    Duel Request
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-400">
+                    <span className="font-semibold text-sky-400">
+                      {opponentId}
+                    </span>{" "}
+                    wants to challenge you!
+                  </p>
                 </div>
               </div>
-              
-              {/* Text Info */}
-              <div className="flex-1 pt-0.5">
-                <h3 className="text-sm font-bold text-white">Duel Request</h3>
-                <p className="mt-1 text-sm text-slate-400">
-                  <span className="font-semibold text-sky-400">{opponentId}</span> wants to challenge you!
-                </p>
+
+              {/* Button Footer - Split Design */}
+              <div className="flex border-t border-slate-800 bg-slate-950/30">
+                <button
+                  onClick={() => {
+                    console.log("Rejection sent.");
+                    toast.dismiss(t.id);
+                  }}
+                  className="w-full px-4 py-3 flex items-center justify-center gap-2 text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-slate-800/50 transition-colors border-r border-slate-800"
+                >
+                  <X className="w-4 h-4" />
+                  Decline
+                </button>
+
+                <button
+                  onClick={() => {
+                    console.log("Challenge Accepted!");
+                    handleChallengeAccepted(msg.value?.opponentPlayerId);
+                    toast.dismiss(t.id);
+                  }}
+                  className="w-full px-4 py-3 flex items-center justify-center gap-2 text-sm font-semibold text-sky-500 hover:text-sky-400 hover:bg-sky-500/10 transition-colors"
+                >
+                  <Check className="w-4 h-4" />
+                  Accept
+                </button>
               </div>
             </div>
-        
-            {/* Button Footer - Split Design */}
-            <div className="flex border-t border-slate-800 bg-slate-950/30">
-              <button
-                onClick={() => {
-                  console.log("Rejection sent.");
-                  toast.dismiss(t.id);
-                }}
-                className="w-full px-4 py-3 flex items-center justify-center gap-2 text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-slate-800/50 transition-colors border-r border-slate-800"
-              >
-                <X className="w-4 h-4" />
-                Decline
-              </button>
-              
-              <button
-                onClick={() => {
-                  console.log("Challenge Accepted!");
-                  // Handle your accept logic here
-                  handleChallengeAccepted(msg.value?.opponentPlayerId)
-                  toast.dismiss(t.id);
-                }}
-                className="w-full px-4 py-3 flex items-center justify-center gap-2 text-sm font-semibold text-sky-500 hover:text-sky-400 hover:bg-sky-500/10 transition-colors"
-              >
-                <Check className="w-4 h-4" />
-                Accept
-              </button>
-            </div>
-          </div>
-        ), {
-          id: "challenge-toast", // Unique ID prevents duplicate toasts
-          duration: Infinity,    // Keeps it open forever
-          position: "top-center" // Optional: usually better for alerts
-        });
+          ),
+          {
+            id: "challenge-toast",
+            duration: Infinity,
+            position: "top-center",
+          }
+        );
       }
-    })
-    
-    return off
+    });
+
+    return off;
   }, [onMessage, router]);
 
-  // Sending messages to websocet server.
-  useEffect(() => {
-    if (!isReady) return;
-    // prove send/receive path via a ping
-    const playerId = sessionStorage.getItem("userId")
-    const playerOnlineMessage = {
-      type: GameEventTypes.PlayerOnline,
-      value: {
-        playerId: playerId
-      }
-    }
-    console.log("Sending playeronline message...")
-    send(playerOnlineMessage)
-  }, [isReady, send]);
+  // NOTE: we removed the effect that was sending PlayerOnline from here.
+  // The provider sends PlayerOnline automatically in ws.onopen
+  // when setUserId has been called.
 
   const handleStartGame = async () => {
     try {
       setLoading(true);
 
-      // so we will make sure ensureAuth returns a token only.
       const auth = ensureAuth();
 
-      // we will fetch player from db instead of ensureAuth();
-      const userId = sessionStorage.getItem("userId")
-      const player_res = await fetch(`/api/get_user?id=${userId}`)
+      const userId = sessionStorage.getItem("userId");
+      const player_res = await fetch(`/api/get_user?id=${userId}`);
       if (!player_res.ok) {
-        throw new Error(`Cannot find user in db for user id: ${userId}`)
+        throw new Error(`Cannot find user in db for user id: ${userId}`);
       }
 
-      const player_data: ApiUserResponse = await player_res.json()
+      const player_data: ApiUserResponse = await player_res.json();
 
       const new_player: PlayerType = {
         player_id: player_data.user.id,
@@ -267,28 +274,31 @@ export default function LandingPage() {
         rating: player_data.user.rating,
         total_wins: player_data.user.total_wins,
         scrambledCube: [[[]]],
-        win_percentage: (player_data.user.total_games_played / player_data.user.total_wins) * 100
-      }
+        win_percentage:
+          (player_data.user.total_games_played /
+            player_data.user.total_wins) *
+          100,
+      };
 
-      console.log("New player: ", new_player)
+      console.log("New player: ", new_player);
 
       const res = await fetch("/api/matchmake/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ variant, new_player }),
       });
-      
+
       if (!res.ok) {
         throw new Error(`Failed to start matchmaking: ${res.status}`);
       }
-      
+
       const data = await res.json();
-      console.log("Response of matchmake start api: ", data)
-      
-      if (typeof window !== 'undefined') {
+      console.log("Response of matchmake start api: ", data);
+
+      if (typeof window !== "undefined") {
         localStorage.setItem("player", JSON.stringify(new_player));
       }
-      
+
       router.push(`/room/${data.room.id}`);
     } catch (e: unknown) {
       if (e instanceof Error) {
@@ -302,17 +312,6 @@ export default function LandingPage() {
       }
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handlePlayAI = async () => {
-    setAiLoading(true);
-    try {
-      // You could generate a roomId here or call backend if you want a truly unique/central room id
-      const roomId = crypto.randomUUID();
-      router.push(`/ai_match_room/${roomId}`);
-    } finally {
-      setAiLoading(false);
     }
   };
 

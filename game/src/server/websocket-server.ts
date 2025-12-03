@@ -315,7 +315,11 @@ export class GameServer {
                 } else {
                   player_lost = playerConn.player as Player
                 }
-
+              }
+              
+              // sending message to all the players of the room that who won the game.
+              for (const playerConn of playerConns) {
+                console.log("Sending game finished to players: ", playerConn.player_id, " that player won: ", player_won?.player_id)
                 playerConn.ws.send(JSON.stringify({
                   type: GameEventTypes.GameFinished,
                   value: {

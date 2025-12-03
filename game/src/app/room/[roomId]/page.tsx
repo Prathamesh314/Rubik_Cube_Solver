@@ -191,6 +191,7 @@ export default function RoomPage() {
           }
         }
 
+        console.log("Game finished event send because of leaving room: ", game_finished_msg)
         wsRef.current.send(JSON.stringify(game_finished_msg))
       }
 
@@ -244,7 +245,8 @@ export default function RoomPage() {
         end_time: elapsedTime,
       },
     };
-  
+
+    console.log("Sending game finished message because cube is solved: ", game_finished_msg)  
     wsRef.current.send(JSON.stringify(game_finished_msg));
     setHasSentGameFinished(true);
   };
@@ -297,28 +299,6 @@ export default function RoomPage() {
     const ws = wsRef.current;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
-    // if (playerCubeRef.current?.IsRubikCubeSolved()) {
-    //   // Use minutes and seconds only, not milliseconds
-    //   let elapsedTime = 0;
-    //   if (gameStartTime) {
-    //     const totalSeconds = Math.floor((Date.now() - gameStartTime) / 1000);
-    //     const minutes = Math.floor(totalSeconds / 60);
-    //     const seconds = totalSeconds % 60;
-    //     // Represent elapsed time as total seconds (minutes*60 + seconds)
-    //     elapsedTime = minutes * 60 + seconds;
-    //   }
-    //   const game_finished_msg = {
-    //     type: GameEventTypes.GameFinished,
-    //     value: {
-    //       roomId: roomId,
-    //       player_id_who_won: selfPlayerId,
-    //       end_time: elapsedTime
-    //     }
-    //   }
-
-    //   ws.send(JSON.stringify(game_finished_msg))
-    // }
-
     const message = {
       type: "KeyBoardButtonPressed",
       value: {
@@ -356,6 +336,7 @@ export default function RoomPage() {
         }
       }
 
+      console.log("Started the game: ", game_started_msg)
       ws.send(JSON.stringify(game_started_msg))
     };
 
@@ -371,7 +352,9 @@ export default function RoomPage() {
     ws.onmessage = (e) => {
       const message = JSON.parse(e.data);
       if (message.type === GameEventTypes.GameStarted) {
+        console.log("Game started event received: ", message);
         const connections = message.value;
+        console.log("Connections: ", connections)
         const playersInGame = connections.map((conn: any) => conn.player);
 
         const opponent = playersInGame.find((p: Player) => p.player_id !== selfPlayerId);
@@ -386,10 +369,13 @@ export default function RoomPage() {
           return { ...prev, players: playersInGame };
         });
 
+        console.log("Room: ", room)
+
         setGameStartTime(Math.floor(Date.now() / 1000) * 1000);
       }
 
       else if (message.type === GameEventTypes.GameFinished) {
+        console.log("Game finished event received ", message)
         if (playerA && playerB) {
           const winner = playerA.player_id === message.value.player_id_who_won ? playerA : playerB;
           const loser = playerA.player_id === message.value.player_id_who_won ? playerB : playerA;

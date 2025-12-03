@@ -51,9 +51,6 @@ const FriendsPage: React.FC = () => {
   // ✅ Call the hook at the top level
   const { isReady, send, onMessage } = useSocket();
 
-  // local refs/states (you can drop wsRef if you only use provider's socket)
-  const wsRef = useRef<WebSocket | null>(null);
-
   const userId = typeof window !== "undefined" ? sessionStorage.getItem("userId") : null;
 
   const handleChallengeAccepted = (opponetPlayerId?: string) => {
