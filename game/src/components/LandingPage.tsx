@@ -7,6 +7,7 @@ import { GameEventTypes } from "@/types/game-events";
 import { useSocket } from "@/context/SocketContext";
 import { toast } from "react-hot-toast";
 import { Swords, X, Check } from "lucide-react";
+import { useNotification } from "@/context/NotificationContext";
 
 interface PlayerType {
   player_id: string;
@@ -97,6 +98,7 @@ export default function LandingPage() {
 
   // ✅ pull setUserId from socket context
   const { isReady, send, onMessage, setUserId } = useSocket();
+  const {add} = useNotification()
 
   const handleChallengeAccepted = (opponetPlayerId?: string) => {
     const helper = async () => {
@@ -241,6 +243,8 @@ export default function LandingPage() {
             position: "top-center",
           }
         );
+      } else if (msg.type === GameEventTypes.FriendRequestReceived) {
+        add(JSON.stringify(msg.value))
       }
     });
 
