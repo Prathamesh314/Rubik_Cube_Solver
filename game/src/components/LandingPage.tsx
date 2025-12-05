@@ -100,6 +100,22 @@ export default function LandingPage() {
   const { isReady, send, onMessage, setUserId } = useSocket();
   const {add} = useNotification()
 
+  const handleChallengeRejected = (opponentPlayerId?: string, roomId?: string) => {
+    const friend_challenge_rejected_msg = {
+      type: GameEventTypes.FriendChallengeRejected,
+      value: {
+        playerId: sessionStorage.getItem("userId"),
+        opponentPlayerId: opponentPlayerId,
+        roomId: roomId
+      }
+    }
+
+    console.log("Rejection message: ", friend_challenge_rejected_msg)
+
+    send(friend_challenge_rejected_msg)
+    console.log("Sending friend challenge rejected message.")
+  }
+
   const handleChallengeAccepted = (opponetPlayerId?: string) => {
     const helper = async () => {
       const userId = sessionStorage.getItem("userId");
@@ -174,6 +190,7 @@ export default function LandingPage() {
       console.log("[LandingPage] incoming:", msg);
       if (msg.type === GameEventTypes.FriendChallenge) {
         const opponentId = msg.value.opponentPlayerId;
+        const roomId = msg.value.roomId
         console.log(
           "Friend challenged you whose playerId: ",
           msg.value
@@ -216,6 +233,7 @@ export default function LandingPage() {
                   onClick={() => {
                     console.log("Rejection sent.");
                     toast.dismiss(t.id);
+                    handleChallengeRejected(opponentId, roomId)
                   }}
                   className="w-full px-4 py-3 flex items-center justify-center gap-2 text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-slate-800/50 transition-colors border-r border-slate-800"
                 >

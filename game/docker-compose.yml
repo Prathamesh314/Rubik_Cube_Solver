@@ -17,41 +17,41 @@
 version: "3.9"
 
 services:
-  app:
-    build: .
-    container_name: rc-next-app
-    command: npm run dev
-    ports:
-      - "3000:3000"
-    env_file:
-      - .env
-    environment:
-      # This is what your browser will use to connect to WS
-      # Because 8002 is published on the host, "localhost:8002" is correct from browser.
-      NEXT_PUBLIC_WEBSOCKET_URL: "ws://localhost:8002"
-      # DB connection string your Next.js / backend code uses
-      DATABASE_URL: "postgres://postgres:kurvepg@123@db:5432/fmcg"
-      REDIS_URL: "redis://redis:6379"
-    depends_on:
-      - db
-      - redis
-      - ws
+  # app:
+  #   build: .
+  #   container_name: rc-next-app
+  #   command: npm run dev
+  #   ports:
+  #     - "3000:3000"
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     # This is what your browser will use to connect to WS
+  #     # Because 8002 is published on the host, "localhost:8002" is correct from browser.
+  #     NEXT_PUBLIC_WEBSOCKET_URL: "ws://localhost:8002"
+  #     # DB connection string your Next.js / backend code uses
+  #     DATABASE_URL: "postgres://postgres:kurvepg@123@db:5432/fmcg"
+  #     REDIS_URL: "redis://redis:6379"
+  #   depends_on:
+  #     - db
+  #     - redis
+  #     - ws
 
-  ws:
-    build: .
-    container_name: rc-ws-server
-    command: npm run ws:dev
-    ports:
-      - "8002:8002"
-    env_file:
-      - .env
-    environment:
-      # WS server backend uses internal Docker hostnames
-      DATABASE_URL: "postgres://postgres:kurvepg@123@db:5432/rubik_game"
-      REDIS_URL: "redis://redis:6379"
-    depends_on:
-      - db
-      - redis
+  # ws:
+  #   build: .
+  #   container_name: rc-ws-server
+  #   command: npm run ws:dev
+  #   ports:
+  #     - "8002:8002"
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     # WS server backend uses internal Docker hostnames
+  #     DATABASE_URL: "postgres://postgres:kurvepg@123@db:5432/rubik_game"
+  #     REDIS_URL: "redis://redis:6379"
+  #   depends_on:
+  #     - db
+  #     - redis
 
   db:
     image: postgres:16

@@ -84,7 +84,7 @@ export class GameServer {
       if (player === undefined) return;
       // Use absolute URL since this is running on the server and does not have access to Next.js relative API routes
       // Adjust base URL as needed for your backend server setup
-      const apiUrl = `http://app:3000/api/update_user`;
+      const apiUrl = `http://localhost:3000/api/update_user`;
 
       fetch(apiUrl, {
         method: 'PATCH',
@@ -114,7 +114,7 @@ export class GameServer {
     }
 
     private deleteRoom(roomId: string) {
-      fetch("http://app:3000/api/delete_game_room", {
+      fetch("http://localhost:3000/api/delete_game_room", {
         method: "POST",
         headers: {
           'Content-Type': 'application/json'
@@ -138,7 +138,7 @@ export class GameServer {
     }
 
     private insert_into_game_history(roomId: string, playerId: string, opponentPlayerId: string, rating_change: number) {
-      fetch("http://app:3000/api/insert_game_history", {
+      fetch("http://localhost:3000/api/insert_game_history", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -154,7 +154,7 @@ export class GameServer {
     }
 
     private update_game_history(roomId: string, winnerPlayerId: string) {
-      fetch("http://app:3000/api/update_game_history", {
+      fetch("http://localhost:3000/api/update_game_history", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json"
@@ -369,18 +369,18 @@ export class GameServer {
 
           else if (message.type === GameEventTypes.FriendChallenge) {
             console.log("Sending challenge to opponent onlyyyy")
-            const {playerId, opponentPlayerId} = message.value;
+            const {playerId, opponentPlayerId, roomId} = message.value;
 
             this.onlinePlayers.get(opponentPlayerId)?.send(JSON.stringify({
               type: GameEventTypes.FriendChallenge,
               value: {
-                opponentPlayerId: playerId
+                opponentPlayerId: playerId,
+                roomId: roomId
               }
             }
           ))
           }
-
-            else if (message.type === GameEventTypes.SendFriendRequest) {
+          else if (message.type === GameEventTypes.SendFriendRequest) {
               const payload = message.value as FriendRequestPayload;
               const targetSocket = this.onlinePlayers.get(payload.toUserId);
 
@@ -400,6 +400,19 @@ export class GameServer {
                   // Optional: Here you would save to DB if you want persistence
               }
               return;
+            } else if (message.type === GameEventTypes.FriendChallengeRejected) {
+              console.log("Friend rejected the challenge: ", message)
+              const opponentPlayerId = message.value.opponentPlayerId
+              const roomid = message.value.roomId
+
+              const playerConns = this.rooms.get(roomid)
+              if (playerConns !== undefined) {
+                for (const playerconn of playerConns) {
+                  if (playerconn.player_id === opponentPlayerId) {
+                    playerconn.ws.send(JSON.stringify(message))
+                  }
+                }
+              }
             }
         } catch (error) {
             if (error instanceof Error) {

@@ -28,9 +28,10 @@ export async function POST(request: NextRequest) {
     const removed = await game.removePlayerFromRoom(roomId, playerId);
 
     if (!removed) {
+      console.error("Player could not be removed (already not present")
       return NextResponse.json(
         { error: "Player could not be removed (already not present?)" },
-        { status: 400 }
+        { status: 200 }
       );
     }
 

@@ -392,16 +392,19 @@ const FriendsPage: React.FC = () => {
       throw Error(`User id is null cannot send challenge`)
     }
 
+    // Instead of sending the WebSocket message immediately (where roomId is a Promise), 
+    // wait for the asynchronous API call to complete before sending the message with the correct roomId.
+
     const makeApiRequestToStartFriendMatch = async () => {
-      console.log("Making an api request to match frineds...")
-      
-      const userId = sessionStorage.getItem("userId")
-      const player_res = await fetch(`/api/get_user?id=${userId}`)
+      console.log("Making an api request to match friends...");
+
+      const userId = sessionStorage.getItem("userId");
+      const player_res = await fetch(`/api/get_user?id=${userId}`);
       if (!player_res.ok) {
-        throw new Error(`Cannot find user in db for user id: ${userId}`)
+        throw new Error(`Cannot find user in db for user id: ${userId}`);
       }
 
-      const player_data: ApiUserResponse = await player_res.json()
+      const player_data: ApiUserResponse = await player_res.json();
 
       const new_player = new Player(
         player_data.user.id,
@@ -425,41 +428,46 @@ const FriendsPage: React.FC = () => {
           isOpponentReady: false,
           opponentPlayerId: null
         })
-      })
+      });
 
       if (!res.ok) {
-        throw Error("Error in matching friends api")
+        throw Error("Error in matching friends api");
       }
 
       const data: {
         roomId: string;
         isGameStarted: boolean;
-      } = await res.json()
-      // response looks like this: {
-      //   roomId: '3f86ccc0-7bf6-47d0-a775-9170c8b11349',
-      //   isGameStarted: false
-      // }
-      localStorage.setItem("player", JSON.stringify(new_player))
-      router.push(`/room/${data.roomId}`);
-    }
+      } = await res.json();
 
-    makeApiRequestToStartFriendMatch();
-    const friendChallengeMsg = {
-      type: GameEventTypes.FriendChallenge,
-      value: {
-        playerId: userId,
-        opponentPlayerId: friend.id
+      // Save player and navigate to room
+      localStorage.setItem("player", JSON.stringify(new_player));
+      router.push(`/room/${data.roomId}`);
+
+      return { roomId: data.roomId, new_player };
+    };
+
+    // We need to use async/await here to get the roomId before sending the WebSocket message.
+    (async () => {
+      try {
+        const { roomId } = await makeApiRequestToStartFriendMatch();
+        const friendChallengeMsg = {
+          type: GameEventTypes.FriendChallenge,
+          value: {
+            playerId: userId,
+            opponentPlayerId: friend.id,
+            roomId: roomId
+          }
+        };
+        console.log("Sending challenge to friend: ", friend.id, "with roomId:", roomId);
+        send(friendChallengeMsg);
+      } catch (error) {
+        console.error("Failed to initiate friend match:", error);
       }
-    }
-    console.log("Sending challenge to friend: ", friend.id)
-    send(friendChallengeMsg)
+    })();
   };
 
   // Handler to send friend request (dummy for UI)
   const handleSendFriendRequest = async (user: Friend) => {
-    
-    
-
     try {
       const selfUserId = typeof window !== "undefined" ? sessionStorage.getItem("userId") : null;
       const userName = sessionStorage.getItem("username");

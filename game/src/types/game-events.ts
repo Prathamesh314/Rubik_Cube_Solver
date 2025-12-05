@@ -19,6 +19,7 @@ export enum GameEventTypes {
   SendFriendRequest = "SendFriendRequest",
   FriendRequestReceived = "FriendRequestReceived",
   FriendChallenge = "FriendChallenge",
+  FriendChallengeRejected = "FriendChallengeRejected",
   Error = 'ERROR'
 }
 
@@ -99,6 +100,7 @@ export interface FriendUpdateMessage {
 export interface FriendChallengeMessage {
   playerId: string;
   opponentPlayerId: string;
+  roomId: string;
 }
 
 export type GameEvents =
@@ -115,4 +117,5 @@ export type GameEvents =
   | { type: GameEventTypes.SendFriendRequest; value: FriendRequestPayload }
   | { type: GameEventTypes.PlayerStatusUpdate; value: FriendUpdateMessage }
   | { type: GameEventTypes.FriendChallenge; value: FriendChallengeMessage }
+  | { type: GameEventTypes.FriendChallengeRejected; value: FriendChallengeMessage }
   | { type: GameEventTypes.PlayerMove; value: PlayerMoveMessage };

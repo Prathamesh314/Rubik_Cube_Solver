@@ -81,18 +81,6 @@ export const NavBar: React.FC = () => {
     router.push("/login");
   };
 
-  const handleAcceptRequest = (notificationId: string, fromUserId: string) => {
-    console.log(`Accepted request from ${fromUserId}`);
-    // TODO: Call API to accept friend
-    // (If you later add remove() in context, you can remove here)
-  };
-
-  const handleDeclineRequest = (notificationId: string) => {
-    console.log(`Declined request`);
-    // TODO: Call API to decline friend
-    // (If you later add remove() in context, you can remove here)
-  };
-
   return (
     <>
       <header className="sticky top-0 z-40 border-b border-slate-800 bg-slate-950/90 backdrop-blur">
