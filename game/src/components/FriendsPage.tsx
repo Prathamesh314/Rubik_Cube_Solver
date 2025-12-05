@@ -52,6 +52,22 @@ const FriendsPage: React.FC = () => {
 
   const userId = typeof window !== "undefined" ? sessionStorage.getItem("userId") : null;
 
+  const handleChallengeRejected = (opponentPlayerId?: string, roomId?: string) => {
+    const friend_challenge_rejected_msg = {
+      type: GameEventTypes.FriendChallengeRejected,
+      value: {
+        playerId: sessionStorage.getItem("userId"),
+        opponentPlayerId: opponentPlayerId,
+        roomId: roomId
+      }
+    }
+
+    console.log("Rejection message: ", friend_challenge_rejected_msg)
+
+    send(friend_challenge_rejected_msg)
+    console.log("Sending friend challenge rejected message.")
+  }
+
   const handleChallengeAccepted = (opponetPlayerId?: string) => {
     const helper = async () => {
       const userId = sessionStorage.getItem("userId")
@@ -130,6 +146,23 @@ const FriendsPage: React.FC = () => {
     getFriends();
   }, [userId]);
 
+  const handleFriendRequestReject = async (message: any) => {
+    const { fromUserId, fromUsername } = message.value;
+    const selfUserId = sessionStorage.getItem("userId");
+    const addresseeUserId = fromUserId;
+
+    const res = await fetch("/api/delete_friend", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        selfUserId,
+        addresseeUserId
+      })
+    })
+  }
+
   const handleFriendRequestAccept = async (message:  any) => {
     //   value: {
     //     fromUserId: payload.fromUserId,
@@ -177,6 +210,7 @@ const FriendsPage: React.FC = () => {
         setOnlinePlayers(msg.value.player)
       } else if (msg.type === GameEventTypes.FriendChallenge) {
         const opponentId = msg.value.opponentPlayerId;
+        const roomId = msg.value.roomId
         console.log("Friend challenged you whose playerId: ", msg.value)
         toast.custom((t) => (
           <div
@@ -208,6 +242,7 @@ const FriendsPage: React.FC = () => {
                 onClick={() => {
                   console.log("Rejection sent.");
                   toast.dismiss(t.id);
+                  handleChallengeRejected(opponentId, roomId)
                 }}
                 className="w-full px-4 py-3 flex items-center justify-center gap-2 text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-slate-800/50 transition-colors border-r border-slate-800"
               >
@@ -266,6 +301,7 @@ const FriendsPage: React.FC = () => {
                   // You can add logic here to reject (server-side if desired)
                   toast.dismiss(t.id);
                   toast.success("Friend request declined.");
+                  handleFriendRequestReject(msg)
                 }}
                 className="w-full px-4 py-3 flex items-center justify-center gap-2 text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-slate-800/50 transition-colors border-r border-slate-800"
               >
