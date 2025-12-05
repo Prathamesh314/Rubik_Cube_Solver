@@ -6,7 +6,7 @@ import { NavBar } from "./Navbar";
 import { GameEventTypes } from "@/types/game-events";
 import { useSocket } from "@/context/SocketContext";
 import { toast } from "react-hot-toast";
-import { Swords, X, Check } from "lucide-react";
+import { Swords, X, Check, Users } from "lucide-react";
 import { useNotification } from "@/context/NotificationContext";
 
 interface PlayerType {
@@ -184,6 +184,59 @@ export default function LandingPage() {
     }
   }, [setUserId]);
 
+  const handleFriendRequestReject = async (message: any) => {
+    const { fromUserId, fromUsername } = message.value;
+    const selfUserId = sessionStorage.getItem("userId");
+    const addresseeUserId = fromUserId;
+
+    const res = await fetch("/api/delete_friend", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        selfUserId,
+        addresseeUserId
+      })
+    })
+  }
+
+  const handleFriendRequestAccept = async (message:  any) => {
+    //   value: {
+    //     fromUserId: payload.fromUserId,
+    //     fromUsername: payload.fromUsername,
+    //     timestamp: new Date().toISOString()
+    // }
+    // if we decline the friend request we should remove friend from friends table.
+    try {
+      // message.value should contain the relevant IDs, e.g., fromUserId and toUserId
+      const { fromUserId, fromUsername } = message.value;
+      const selfUserId = sessionStorage.getItem("userId");
+      const addresseeUserId = fromUserId;
+      const status = "accepted";
+      const res = await fetch("/api/update_friends", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          selfUserId,
+          addresseeUserId,
+          status
+        })
+      });
+      const result = await res.json();
+      if (res.ok && result.success) {
+        toast.success("Friend request accepted!");
+        // Optionally, update the friends list UI or state here if needed
+      } else {
+        toast.error(result.message || "Failed to accept friend request.");
+      }
+    } catch (error) {
+      toast.error("An error occurred while updating friend status.");
+    }
+  }
+
   // Receive messages here....
   useEffect(() => {
     const off = onMessage((msg) => {
@@ -262,7 +315,63 @@ export default function LandingPage() {
           }
         );
       } else if (msg.type === GameEventTypes.FriendRequestReceived) {
-        add(JSON.stringify(msg.value))
+        console.log("Message: ", msg)
+        const { fromUserId, fromUsername } = msg.value || {};
+
+        toast.custom((t) => (
+          <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-lg max-w-xs w-full">
+            <div className="p-4 flex items-start gap-4">
+              {/* Icon Circle */}
+              <div className="flex-shrink-0">
+                <div className="h-10 w-10 rounded-full bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-sky-500" />
+                </div>
+              </div>
+              {/* Text Info */}
+              <div className="flex-1 pt-0.5">
+                <h3 className="text-sm font-bold text-white">Friend Request</h3>
+                <p className="mt-1 text-sm text-slate-400">
+                  <span className="font-semibold text-sky-400">
+                    {fromUsername || fromUserId}
+                  </span>{" "}
+                  sent you a friend request!
+                </p>
+              </div>
+            </div>
+            {/* Button Footer - Split Design */}
+            <div className="flex border-t border-slate-800 bg-slate-950/30">
+              <button
+                onClick={() => {
+                  // You can add logic here to reject (server-side if desired)
+                  toast.dismiss(t.id);
+                  toast.success("Friend request declined.");
+                  handleFriendRequestReject(msg)
+                }}
+                className="w-full px-4 py-3 flex items-center justify-center gap-2 text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-slate-800/50 transition-colors border-r border-slate-800"
+              >
+                <X className="w-4 h-4" />
+                Decline
+              </button>
+              <button
+                onClick={() => {
+                  // Accept logic: could make API call, update UI, etc
+                  toast.dismiss(t.id);
+                  toast.success("Friend request accepted.");
+                  // Optional: add logic to update friend list, notify server, etc.
+                  handleFriendRequestAccept(msg);
+                }}
+                className="w-full px-4 py-3 flex items-center justify-center gap-2 text-sm font-semibold text-sky-500 hover:text-sky-400 hover:bg-sky-500/10 transition-colors"
+              >
+                <Check className="w-4 h-4" />
+                Accept
+              </button>
+            </div>
+          </div>
+        ), {
+          id: `friend-request-toast-${fromUserId}`,
+          duration: Infinity,
+          position: "top-center"
+        });
       }
     });
 
