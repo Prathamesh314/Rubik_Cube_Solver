@@ -5,7 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/Addons.js';
 import { CubeOptions, RubikCube } from '../utils/cube';
 import { Player } from '@/modals/player';
 import { Room } from '@/modals/room';
-import { generateScrambledCube } from '@/app/room/[roomId]/page';
+import { generateScrambledCube } from '@/utils/cube_helper';
 
 
 type FaceName = "U" | "R" | "F" | "D" | "L" | "B";
@@ -63,7 +63,7 @@ const RubiksCubeViewer = forwardRef<RubiksCubeViewerHandle, RubiksCubeViewerProp
   const faceLabelsRef = useRef<THREE.Group | null>(null);
   
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
-  const [cubeState, setCubeState] = useState<Cube>(props.room?.initialState ?? generateScrambledCube(20).state);
+  const [cubeState, setCubeState] = useState<Cube>(props.room?.initialState ?? generateScrambledCube().state);
   const [moveHistory, setMoveHistory] = useState<MoveHistory>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [showLabels, setShowLabels] = useState<boolean>(true);
@@ -290,7 +290,7 @@ const RubiksCubeViewer = forwardRef<RubiksCubeViewerHandle, RubiksCubeViewerProp
   const handleScramble = (): void => {
     if (isAnimating || !rubikCubeRef.current) return;
     setIsAnimating(true);
-    const newState = rubikCubeRef.current.generateScrambledCube(20);
+    const newState = generateScrambledCube();
     setCubeState(newState.state);
     setMoveHistory([]);
     setTimeout(() => setIsAnimating(false), 500);

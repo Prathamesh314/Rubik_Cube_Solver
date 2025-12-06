@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Redis } from "@/utils/redis";
+import { Redis } from "@/redis/index";
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,12 +10,12 @@ export async function GET(req: NextRequest) {
     const r = Redis.getInstance();
     await r.connect();
 
-    const roomId = await r.get_player_room(playerId);
+    const roomId = await r.getPlayerRoom(playerId);
     if (!roomId) {
       return NextResponse.json({ status: "queued" }, { status: 200 });
     }
 
-    const room = await r.get_player_room(roomId);
+    const room = await r.getPlayerRoom(roomId);
     if (!room) {
       // very rare: mapping exists but room vanished; treat as queued
       return NextResponse.json({ status: "queued" }, { status: 200 });

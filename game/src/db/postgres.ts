@@ -16,8 +16,6 @@ import {
     port: Env.POSTGRES_PORT,
   };
   
-  console.log('Db config: ', dbConfig);
-  
   export const tables = {
     user: 'user', 
     friends: 'friends',  

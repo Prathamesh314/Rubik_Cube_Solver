@@ -3,7 +3,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CubeCategories, Player, PlayerState } from "@/modals/player";
 import { NavBar } from "./Navbar";
-import { GameEventTypes } from "@/types/game-events";
+import { GameEvents, GameEventTypes } from "@/types/game-events";
 import { useSocket } from "@/context/SocketContext";
 import { toast } from "react-hot-toast";
 import { Swords, X, Check, Users } from "lucide-react";
@@ -101,7 +101,7 @@ export default function LandingPage() {
   const {add} = useNotification()
 
   const handleChallengeRejected = (opponentPlayerId?: string, roomId?: string) => {
-    const friend_challenge_rejected_msg = {
+    const friend_challenge_rejected_msg: GameEvents = {
       type: GameEventTypes.FriendChallengeRejected,
       value: {
         playerId: sessionStorage.getItem("userId"),

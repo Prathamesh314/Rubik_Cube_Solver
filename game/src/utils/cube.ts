@@ -2,6 +2,7 @@ import { Player } from "@/modals/player";
 import { Room } from "@/modals/room";
 import { GameEventTypes } from "@/types/game-events";
 import { SimpleCubeHelper } from "@/utils/cube_helper";
+import { generateScrambledCube } from "@/utils/cube_helper";
 
 export type FaceName = "U" | "R" | "F" | "D" | "L" | "B";
 export type Cube = number[][][];
@@ -28,7 +29,7 @@ export class RubikCube {
   constructor(container: HTMLElement, cube_options: CubeOptions, wsRef: WebSocket | null, player: Player | undefined, room: Room | null, participants: Array<Player | undefined>) {
     // this.cube = cube;
     // this.cube = room?.initialState ?? this.generateScrambledCube(20)
-    this.cube = player?.scrambledCube ?? this.generateScrambledCube(20).state;
+    this.cube = player?.scrambledCube ?? generateScrambledCube().state;
     this.cube_options = cube_options;
     this.container = container;
     this.wsRef = wsRef;
@@ -88,59 +89,6 @@ export class RubikCube {
     return JSON.parse(JSON.stringify(this.cube));
   }
 
-  generateScrambledCube(number_of_moves: number): {state: Cube, moves: string[]} {
-    let cube = [
-      [[1,1,1],[1,1,1],[1,1,1]], // Back - Red
-      [[4,4,4],[4,4,4],[4,4,4]], // Up - Yellow
-      [[5,5,5],[5,5,5],[5,5,5]], // Front - Orange
-      [[6,6,6],[6,6,6],[6,6,6]], // Down - White
-      [[2,2,2],[2,2,2],[2,2,2]], // Left - Green
-      [[3,3,3],[3,3,3],[3,3,3]], // Right - Blue
-    ];
-    const helper = new SimpleCubeHelper();
-    const faces: FaceName[] = ["U", "D", "F", "B", "L", "R"];
-    const moves: string[] = [];
-    let prevFace: FaceName | null = null;
-  
-    for (let i = 0; i < number_of_moves; i++) {
-      // Choose a random face, but avoid repeating the same face consecutively
-      let face: FaceName;
-      do {
-        face = faces[Math.floor(Math.random() * faces.length)];
-      } while (face === prevFace);
-  
-      prevFace = face;
-      const clockwise = Math.random() < 0.5;
-  
-      // Apply the move
-      switch (face) {
-        case "U":
-          cube = helper.rotateU(cube, clockwise);
-          break;
-        case "D":
-          cube = helper.rotateD(cube, clockwise);
-          break;
-        case "F":
-          cube = helper.rotateF(cube, clockwise);
-          break;
-        case "B":
-          cube = helper.rotateB(cube, clockwise);
-          break;
-        case "L":
-          cube = helper.rotateL(cube, clockwise);
-          break;
-        case "R":
-          cube = helper.rotateR(cube, clockwise);
-          break;
-      }
-  
-      // Record the move in standard notation
-      moves.push(`${face}${clockwise ? '' : "'"}`);
-    }
-  
-    return { state: cube, moves };
-  }
-
   isRubikCubeSolved() {
     // Check if each face (3x3 array) is filled with the same value
     for (let face = 0; face < 6; face++) {
@@ -173,14 +121,6 @@ export class RubikCube {
   }
 }
 
-/**
- * Extended cube initializer, now accepts an extra options param.
- * 
- * @param container - The DOM element container for the cube
- * @param state - The cube state (6x3x3 array)
- * @param colorMap - The color map (number: colorHex)
- * @param options - { controlsEnabled?: boolean }
- */
 export function initRubiksCube(
   container: HTMLElement,
   wsRef: WebSocket | null,
@@ -193,11 +133,5 @@ export function initRubiksCube(
         throw Error("Cannot start the game the player is undefined....")
     }
   const cube = new RubikCube(container, options, wsRef, player, room, participants);
-  // return {
-  //   turn: (face: FaceName, cw = true) => cube.turn(face, cw),
-  //   dispose: () => cube.dispose(),
-  //   // You may wish to expose controlsEnabled externally if needed:
-  //   controlsEnabled: cube.controlsEnabled,
-  // };
   return cube;
 }
