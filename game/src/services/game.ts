@@ -1,7 +1,7 @@
 // src/modals/game.ts
 import { Player, CubeCategories } from "@/modals/player";
 import { Room } from "@/modals/room";
-import { Redis } from "@/utils/redis";
+import { Redis } from "@/redis/index";
 
 class Game {
   private static _instance: Game | null = null;
@@ -46,23 +46,23 @@ class Game {
   }
 
   async getRoom(room_id: string) {
-    return await this.redis.get_room(room_id)
+    return await this.redis.getRoom(room_id)
   }
 
   async removePlayerFromRoom(roomId: string, playerId: string){
-    return await this.redis.remove_player_from_room(playerId, roomId);
+    return await this.redis.removePlayerFromRoom(playerId, roomId);
   }
 
   async deleteRoom(roomId: string) {
-    await this.redis.delete_room(roomId)
+    await this.redis.deleteRoom(roomId)
   }
 
   async deletePlayer(playerId: string) {
-    await this.redis.delete_player(playerId)
+    await this.redis.deletePlayer(playerId)
   }
 
   async deletePlayerRoom(playerId: string, roomId: string | null) {
-    await this.redis.remove_player_from_room(playerId, roomId)
+    await this.redis.removePlayerFromRoom(playerId, roomId)
   }
 
 }

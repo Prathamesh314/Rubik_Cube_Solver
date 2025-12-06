@@ -4,7 +4,7 @@ import React, { useRef, useEffect, useMemo, useState } from "react";
 import { Search, MessageCircle, Swords, Users, X, Check, UserPlus } from "lucide-react"; // Added UserPlus icon
 // 1. Import the socket context and types
 import { useSocket } from "@/context/SocketContext"; 
-import { GameEventTypes } from "@/types/game-events";
+import { GameEvents, GameEventsMessage, GameEventTypes } from "@/types/game-events";
 import { CubeCategories, PlayerState, Player } from "@/modals/player";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
@@ -53,7 +53,7 @@ const FriendsPage: React.FC = () => {
   const userId = typeof window !== "undefined" ? sessionStorage.getItem("userId") : null;
 
   const handleChallengeRejected = (opponentPlayerId?: string, roomId?: string) => {
-    const friend_challenge_rejected_msg = {
+    const friend_challenge_rejected_msg: GameEvents = {
       type: GameEventTypes.FriendChallengeRejected,
       value: {
         playerId: sessionStorage.getItem("userId"),
@@ -205,9 +205,10 @@ const FriendsPage: React.FC = () => {
       console.log("[FriendsPage] incoming:", msg);
 
       if (msg.type === GameEventTypes.PlayerStatusUpdate) {
-        // INSERT_YOUR_CODE
-        // If PlayerStatusUpdate received, update "friends" list to reflect who's online
-        setOnlinePlayers(msg.value.player)
+        const onlinePlayerIds = msg.value || {};
+        console.log("Message values: ", msg.value);
+      
+        setOnlinePlayers(onlinePlayerIds);
       } else if (msg.type === GameEventTypes.FriendChallenge) {
         const opponentId = msg.value.opponentPlayerId;
         const roomId = msg.value.roomId
@@ -339,7 +340,8 @@ const FriendsPage: React.FC = () => {
     if (!isReady) return;
     // prove send/receive path via a ping
     const playerId = sessionStorage.getItem("userId")
-    const playerOnlineMessage = {
+    if (!playerId) return;
+    const playerOnlineMessage: GameEvents = {
       type: GameEventTypes.PlayerOnline,
       value: {
         playerId: playerId
@@ -486,7 +488,7 @@ const FriendsPage: React.FC = () => {
     (async () => {
       try {
         const { roomId } = await makeApiRequestToStartFriendMatch();
-        const friendChallengeMsg = {
+        const friendChallengeMsg: GameEvents = {
           type: GameEventTypes.FriendChallenge,
           value: {
             playerId: userId,
@@ -528,11 +530,11 @@ const FriendsPage: React.FC = () => {
   
         if (res.ok && result.success) {
           toast.success(`Sent friend request to ${user.username}`);
-          const send_friend_request_msg = {
+          const send_friend_request_msg: GameEvents = {
             type: GameEventTypes.SendFriendRequest,
             value: {
                 fromUserId: selfUserId,
-                fromUsername: userName,
+                fromUsername: userName ?? `user_${selfUserId.substring(0,5)}`,
                 toUserId: user.id
             }
           }

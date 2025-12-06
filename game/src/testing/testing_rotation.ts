@@ -1,4 +1,4 @@
-import { applyMove, generateScrambledCube } from "@/utils/cube";
+import { Env } from "@/lib/env_config";
 
 type FaceName = "U" | "R" | "F" | "D" | "L" | "B";
 type Move = { face: FaceName; clockwise: boolean };
@@ -20,17 +20,20 @@ function prettyPrintCube(cube: number[][][]) {
 }
 
 async function rotate_cube(){
-    console.log("testing rotation..")
-    const {moves, state} = generateScrambledCube(20);
+    // console.log("testing rotation..")
+    // const {moves, state} = generateScrambledCube(20);
 
-    prettyPrintCube(state);
-    const move: Move = {
-        face: "U",
-        clockwise: true
-    };
-    const new_state = applyMove(state, move);
-    console.log("=============================================== New state ===============================================")
-    prettyPrintCube(new_state);
+    // prettyPrintCube(state);
+    // const move: Move = {
+    //     face: "U",
+    //     clockwise: true
+    // };
+    // const new_state = applyMove(state, move);
+    // console.log("=============================================== New state ===============================================")
+    // prettyPrintCube(new_state);
+
+    const env_var = Env.WEBSOCKET_PORT
+    console.log("WEBSOCKET_PORT from Env:", env_var);
 }
 
 (()=>{

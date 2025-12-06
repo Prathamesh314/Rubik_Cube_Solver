@@ -3,20 +3,21 @@ import dbConnect, { tables } from '@/db/postgres';
 import {
     sql
 } from 'kysely'
-import { Game } from '@/services/game';
 
 export async function PATCH(req: NextRequest) {
   try {
     const postgresdb = await dbConnect();
 
     const body = await req.json();
-    let { playerId, ratingIncrement, game_result, roomId } = body;
+    let { playerId, ratingIncrement, game_result } = body;
     let total_wins_increment = 0;
+    
     if (game_result === "lost") {
-        ratingIncrement = -ratingIncrement
+        ratingIncrement = -ratingIncrement;
     } else {
         total_wins_increment = 1;
     }
+    
     await sql`
         UPDATE ${sql.table(tables.user)}
         SET 
@@ -26,14 +27,10 @@ export async function PATCH(req: NextRequest) {
         WHERE id = ${playerId}
     `.execute(postgresdb.connection());
 
-    const game = await Game.getInstance();
-    await game.deletePlayer(playerId);
-    await game.deletePlayerRoom(playerId, roomId)
-
     return NextResponse.json({
         success: true,
         message: "Player updated successfully"
-    }, {status: 201})
+    }, { status: 200 });
     
   } catch (error) {
     console.error('Update user error:', error);
@@ -47,4 +44,3 @@ export async function PATCH(req: NextRequest) {
     );
   }
 }
-

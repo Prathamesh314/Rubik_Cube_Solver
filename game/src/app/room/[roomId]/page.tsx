@@ -5,10 +5,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Player } from "@/modals/player";
 import { Room } from "@/modals/room";
-import { GameEventTypes } from "@/types/game-events";
+import { GameEvents, GameEventTypes } from "@/types/game-events";
 import RubiksCubeViewer, { RubiksCubeViewerHandle } from "@/components/RubiksCubeViewer";
-import { Cube, FaceName } from "@/utils/cube";
-import { SimpleCubeHelper } from "@/utils/cube_helper";
 import WinnerPopup from "@/components/WinnerPopup";
 
 const WS_URL = "ws://localhost:8002";
@@ -48,61 +46,6 @@ function Timer({ startTime }: { startTime: number | null }) {
     </div>
   );
 }
-
-
-export function generateScrambledCube(number_of_moves: number): { state: Cube; moves: string[] } {
-  let cube = [
-    [[1,1,1],[1,1,1],[1,1,1]], // Back - Red
-    [[4,4,4],[4,4,4],[4,4,4]], // Up - Yellow
-    [[5,5,5],[5,5,5],[5,5,5]], // Front - Orange
-    [[6,6,6],[6,6,6],[6,6,6]], // Down - White
-    [[2,2,2],[2,2,2],[2,2,2]], // Left - Green
-    [[3,3,3],[3,3,3],[3,3,3]], // Right - Blue
-  ];
-  const helper = new SimpleCubeHelper();
-  const faces: FaceName[] = ["U", "D", "F", "B", "L", "R"];
-  const moves: string[] = [];
-  let prevFace: FaceName | null = null;
-
-  for (let i = 0; i < number_of_moves; i++) {
-    // Choose a random face, but avoid repeating the same face consecutively
-    let face: FaceName;
-    do {
-      face = faces[Math.floor(Math.random() * faces.length)];
-    } while (face === prevFace);
-
-    prevFace = face;
-    const clockwise = Math.random() < 0.5;
-
-    // Apply the move
-    switch (face) {
-      case "U":
-        cube = helper.rotateU(cube, clockwise);
-        break;
-      case "D":
-        cube = helper.rotateD(cube, clockwise);
-        break;
-      case "F":
-        cube = helper.rotateF(cube, clockwise);
-        break;
-      case "B":
-        cube = helper.rotateB(cube, clockwise);
-        break;
-      case "L":
-        cube = helper.rotateL(cube, clockwise);
-        break;
-      case "R":
-        cube = helper.rotateR(cube, clockwise);
-        break;
-    }
-
-    // Record the move in standard notation
-    moves.push(`${face}${clockwise ? '' : "'"}`);
-  }
-
-  return { state: cube, moves };
-}
-
 
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
@@ -173,47 +116,101 @@ export default function RoomPage() {
   async function handleLeaveRoom() {
     if (!roomId || !selfPlayerId) return;
     try {
-
-      if(wsRef.current) {
+      if(wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         let elapsedTime = 0;
         if (gameStartTime) {
           const totalSeconds = Math.floor((Date.now() - gameStartTime) / 1000);
           const minutes = Math.floor(totalSeconds / 60);
           const seconds = totalSeconds % 60;
-          // Represent elapsed time as total seconds (minutes*60 + seconds)
           elapsedTime = minutes * 60 + seconds;
         }
-        const game_finished_msg = {
+
+        // Ensure we have valid opponent data
+        const opponentId = selfPlayerId === playerA?.player_id 
+          ? playerB?.player_id 
+          : playerA?.player_id;
+
+        if (!opponentId) {
+          console.warn("Cannot send game finished: opponent not found");
+          // Just close the connection without sending game finished
+          wsRef.current.close();
+          localStorage.removeItem("player");
+          router.push("/");
+          return;
+        }
+
+        const gameFinishedMessage: GameEvents = {
           type: GameEventTypes.GameFinished,
           value: {
             roomId: roomId,
-            player_id_who_won: playerA?.player_id === selfPlayerId ? playerB?.player_id : playerA?.player_id,
-            end_time: elapsedTime
-          }
-        }
+            player_id_who_won: opponentId,
+            end_time: elapsedTime.toString(),
+          },
+        };
 
-        console.log("Game finished event send because of leaving room: ", game_finished_msg)
-        wsRef.current.send(JSON.stringify(game_finished_msg))
+        console.log("Game finished event sent because of leaving room: ", gameFinishedMessage);
+        wsRef.current.send(JSON.stringify(gameFinishedMessage));
+        
+        // Wait a bit for the message to be sent
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
 
-      localStorage.removeItem("player")
+      localStorage.removeItem("player");
       router.push("/");
     } catch (e) {
       console.error("Failed to leave room:", e);
-      return null;
+      localStorage.removeItem("player");
+      router.push("/");
     }
   }
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // This fires when user tries to close tab, refresh, or navigate away
+      // Only send game finished if game is actually in progress
+      if (wsRef.current && 
+          wsRef.current.readyState === WebSocket.OPEN && 
+          roomId && 
+          selfPlayerId &&
+          gameStartTime) {  // Only if game has started
+        
+        const opponentId = selfPlayerId === playerA?.player_id 
+          ? playerB?.player_id 
+          : playerA?.player_id;
+
+        if (opponentId) {
+          let elapsedTime = 0;
+          if (gameStartTime) {
+            const totalSeconds = Math.floor((Date.now() - gameStartTime) / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            elapsedTime = minutes * 60 + seconds;
+          }
+
+          const gameFinishedMessage: GameEvents = {
+            type: GameEventTypes.GameFinished,
+            value: {
+              roomId: roomId,
+              player_id_who_won: opponentId,
+              end_time: elapsedTime.toString(),
+            },
+          };
+
+          // Use sendBeacon for more reliable delivery on page unload
+          const blob = new Blob([JSON.stringify(gameFinishedMessage)], {
+            type: 'application/json'
+          });
+          
+          // Try WebSocket first
+          try {
+            wsRef.current.send(JSON.stringify(gameFinishedMessage));
+          } catch (err) {
+            console.error("Failed to send via WebSocket on unload:", err);
+          }
+        }
+      }
+
       e.preventDefault();
-      // Chrome requires returnValue to be set
       e.returnValue = '';
-      console.log("Hiii")
-      
-      // You can perform cleanup here
-      // Note: modern browsers ignore custom messages
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -221,7 +218,7 @@ export default function RoomPage() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, []);
+  }, [roomId, selfPlayerId, playerA, playerB, gameStartTime]); // Add dependencies
 
   const [hasSentGameFinished, setHasSentGameFinished] = useState(false);
 
@@ -238,17 +235,17 @@ export default function RoomPage() {
       elapsedTime = minutes * 60 + seconds;
     }
   
-    const game_finished_msg = {
+    const gameFinishedMessage: GameEvents = {
       type: GameEventTypes.GameFinished,
       value: {
         roomId: roomId,
         player_id_who_won: selfPlayerId,
-        end_time: elapsedTime,
+        end_time: elapsedTime.toString(),
       },
     };
 
-    console.log("Sending game finished message because cube is solved: ", game_finished_msg)  
-    wsRef.current.send(JSON.stringify(game_finished_msg));
+    console.log("Sending game finished message because cube is solved: ", gameFinishedMessage)  
+    wsRef.current.send(JSON.stringify(gameFinishedMessage));
     setHasSentGameFinished(true);
   };
   
@@ -300,18 +297,18 @@ export default function RoomPage() {
     const ws = wsRef.current;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
-    const message = {
-      type: "KeyBoardButtonPressed",
+    const keyboardButtonMessage: GameEvents = {
+      type: GameEventTypes.KeyBoardButtonPressed,
       value: {
-        roomId: roomId,
+        room: room ?? undefined,
         player: selfPlayerId === playerA?.player_id ? playerA : playerB,
         keyboardButton: e.key,
-        clockwise: e.shiftKey ? "anticlockwise" : "clockwise"
+        direction: e.shiftKey ? "anticlockwise" : "clockwise",
       },
     };
 
     try {
-      ws.send(JSON.stringify(message));
+      ws.send(JSON.stringify(keyboardButtonMessage));
     } catch (err) {
       console.error("Failed to send keyboard event:", err);
     }
@@ -329,16 +326,17 @@ export default function RoomPage() {
 
     ws.onopen = () => {
       setWsReady(true);
-      const game_started_msg = {
+      const gameStartedMessage: GameEvents = {
         type: GameEventTypes.GameStarted,
         value: {
           roomId: roomId,
-          current_player: selfPlayerId === playerA?.player_id ? playerA : playerB
-        }
-      }
+          player: selfPlayerId === playerA?.player_id ? playerA : playerB,
+          start_time: new Date().toISOString(),
+        },
+      };
 
-      console.log("Started the game: ", game_started_msg)
-      ws.send(JSON.stringify(game_started_msg))
+      console.log("Started the game: ", gameStartedMessage)
+      ws.send(JSON.stringify(gameStartedMessage))
     };
 
     ws.onclose = () => {

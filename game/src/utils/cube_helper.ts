@@ -1,4 +1,5 @@
-import { Cube } from "@/utils/cube";
+import { Cube, FaceName } from "@/utils/cube";
+import { randomInt } from "crypto";
 
 export class SimpleCubeHelper {
   rotateFaceClockwise(face: number[][]) {
@@ -165,4 +166,57 @@ export class SimpleCubeHelper {
     
     return newCube;
   }
+}
+
+export function generateScrambledCube(): { state: Cube; moves: string[] } {
+  const number_of_moves = randomInt(20, 41);
+  let cube = [
+    [[1,1,1],[1,1,1],[1,1,1]], // Back - Red
+    [[4,4,4],[4,4,4],[4,4,4]], // Up - Yellow
+    [[5,5,5],[5,5,5],[5,5,5]], // Front - Orange
+    [[6,6,6],[6,6,6],[6,6,6]], // Down - White
+    [[2,2,2],[2,2,2],[2,2,2]], // Left - Green
+    [[3,3,3],[3,3,3],[3,3,3]], // Right - Blue
+  ];
+  const helper = new SimpleCubeHelper();
+  const faces: FaceName[] = ["U", "D", "F", "B", "L", "R"];
+  const moves: string[] = [];
+  let prevFace: FaceName | null = null;
+
+  for (let i = 0; i < number_of_moves; i++) {
+    let face: FaceName;
+    do {
+      face = faces[Math.floor(Math.random() * faces.length)];
+    } while (face === prevFace);
+
+    prevFace = face;
+    const clockwise = Math.random() < 0.5;
+
+    // Apply the move
+    switch (face) {
+      case "U":
+        cube = helper.rotateU(cube, clockwise);
+        break;
+      case "D":
+        cube = helper.rotateD(cube, clockwise);
+        break;
+      case "F":
+        cube = helper.rotateF(cube, clockwise);
+        break;
+      case "B":
+        cube = helper.rotateB(cube, clockwise);
+        break;
+      case "L":
+        cube = helper.rotateL(cube, clockwise);
+        break;
+      case "R":
+        cube = helper.rotateR(cube, clockwise);
+        break;
+    }
+
+    // Record the move in standard notation
+    moves.push(`${face}${clockwise ? '' : "'"}`);
+  }
+
+  return { state: cube, moves };
 }
